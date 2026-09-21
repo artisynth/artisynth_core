@@ -5329,7 +5329,6 @@ PointAttachable, ConnectableBody {
                      if ((ci = node.getIncompressIndex()) != -1) {
                         // if the tet contains inactive nodes, should
                         // we use something other than 0.25*tdiv?
-                        // Also, why do we use +tdiv for NODE and -tdiv for ELEM?
                         ginfo[idx + ci].dist += tdiv * 0.25;
                      }
                   }

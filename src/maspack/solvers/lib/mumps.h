@@ -27,6 +27,7 @@
 #define MUMPS_WRAPPER_H
 
 #include "dmumps_c.h"
+#include "hybridSolve.h"
 
 // values for ICNTL(7), the fill reducing ordering method
 #define MUMPS_AMD_REORDER     0
@@ -43,7 +44,7 @@
 #define MUMPS_SPD         1
 #define MUMPS_SYMMETRIC   2
 
-class Mumps {
+class Mumps : public HybridSolver {
 
   private:
 
@@ -69,6 +70,11 @@ class Mumps {
 
 	double *myRhs;           // rhs/solution buffer, since MUMPS solves in place
 	int myMaxRhsSize;
+
+	// iterative (hybrid) solves, which use the most recent factorization as
+	// a preconditioner for the current matrix values; see hybridSolve.h
+	int *myRowOffs;          // 1-based CRS row offsets, for matrix products
+	double *myCurVals;       // current matrix values
 
 	// statistics, read back from INFOG after each phase
 	long long myNumNonZerosInFactors;
@@ -107,6 +113,13 @@ class Mumps {
 	void clearStatistics();
 	void getAnalysisStatistics();
 	void getFactorStatistics();
+
+  protected:
+
+	// HybridSolver implementation
+	int precondSolve (double* z, const double* r);
+	int beginIterations();
+	void endIterations();
 
   public:
 
@@ -175,6 +188,10 @@ class Mumps {
 
 	int solveMatrix (double *x, const double* b);
 	int solveMatrix (double *x, const double* b, int nrhs);
+
+	// iterativeSolve(), getLastIterativeSolves(), getLastIterativeResidual()
+	// and getLastIterativeTimes() are inherited from HybridSolver, with
+	// method one of HYBRID_GMRES or HYBRID_CGS.
 
 	int releaseMatrix();
 

@@ -471,6 +471,43 @@ public class PardisoSolverTest extends DirectSolverTestBase
       solver.dispose();
    }
 
+   /**
+    * Iterative solves are checked for Pardiso's own method ("NATIVE") and for
+    * GMRES and CGS performed by the native wrapper.
+    */
+   protected Object[] getIterativeMethods() {
+      return new Object[] {
+         "NATIVE",
+         DirectSolver.IterativeMethod.GMRES,
+         DirectSolver.IterativeMethod.CGS };
+   }
+
+   protected void setIterativeMethod (DirectSolver solver, Object method) {
+      PardisoSolver psolver = (PardisoSolver)solver;
+      if (method.equals ("NATIVE")) {
+         psolver.setUseNativeIterativeSolve (true);
+      }
+      else {
+         psolver.setUseNativeIterativeSolve (false);
+         psolver.setIterativeMethod ((DirectSolver.IterativeMethod)method);
+      }
+   }
+
+   protected void checkIterativeSolveInfo (DirectSolver solver, Object method) {
+      PardisoSolver psolver = (PardisoSolver)solver;
+      if (method.equals ("NATIVE")) {
+         checkEquals (
+            "getLastIterativeSolves()", psolver.getLastIterativeSolves(), -1);
+         check ("getLastIterativeTimes() == null",
+                psolver.getLastIterativeTimes() == null);
+      }
+      else {
+         super.checkIterativeSolveInfo (solver, method);
+         check ("getLastIterativeTimes() != null",
+                psolver.getLastIterativeTimes() != null);
+      }
+   }
+
    public void dotest () throws IOException {
       testBasics();
       testSPDFailure();

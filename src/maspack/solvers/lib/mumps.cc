@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 // MUMPS job values
 #define JOB_INIT     -1
@@ -31,7 +32,7 @@
 #define MAX_FACTOR_RETRIES 4
 
 // OpenMP and MKL thread control. Declared explicitly so that this file does
-// not need to be compiled with -fopenmp, or to include the MKL headers.
+// not need to be compiled with -fopenmp.
 // Note that the MKL routines must be referred to by their C names
 // (MKL_Set_Num_Threads); the lower case names are the Fortran entry points,
 // which take their argument by reference.
@@ -61,6 +62,9 @@ Mumps::Mumps()
 
    myRhs = NULL;
    myMaxRhsSize = 0;
+
+   myRowOffs = NULL;
+   myCurVals = NULL;
 
    // MUMPS default settings. Negative int values mean "leave at the MUMPS
    // default"; the exceptions are the settings whose default we deliberately
@@ -213,16 +217,25 @@ int Mumps::allocateMatrix (int size, int numVals)
       free (myIrn);
       free (myJcn);
       free (myVals);
+      free (myCurVals);
       myIrn = (MUMPS_INT*)malloc (numVals*sizeof(MUMPS_INT));
       myJcn = (MUMPS_INT*)malloc (numVals*sizeof(MUMPS_INT));
       myVals = (double*)malloc (numVals*sizeof(double));
-      if (myIrn == NULL || myJcn == NULL || myVals == NULL) {
+      myCurVals = (double*)malloc (numVals*sizeof(double));
+      if (myIrn == NULL || myJcn == NULL || myVals == NULL ||
+          myCurVals == NULL) {
          myMaxNumVals = 0;
          return -13;  // MUMPS code for an allocation problem
       }
       myMaxNumVals = numVals;
    }
    if (size > myMaxSize) {
+      free (myRowOffs);
+      myRowOffs = (int*)malloc ((size+1)*sizeof(int));
+      if (myRowOffs == NULL) {
+         myMaxSize = 0;
+         return -13;
+      }
       myMaxSize = size;
    }
    return 0;
@@ -251,6 +264,9 @@ int Mumps::setMatrix (
    if (myInitError != 0) {
       return myInitError;
    }
+   // the iterative structure references arrays which allocateMatrix may
+   // reallocate
+   clearIterativeStructure();
    int err = allocateMatrix (size, numVals);
    if (err != 0) {
       myLastInfo1 = err;
@@ -270,6 +286,11 @@ int Mumps::setMatrix (
    }
    for (k=0; k<numVals; k++) {
       myVals[k] = vals[k];
+   }
+   // keep the row offsets, so that the CRS form is available for the matrix
+   // products needed by iterative solves
+   for (i=0; i<=size; i++) {
+      myRowOffs[i] = rowOffs[i];
    }
    mySize = size;
    myNumVals = numVals;
@@ -296,6 +317,8 @@ int Mumps::setMatrix (
       return rcode;
    }
    getAnalysisStatistics();
+   setIterativeStructure (
+      size, numVals, myRowOffs, myJcn, myCurVals, sym != MUMPS_UNSYMMETRIC);
    return rcode;
 }
 
@@ -442,18 +465,62 @@ int Mumps::solveMatrix (double *x, const double* b, int nrhs)
    return rcode;
 }
 
+/* --------------------------------------------------------------------
+ * Iterative (hybrid) solves. The GMRES and CGS iterations are implemented
+ * by HybridSolver (hybridSolve.cc), which calls precondSolve() below.
+ * -------------------------------------------------------------------- */
+
+/**
+ * Applies the preconditioner, z = M^{-1} r, using the current factorization.
+ * MUMPS solves in place, so r is copied into z and solved there.
+ */
+int Mumps::precondSolve (double* z, const double* r)
+{
+   memcpy (z, r, mySize*sizeof(double));
+   myId.nrhs = 1;
+   myId.rhs = z;
+   int rcode = callMumps (JOB_SOLVE);
+   myId.rhs = myRhs;
+   return rcode;
+}
+
+/**
+ * Disables refinement and error analysis within the preconditioner solves,
+ * since the outer iteration controls the accuracy.
+ */
+int Mumps::beginIterations()
+{
+   applySettings();
+   myId.ICNTL(10) = 0;
+   myId.ICNTL(11) = 0;
+   return 0;
+}
+
+void Mumps::endIterations()
+{
+   myId.nrhs = 1;
+   applySettings();  // restores ICNTL(10)
+}
+
 int Mumps::releaseMatrix()
 {
    terminateInstance();
+   clearIterativeStructure();
+   releaseIterativeWork();
    free (myIrn);
    free (myJcn);
    free (myVals);
    free (myRhs);
+   free (myRowOffs);
+   free (myCurVals);
    myIrn = NULL;
    myJcn = NULL;
    myVals = NULL;
    myRhs = NULL;
+   myRowOffs = NULL;
+   myCurVals = NULL;
    myMaxNumVals = 0;
+   myMaxSize = 0;
    myMaxRhsSize = 0;
    mySize = 0;
    myNumVals = 0;

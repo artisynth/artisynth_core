@@ -50,10 +50,10 @@ ifndef MUMPS_HOME
    MUMPS_HOME = $(HOME)/packages/MUMPS_$(MUMPS_VERSION)
 endif
 ifndef MKL_HOME
-   MKL_HOME = /opt/intel/oneapi2025/mkl/latest
+   MKL_HOME = /opt/intel/oneapi2026/mkl/latest
 endif
 ifndef MKL_THREAD_LIB
-   MKL_THREAD_LIB = /opt/intel/oneapi2025/compiler/latest/lib
+   MKL_THREAD_LIB = /opt/intel/oneapi2026/compiler/latest/lib
 endif
 ifndef SCOTCH_HOME
    SCOTCH_HOME = $(HOME)/packages/scotch-7.0.12-static
@@ -74,10 +74,10 @@ endif
 LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
 MUMPS_TARGET = libMumpsJNI.so.$(MUMPS_VERSION)
 
-MUMPS_OBJS = MumpsJNI.o mumps.o
+MUMPS_OBJS = MumpsJNI.o mumps.o hybridSolve.o
 
 CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux \
-	  -I$(MUMPS_HOME)/include -I.
+	  -I$(MUMPS_HOME)/include -I$(MKL_HOME)/include -I.
 
 CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX
 
@@ -116,10 +116,14 @@ maspack_solvers_MumpsSolver.h: ../MumpsSolver.java
 	javac -h . -d $(ROOT_DIR)/classes -cp "$(ROOT_DIR)/classes" \
 	   ../MumpsSolver.java
 
-mumps.o: mumps.cc mumps.h
+# hybrid (preconditioned iterative) solves, shared with the Pardiso JNI library
+hybridSolve.o: hybridSolve.cc hybridSolve.h
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o hybridSolve.o hybridSolve.cc
+
+mumps.o: mumps.cc mumps.h hybridSolve.h
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o mumps.o mumps.cc
 
-MumpsJNI.o: MumpsJNI.cc mumps.h maspack_solvers_MumpsSolver.h
+MumpsJNI.o: MumpsJNI.cc mumps.h hybridSolve.h hybridSolveJNI.h maspack_solvers_MumpsSolver.h
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o MumpsJNI.o MumpsJNI.cc
 
 $(LIB_TARGET_DIR)/$(MUMPS_TARGET): $(MUMPS_OBJS) mumps_version.map

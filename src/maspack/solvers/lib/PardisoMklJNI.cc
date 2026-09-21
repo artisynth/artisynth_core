@@ -1,5 +1,6 @@
 #include <jni.h>
 #include "pardisoMkl.h"
+#include "hybridSolveJNI.h"
 #include "mkl_service.h"
 #include "maspack_solvers_PardisoSolver.h"
 
@@ -141,6 +142,30 @@ JNIEXPORT jint JNICALL
 {
 	Pardiso4* pardiso = (Pardiso4*)handle;
 	return pardiso->getReorderMethod ();
+}
+
+JNIEXPORT jint JNICALL
+   Java_maspack_solvers_PardisoSolver_doSetIParam (
+      JNIEnv *env, jobject obj, jlong handle, jint idx, jint value)
+{
+	Pardiso4* pardiso = (Pardiso4*)handle;
+	return pardiso->setIParam (idx, value);
+}
+
+JNIEXPORT jint JNICALL
+   Java_maspack_solvers_PardisoSolver_doGetIParam (
+      JNIEnv *env, jobject obj, jlong handle, jint idx)
+{
+	Pardiso4* pardiso = (Pardiso4*)handle;
+	return pardiso->getIParam (idx);
+}
+
+JNIEXPORT void JNICALL
+   Java_maspack_solvers_PardisoSolver_doClearIParams (
+      JNIEnv *env, jobject obj, jlong handle)
+{
+	Pardiso4* pardiso = (Pardiso4*)handle;
+	pardiso->clearIParams ();
 }
 
 JNIEXPORT jint JNICALL
@@ -475,6 +500,41 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doIterativeSolve (
         env->ReleaseDoubleArrayElements (jvals, vals, JNI_ABORT);
 
 	return retcode;
+}
+
+/* --- hybrid iterative solves --- */
+
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doHybridSolve (
+   JNIEnv *env, jobject obj, jlong handle, jdoubleArray jvals,
+   jdoubleArray jxvec, jdoubleArray jbvec, jdouble tol, jint method,
+   jint maxSolves, jint restart, jboolean critical)
+{
+   return hybridSolveJNI (
+      env, (Pardiso4*)handle, jvals, jxvec, jbvec, tol, method, maxSolves,
+      restart, critical);
+}
+
+JNIEXPORT jint JNICALL
+Java_maspack_solvers_PardisoSolver_doGetLastIterativeSolves (
+   JNIEnv *env, jobject obj, jlong handle)
+{
+   return ((Pardiso4*)handle)->getLastIterativeSolves();
+}
+
+JNIEXPORT jdouble JNICALL
+Java_maspack_solvers_PardisoSolver_doGetLastIterativeResidual (
+   JNIEnv *env, jobject obj, jlong handle)
+{
+   return ((Pardiso4*)handle)->getLastIterativeResidual();
+}
+
+JNIEXPORT void JNICALL
+Java_maspack_solvers_PardisoSolver_doGetLastIterativeTimes (
+   JNIEnv *env, jobject obj, jlong handle, jdoubleArray jtimes)
+{
+   double times[3];
+   ((Pardiso4*)handle)->getLastIterativeTimes (times);
+   env->SetDoubleArrayRegion (jtimes, 0, 3, times);
 }
 
 JNIEXPORT void JNICALL Java_maspack_solvers_PardisoSolver_doRelease (

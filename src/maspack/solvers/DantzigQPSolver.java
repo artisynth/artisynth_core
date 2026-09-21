@@ -11,6 +11,10 @@ import maspack.util.*;
 
 /**
  * A dense QP (Quadratic Program) solver that that uses Dantzig's algorithm.
+ *
+ * <p>The solver optionally supports warm starting, controlled by {@link
+ * #setWarmStartEnabled}, whereby the active set found by one call to {@code
+ * solve()} is used to seed the next.
  */
 public class DantzigQPSolver {
 
@@ -22,6 +26,8 @@ public class DantzigQPSolver {
    protected VectorNd myq;
    protected VectorNd myy;
    protected VectorNd myz;
+   protected VectorNi myLcpState;
+   protected boolean myWarmStartEnabled = false;
 
    /**
     * Described whether or not a solution was found. Where appropriate,
@@ -88,6 +94,66 @@ public class DantzigQPSolver {
       myq = new VectorNd();
       myy = new VectorNd();
       myz = new VectorNd();
+      myLcpState = new VectorNi();
+   }
+
+   /**
+    * Queries whether warm starts are enabled. See {@link
+    * #setWarmStartEnabled}.
+    *
+    * @return {@code true} if warm starts are enabled
+    */
+   public boolean getWarmStartEnabled() {
+      return myWarmStartEnabled;
+   }
+
+   /**
+    * Enables or disables warm starts. When enabled, the active set found by
+    * the underlying LCP solve is retained between calls to the {@code solve()}
+    * methods and used to seed the following solve. Warm starts are disabled by
+    * default.
+    *
+    * <p>Warm starting does not change the solution when the program has a
+    * unique minimum. It affects only which minimizer is returned when the
+    * minimum is <i>not</i> unique, and reduces the number of pivots required
+    * for sequences of problems which vary slowly from one solve to the next.
+    * The retained state is discarded whenever the number of inequality
+    * constraints changes, or whenever a solve returns a status other than
+    * {@link Status#SOLVED}.
+    *
+    * @param enable if {@code true}, enables warm starts
+    */
+   public void setWarmStartEnabled (boolean enable) {
+      myWarmStartEnabled = enable;
+      myLcp.setWarmStartEnabled (enable);
+      if (!enable) {
+         myLcpState.setSize (0);
+      }
+   }
+
+   /**
+    * Returns the state vector to be passed to the LCP solver, or {@code null}
+    * if warm starting is disabled. The state is cleared if its size does not
+    * match the number {@code n} of inequality constraints, since in that case
+    * it does not describe the problem being solved.
+    */
+   private VectorNi getLcpState (int n) {
+      if (!myWarmStartEnabled) {
+         return null;
+      }
+      if (myLcpState.size() != n) {
+         myLcpState.setSize (n);
+         LCPSolver.clearState (myLcpState);
+      }
+      return myLcpState;
+   }
+
+   /**
+    * Discards any retained warm start state, so that the next solve begins
+    * cold.
+    */
+   private void clearLcpState() {
+      myLcpState.setSize (0);
    }
 
    private void checkProblemDimensions (
@@ -174,13 +240,17 @@ public class DantzigQPSolver {
       myz.setSize (n);
       myy.setSize (H.rowSize());
       Status status = 
-         statusFromLCP(myLcp.solve (myz, /*state=*/null, myM, myq));
+         statusFromLCP(myLcp.solve (myz, getLcpState(n), myM, myq));
       if (status == Status.SOLVED) {
          A.mulTranspose (myy, myz);
          myy.sub (f);
          if (! myCholD.solve (x, myy)) {
+            clearLcpState();
             return Status.SINGULAR_SYSTEM;
          }
+      }
+      else {
+         clearLcpState();
       }
       return status;
    }
@@ -343,7 +413,7 @@ public class DantzigQPSolver {
       int n = myq.size();
       myz.setSize (n);
       Status status = 
-         statusFromLCP(myLcp.solve (myz, /*state=*/null, myM, myq));
+         statusFromLCP(myLcp.solve (myz, getLcpState(n), myM, myq));
       if (status == Status.SOLVED) {
          A.mulTranspose (myy, myz);
          myy.setSize (hsize+neq);
@@ -352,9 +422,13 @@ public class DantzigQPSolver {
          }
          myy.sub (fbeq);
          if (!myLUD.solve (xlam, myy)) {
+            clearLcpState();
             return Status.SINGULAR_SYSTEM;
          }
          xlam.getSubVector (0, x);
+      }
+      else {
+         clearLcpState();
       }
       return status;
    }

@@ -19,6 +19,7 @@ public class KKTSolver {
 
    private SparseSolverId mySolverType = SparseSolverId.Pardiso;
    private boolean myUseMurty = false;
+   private boolean myProfileFactorSolve = false;
 
    public boolean debug = false;
 
@@ -227,10 +228,7 @@ public class KKTSolver {
          }
       }
       myMDiagonalP = (M instanceof VectorNd);
-      myDirectCnt = 0;
-      myDirectTimeMsec = 0;
-      myIterativeCnt = 0;
-      myIterativeTimeMsec = 0;
+      myHybridPolicy.invalidateFactor();
       myState = State.ANALYZED;
    }
 
@@ -642,46 +640,8 @@ public class KKTSolver {
       return dosolve (vel, lam, null, null, bm, bg, null, null, null, null, null);
    }
 
-   double myDirectTimeMsec = 0;
-   int myDirectCnt = 0;
-   double myIterativeTimeMsec = 0;
-   double myFirstIterativeTimeMsec = 0;
-   int myIterativeCnt = 0;
-
-   private int estimateOptimalCount () {
-      // Estimates the optimal count (myIterativeCnt+1), after which we
-      // should do a refactor. Should only be called if myIterativeCnt > 0.
-      // 
-      // We assume that after an initial factor, the iterative time starts out
-      // small and increases linearly with each step.  Let ft be the factor
-      // time, it0 the initial iterative time, and dt the increase in the
-      // factor time per step. Let n be the total number of steps since (and
-      // including) the last factor step. Total average compute time at step n
-      // is then
-      //
-      // (ft + it0 (n-1) + 1/2 dt (n^2 - 3n + 2)) / n
-      //
-      // Pretending n is continuous, we obtain a minimum at
-      //
-      // n = sqrt (2(ft-it0+dt)/dt)
-      //
-      double ft = myDirectTimeMsec/myDirectCnt;
-      double it0 = myFirstIterativeTimeMsec;
-      double itAvg = myIterativeTimeMsec/myIterativeCnt;
-
-      if (itAvg >= ft) {
-         return myIterativeCnt+1; // refactor right away
-      }
-      double dt = 2*(itAvg-it0)/myIterativeCnt;
-      if (dt <= 0) {
-         // will happen if iterativeCnt == 0, or if solution has gone static
-         // set n to an arbitrary value of 20
-         return myIterativeCnt+19;
-      }
-      else {
-         return (int)Math.ceil (Math.sqrt (2*(ft-it0+dt)/dt));
-      }
-   }
+   // decides when factorAndSolve() uses iterative solves and when it refactors
+   HybridSolvePolicy myHybridPolicy = new HybridSolvePolicy();
 
    /**
     * Does a numeric factorization of a KKT system containg only equality
@@ -728,8 +688,7 @@ public class KKTSolver {
       myDT = null;
 
       if (myMatrixSolver != null && myMatrixSolver.hasIterativeSolves() &&
-          myDirectCnt > 0 &&
-          (myIterativeCnt == 0 || myIterativeCnt+1 < estimateOptimalCount())) {
+          myHybridPolicy.useIterative()) {
          long t0 = System.nanoTime();
          getCRSValues (M, sizeM, myNumVals, GT, Rg);
 
@@ -741,34 +700,48 @@ public class KKTSolver {
          for (int i = 0; i < mySizeM; i++) {
             xbuf[i] = bbuf[i];
          }
-         bbuf = bg.getBuffer();
-         for (int i = 0; i < myNumG; i++) {
-            xbuf[i + mySizeM] = bbuf[i];
+         if (myNumG > 0) {
+            bbuf = bg.getBuffer();
+            for (int i = 0; i < myNumG; i++) {
+               xbuf[i + mySizeM] = bbuf[i];
+            }
          }
 
+         myMatrixSolver.setIterativeTolerance (Math.pow (10.0, -tolExp));
          iterStatus =
-            myMatrixSolver.iterativeSolve (myVals, ybuf, xbuf, tolExp);
+            myMatrixSolver.iterativeSolve (myVals, ybuf, xbuf);
 
          if (iterStatus > 0) {
             bbuf = vel.getBuffer();
             for (int i = 0; i < mySizeM; i++) {
                bbuf[i] = ybuf[i];
             }
-            bbuf = lam.getBuffer();
-            for (int i = 0; i < myNumG; i++) {
-               bbuf[i] = -ybuf[i + mySizeM];
+            if (myNumG > 0) {
+               bbuf = lam.getBuffer();
+               for (int i = 0; i < myNumG; i++) {
+                  bbuf[i] = -ybuf[i + mySizeM];
+               }
             }
-            long t1 = System.nanoTime();
-            myIterativeTimeMsec += (t1 - t0) * 1e-6;
-            if (myIterativeCnt++ == 0) {
-               myFirstIterativeTimeMsec = myIterativeTimeMsec;
-            }
+            double timeMsec = (System.nanoTime() - t0) * 1e-6;
+            myHybridPolicy.recordIterative (timeMsec);
             myLastSolveWasIterative = true;
             if (myTimeSolves) {
                System.out.println (
-                  "factorAndSolve: " + myIterativeTimeMsec + " msec");
+                  "factorAndSolve: " + timeMsec + " msec");
+            }
+            if (myProfileFactorSolve) {
+               System.out.println (
+                  "factor/solve time (iterative): " + timeMsec);
             }
             return Status.SOLVED;
+         }
+         else {
+            double timeMsec = (System.nanoTime() - t0) * 1e-6;
+            myHybridPolicy.recordIterativeFailure();
+            if (myProfileFactorSolve) {
+               System.out.println (
+                  "factor/solve time (iterative FAILED): " + timeMsec);
+            }
          }
       }
       long t0 = System.nanoTime();
@@ -777,10 +750,12 @@ public class KKTSolver {
 
       long t1 = System.nanoTime();
 
-      myDirectTimeMsec += (t1 - t0) * 1e-6;
-      myDirectCnt++;
-      myIterativeCnt = 0;
-      myIterativeTimeMsec = 0;
+      if (myProfileFactorSolve) {
+         System.out.println (
+            "factor/solve time (DIRECT): " + ((t1-t0)*1e-6));
+      }
+
+      myHybridPolicy.recordDirect ((t1 - t0) * 1e-6);
       return Status.SOLVED;
    }
 
@@ -1855,13 +1830,27 @@ public class KKTSolver {
       }
    }
 
+   public void setProfileFactorSolve (boolean enable) {
+      myProfileFactorSolve = enable;
+   }
+
+   public boolean getProfileFactorSolve () {
+      return myProfileFactorSolve;
+   }
+
    public void initialize() {
       // reset hybrid solve stats
-      myDirectTimeMsec = 0;
-      myDirectCnt = 0;
-      myIterativeTimeMsec = 0;
-      myFirstIterativeTimeMsec = 0;
-      myIterativeCnt = 0;
+      myHybridPolicy.reset();
+   }
+
+   /**
+    * Returns the policy that decides when {@code factorAndSolve()} uses
+    * iterative solves and when it refactors.
+    *
+    * @return hybrid solve policy
+    */
+   public HybridSolvePolicy getHybridSolvePolicy() {
+      return myHybridPolicy;
    }
 
 }

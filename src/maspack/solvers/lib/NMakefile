@@ -5,18 +5,18 @@
 #
 ROOT_DIR = ..\..\..\..
 LIB_TARGET_DIR = $(ROOT_DIR)\lib\Windows64
-# Pardiso compiled with MKL 2025.3
-PARDISO_MKL_TARGET = PardisoJNI.2025.3.dll
+# Pardiso compiled with MKL 2026.1
+PARDISO_MKL_TARGET = PardisoJNI.2026.1.dll
 CC_COMP = cl # Visual Studio C/C++ compiler
 CC_FLAGS = /O2 /DWINDOWS_COMPILER 
 # location of current Java JDK:
 JAVA_HOME = "C:\Program Files\Java\jdk-1.8"
 # location of Intel libraries:
 INTEL_HOME = "C:\Program Files (x86)\Intel\oneAPI"
-MKL_HOME = $(INTEL_HOME)\mkl\2025.3
+MKL_HOME = $(INTEL_HOME)\mkl\2026.1
 
 
-THREAD_HOME = $(INTEL_HOME)\compiler\2025.3\lib
+THREAD_HOME = $(INTEL_HOME)\compiler\2026.1\lib
 # include directories:
 CC_INCS = /I. /I$(JAVA_HOME)\include /I$(JAVA_HOME)\include\win32 /I$(MKL_HOME)\include
 MKL_64 = $(MKL_HOME)"\lib"
@@ -29,17 +29,21 @@ default: libs
 
 libs: $(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET)
 
+# hybrid (preconditioned iterative) solves, shared with the MUMPS JNI library
+hybridSolve.obj: hybridSolve.cc hybridSolve.h
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c hybridSolve.cc
+
 # main pardiso interfac code
-pardisoMkl.obj: pardisoMkl.cc pardisoMkl.h
+pardisoMkl.obj: pardisoMkl.cc pardisoMkl.h hybridSolve.h
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c pardisoMkl.cc  
 
 # JNI interface
-PardisoMklJNI.obj: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h
+PardisoMklJNI.obj: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h hybridSolve.h hybridSolveJNI.h
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c PardisoMklJNI.cc  
 
 # build command for the DLL
-$(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET): PardisoMklJNI.obj pardisoMkl.obj
-	$(CC_COMP) $(CC_FLAGS) PardisoMklJNI.obj pardisoMkl.obj \
+$(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET): PardisoMklJNI.obj pardisoMkl.obj hybridSolve.obj
+	$(CC_COMP) $(CC_FLAGS) PardisoMklJNI.obj pardisoMkl.obj hybridSolve.obj \
 	$(PARDISO_LIBS_64) $(LIBMP) /DLL /out:$@
 
 # standalone test program:
@@ -47,6 +51,6 @@ $(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET): PardisoMklJNI.obj pardisoMkl.obj
 pardisoMklTest.obj: pardisoMklTest.cc 
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c pardisoMklTest.cc
 
-pardisoMklTest.exe: pardisoMkl.obj pardisoMklTest.obj pardisoMkl.h
+pardisoMklTest.exe: pardisoMkl.obj hybridSolve.obj pardisoMklTest.obj pardisoMkl.h
 	$(CC_COMP) $(CC_FLAGS) pardisoMklTest.obj \
-		pardisoMkl.obj $(PARDISO_LIBS_64) $(LIBMP)
+		pardisoMkl.obj hybridSolve.obj $(PARDISO_LIBS_64) $(LIBMP)

@@ -119,6 +119,7 @@ public class MurtyMechSolver {
    public boolean debug = false;
    public boolean showAStructureChange = false;
    public boolean showRebuildReason = false;
+   public boolean profileFactorSolve = false;
 
    // Pivot types
    protected static int Z = LCPSolver.Z_VAR;          // activate constraint
@@ -418,11 +419,8 @@ public class MurtyMechSolver {
    int myHybridCnt = 0;
    boolean myFakeHybridFail = false; // for testing only
    FunctionTimer myTimer = new FunctionTimer();
-
-   double myTimingWeight = 0.25;
-   double myAvgHybridTime = 0.0;
-   double myAvgDirectTime = 0.0;
-   double myHybridRatio = 0.8; // refactor when hybrid/direct time exceeds this
+   // decides when to use iterative solves and when to refactor
+   HybridSolvePolicy myHybridPolicy = new HybridSolvePolicy();
 
    // A system attributes
    protected int mySizeA;            // size of the system A
@@ -728,6 +726,22 @@ public class MurtyMechSolver {
    }
 
    /**
+    * Enable/disables profiling of factor/solve times for implicit
+    * integrators that use the KKTFactorAndSolve method.
+    */
+   public void setProfileFactorSolve (boolean enable) {
+      profileFactorSolve = enable;
+      
+   }
+
+   /**
+    * Queries whether profiling of factor/solve times for implicit
+    * integrators is enabled.
+    */
+   public boolean getProfileFactorSolve () {
+      return profileFactorSolve;
+   }
+   /**
     * Gets the iteration limit for this solver. This value multiplied by the
     * size of the LCP matrix gives the maximum number of iterations allowed for
     * the solver.
@@ -997,7 +1011,7 @@ public class MurtyMechSolver {
       //getAValues (null, false);
       myTotalAnalyzeCnt++;
       myHybridCnt = 0;
-      myAvgDirectTime = 0;
+      myHybridPolicy.invalidateFactor();
       myAMatrixFactored = false;
    }
 
@@ -1071,35 +1085,26 @@ public class MurtyMechSolver {
    }
 
    private boolean canDoHybridSolve() {
-      if (myHybridSolves && myMatrixSolver != null &&
-          myMatrixSolver.hasIterativeSolves() &&
-          mySizeND == 0 && myAvgDirectTime > 0) {
-         return (myAvgHybridTime < myHybridRatio*myAvgDirectTime);
-      }
-      return false;
-   }
-
-   private double updateAvgTime (double tnew, double tavg) {
-      if (tavg == 0) {
-         return tnew;
-      }
-      else {
-         double s = myTimingWeight;
-         return s*tnew + (1-s)*tavg;
-      }
+      // policy query is last, since a negative answer may count toward a
+      // backoff
+      return (myHybridSolves && myMatrixSolver != null &&
+              myMatrixSolver.hasIterativeSolves() &&
+              mySizeND == 0 && myHybridPolicy.useIterative());
    }
 
    boolean hybridSolveA() {
+      myMatrixSolver.setIterativeTolerance (Math.pow (10.0, -myHybridSolveTol));
       myTimer.start();
       int status = myMatrixSolver.iterativeSolve (
-         myValuesA, myY.getBuffer(), myB.getBuffer(), myHybridSolveTol);
+         myValuesA, myY.getBuffer(), myB.getBuffer());
       myTimer.stop();
       if (status > 0 && !myFakeHybridFail) {
-         myAvgHybridTime = updateAvgTime (myTimer.getTimeUsec(), myAvgHybridTime);
+         myHybridPolicy.recordIterative (myTimer.getTimeUsec());
          myHybridCnt++;
          return true;
       }
       else {
+         myHybridPolicy.recordIterativeFailure();
          return false;
       }
    }
@@ -1124,8 +1129,7 @@ public class MurtyMechSolver {
    void stopDirectSolveTiming () {
       myTimer.stop();
       myHybridCnt = 0;
-      myAvgHybridTime = 0;
-      myAvgDirectTime = updateAvgTime (myTimer.getTimeUsec(), myAvgDirectTime);
+      myHybridPolicy.recordDirect (myTimer.getTimeUsec());
    }
 
    int myCnt = 0;
@@ -1483,6 +1487,11 @@ public class MurtyMechSolver {
          getAValues (null, /*forAnalyze=*/false); 
          valuesUpdated = true;
          solved = hybridSolveA();
+         if (profileFactorSolve) {
+            System.out.println (
+               "factor/solve time (iterative" + (solved ? "" : " FAILED") +
+               "): " + myTimer.result(1));
+         }
       }
       if (!solved) {
          //if (myAStructureChanged || myTotalAnalyzeCnt == 0) {
@@ -1498,6 +1507,10 @@ public class MurtyMechSolver {
          factorA();
          solveForY();
          stopDirectSolveTiming();
+         if (profileFactorSolve) {
+            System.out.println (
+               "factor/solve time (DIRECT): " + myTimer.result(1));
+         }
          //System.out.println ("direct");
       }
       if (mySizeND > 0) {
@@ -3060,7 +3073,7 @@ public class MurtyMechSolver {
          extractMGSolution (vel, lam);
       }
 
-      if (mySolveWriter != null) {
+      if (mySolveWriter != null && myFullSolveP) {
          try {
             writeSolveInfo (
                mySolveWriter, status, vel, lamIn, lam, theIn, the, phi, M, sizeM,
@@ -3573,9 +3586,18 @@ public class MurtyMechSolver {
    public void initialize() {
       // reinit hybrid solve stats
       myHybridCnt = 0;
-      myAvgDirectTime = 0;
-      myAvgHybridTime = 0;
+      myHybridPolicy.reset();
       resetTimers();
+   }
+
+   /**
+    * Returns the policy that decides when hybrid solves use iterative solves
+    * and when they refactor.
+    *
+    * @return hybrid solve policy
+    */
+   public HybridSolvePolicy getHybridSolvePolicy() {
+      return myHybridPolicy;
    }
 
 }

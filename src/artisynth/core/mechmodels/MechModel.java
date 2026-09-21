@@ -2396,7 +2396,7 @@ TransformableGeometry, ScalableUnits {
     */
    public StepAdjustment preadvance (double t0, double t1, int flags) {
       if (t0 == 0) {
-         mySolver.projectPosConstraints (0);
+         mySolver.projectPosConstraints (t0, t1-t0);
       }     
 //      updateLocalAdvanceComponents();
 //      for (RequiresPrePostAdvance c : myLocalPrePostAdvanceComps) {

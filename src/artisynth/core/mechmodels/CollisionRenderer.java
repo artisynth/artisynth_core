@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.awt.Color;
 
 import maspack.collision.ContactInfo;
 import maspack.collision.ContactPlane;
@@ -54,7 +55,8 @@ public class CollisionRenderer {
    private static int SEGMENT_GRP = 1;
    private static int CONTOUR_GRP = 2;
    private static int FORCE_GRP = 3;
-   private static int FRICTION_FORCE_GRP = 4;
+   private static int NEG_FORCE_GRP = 4;
+   private static int FRICTION_FORCE_GRP = 5;
 
    private void addPoint (RenderObject ro, Point3d p) {
       ro.addPoint (ro.vertex ((float)p.x, (float)p.y, (float)p.z));
@@ -214,6 +216,7 @@ public class CollisionRenderer {
       ro.createLineGroup();     // segments
       ro.createLineGroup();     // contours
       ro.createLineGroup();     // forces
+      ro.createLineGroup();     // neg forces
       ro.createLineGroup();     // friction forces
       ro.createPointGroup();    // contact info
       ro.createTriangleGroup(); // intersection faces
@@ -252,12 +255,30 @@ public class CollisionRenderer {
          forceScale = /*baseForceScale*/handler.getContactForceLenScale();
       }
       if (forceScale != 0 && cinfo != null) {
+         Color negForceColor = handler.getNegativeForceColor();
          ro.lineGroup (FORCE_GRP);
          for (ContactData cc : handler.myLastUnilateralData) {
-            addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
+            if (negForceColor == null || cc.myLambda > 0) {
+               addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
+            }
          }
          for (ContactData cc : handler.myLastBilateralData) {
-            addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
+            if (negForceColor == null || cc.myLambda > 0) {
+               addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
+            }
+         }
+         if (negForceColor != null) {
+            ro.lineGroup (NEG_FORCE_GRP);
+            for (ContactData cc : handler.myLastUnilateralData) {
+               if (cc.myLambda < 0) {
+                  addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
+               }
+            }
+            for (ContactData cc : handler.myLastBilateralData) {
+               if (cc.myLambda < 0) {
+                  addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
+               }
+            }
          }
       }
 
@@ -462,6 +483,12 @@ public class CollisionRenderer {
       if (ro.numLines(FORCE_GRP) > 0) {
          ro.lineGroup (FORCE_GRP);
          renderer.setEdgeColoring (props, /*highlight=*/false);
+         drawLines (renderer, ro, props, props.getEdgeWidth());
+      }
+
+      if (ro.numLines(NEG_FORCE_GRP) > 0) {
+         ro.lineGroup (NEG_FORCE_GRP);
+         renderer.setColor (handler.getNegativeForceColor());
          drawLines (renderer, ro, props, props.getEdgeWidth());
       }
 

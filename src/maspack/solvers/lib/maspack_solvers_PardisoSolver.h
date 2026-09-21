@@ -7,6 +7,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef maspack_solvers_PardisoSolver_DEFAULT_GMRES_RESTART
+#define maspack_solvers_PardisoSolver_DEFAULT_GMRES_RESTART 20L
+#undef maspack_solvers_PardisoSolver_DEFAULT_USE_NATIVE_ITERATIVE_SOLVE
+#define maspack_solvers_PardisoSolver_DEFAULT_USE_NATIVE_ITERATIVE_SOLVE 0L
 #undef maspack_solvers_PardisoSolver_ERR_INCONSISTENT_INPUT
 #define maspack_solvers_PardisoSolver_ERR_INCONSISTENT_INPUT -1L
 #undef maspack_solvers_PardisoSolver_ERR_MEMORY
@@ -61,14 +65,6 @@ extern "C" {
 #define maspack_solvers_PardisoSolver_METIS_REORDER 2L
 #undef maspack_solvers_PardisoSolver_METIS_REORDER_PARALLEL
 #define maspack_solvers_PardisoSolver_METIS_REORDER_PARALLEL 3L
-#undef maspack_solvers_PardisoSolver_UNSET
-#define maspack_solvers_PardisoSolver_UNSET 0L
-#undef maspack_solvers_PardisoSolver_ANALYZED
-#define maspack_solvers_PardisoSolver_ANALYZED 1L
-#undef maspack_solvers_PardisoSolver_FACTORED
-#define maspack_solvers_PardisoSolver_FACTORED 2L
-#undef maspack_solvers_PardisoSolver_RET_OK
-#define maspack_solvers_PardisoSolver_RET_OK 0L
 /*
  * Class:     maspack_solvers_PardisoSolver
  * Method:    doInit
@@ -287,6 +283,30 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSetMatrixChecking
 
 /*
  * Class:     maspack_solvers_PardisoSolver
+ * Method:    doSetIParam
+ * Signature: (JII)I
+ */
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSetIParam
+  (JNIEnv *, jobject, jlong, jint, jint);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
+ * Method:    doGetIParam
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doGetIParam
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
+ * Method:    doClearIParams
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_maspack_solvers_PardisoSolver_doClearIParams
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
  * Method:    doGetMessageLevel
  * Signature: (J)I
  */
@@ -364,6 +384,38 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve__J_3D_3DI
  */
 JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doIterativeSolve
   (JNIEnv *, jobject, jlong, jdoubleArray, jdoubleArray, jdoubleArray, jint);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
+ * Method:    doHybridSolve
+ * Signature: (J[D[D[DDIIIZ)I
+ */
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doHybridSolve
+  (JNIEnv *, jobject, jlong, jdoubleArray, jdoubleArray, jdoubleArray, jdouble, jint, jint, jint, jboolean);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
+ * Method:    doGetLastIterativeSolves
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doGetLastIterativeSolves
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
+ * Method:    doGetLastIterativeResidual
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL Java_maspack_solvers_PardisoSolver_doGetLastIterativeResidual
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
+ * Method:    doGetLastIterativeTimes
+ * Signature: (J[D)V
+ */
+JNIEXPORT void JNICALL Java_maspack_solvers_PardisoSolver_doGetLastIterativeTimes
+  (JNIEnv *, jobject, jlong, jdoubleArray);
 
 /*
  * Class:     maspack_solvers_PardisoSolver

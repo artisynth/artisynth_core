@@ -1698,6 +1698,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (disableHybridSolves.value) {
          hybridSolves = false;
       }
+      else if (enableHybridSolves.value) {
+         hybridSolves = true;
+      }
       MechSystemSolver.myDefaultHybridSolveP = hybridSolves;
 
       // number of CPU threads to use for the solver
@@ -2678,6 +2681,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder disableHybridSolves =
       new BooleanHolder (false);
+   protected static BooleanHolder enableHybridSolves =
+      new BooleanHolder (false);
    protected static IntHolder numSolverThreads =
       new IntHolder (-1);
    protected static StringHolder posCorrection = new StringHolder ();
@@ -2958,6 +2963,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-disableHybridSolves %v #disable hybrid linear solves",
          disableHybridSolves);
+      parser.addOption (
+         "-enableHybridSolves %v #enable hybrid linear solves",
+         enableHybridSolves);
       parser.addOption (
          "-matrixSolver %s{Pardiso,Mumps} #default matrix solver",
          matrixSolver);
@@ -5038,6 +5046,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       taskManagerClassName = new StringHolder(); 
       abortOnInvertedElems = new BooleanHolder (false);
       disableHybridSolves = new BooleanHolder (false);
+      enableHybridSolves = new BooleanHolder (false);
       numSolverThreads = new IntHolder (-1);
       posCorrection = new StringHolder ();
       noIncompressDamping = new BooleanHolder (false);

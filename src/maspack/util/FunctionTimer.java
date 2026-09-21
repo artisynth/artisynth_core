@@ -14,6 +14,8 @@ package maspack.util;
 public class FunctionTimer {
    long startTime;
    long elapsedTime = 0;
+   long totalTime = 0;
+   int cycleCnt = 0;
    private double resolutionUsec = 0.001;
    private NumberFormat fmt;
 
@@ -22,6 +24,8 @@ public class FunctionTimer {
     */
    public FunctionTimer() {
       elapsedTime = 0;
+      cycleCnt = 0;
+      totalTime = 0;
       startTime = -1;
    }
 
@@ -43,11 +47,14 @@ public class FunctionTimer {
    }
 
    /**
-    * Sets the elapsed time to 0 and re-initializes the start indicator
+    * Sets the elapsed time, total time and cycle count to 0 and re-initializes
+    * the start indicator.
     */
    public void reset() {
       elapsedTime = 0;
       startTime = -1;
+      totalTime = 0;
+      cycleCnt = 0;
    }
 
    /**
@@ -58,22 +65,68 @@ public class FunctionTimer {
     */
    public void stop() {
       if (startTime != -1) {
-         elapsedTime += (getCurrentTime() - startTime);
+         double elapsed = (getCurrentTime() - startTime);
+         elapsedTime += elapsed;
+         totalTime += elapsed;
          startTime = -1;   // prevent duplicating time if stop called twice
+         cycleCnt++;
       }
    }
 
    /**
-    * Returns the elapsed time in microseconds. If the timer is running (i.e.,
-    * {@link #start start} or {@link #restart restart} has been called but
-    * {@link #stop stop} has not yet been called, the associated time differece
-    * will not be included in the result.
+    * Returns the elapsed time in microseconds.
+    *
+    * <p>If the timer is running (i.e., {@link #start start} or {@link #restart
+    * restart} has been called but {@link #stop stop} has not yet been called,
+    * the associated time difference will not be included in the result.
     * 
     * @return elapsed time
     */
    public double getTimeUsec() {
       return elapsedTime * resolutionUsec;
    }
+
+   /**
+    * Returns the sum of all the elapsed times measured (in microseconds) since
+    * the timer was created or {@link #reset} was last called.
+    *
+    * <p>If the timer is running (i.e., {@link #start start} or {@link #restart
+    * restart} has been called but {@link #stop stop} has not yet been called,
+    * the associated time difference will not be included in the result.
+    * 
+    * @return total time
+    */
+   public double getTotalTimeUsec() {
+      return totalTime * resolutionUsec;
+   }
+
+   /**
+    * Returns the total number of record cycles ({@link #start} followed by
+    * {@link #stop}, with possible {@link #restart} calls in between) since the
+    * timer was created or {@link #reset} was last called.
+    * 
+    * @return cycle count
+    */
+   public int getCycleCount() {
+      return cycleCnt;
+   }
+
+
+   /**
+    * Returns the total time divided by the cycle count, in microseconds.  See
+    * {@link #getTotalTimeUsec} and {@link #getCycleCount}.
+    *
+    * @return average time
+    */
+   public double getAverageTimeUsec() {
+      if (cycleCnt > 0) {
+         return getTotalTimeUsec()/cycleCnt;
+      }
+      else {
+         return 0;
+      }
+   }
+
 
    /**
     * Returns the resolution of this timer, in microseconds. This depends on the
@@ -92,17 +145,6 @@ public class FunctionTimer {
       return fmt.format (val);
    }
 
-   // public double getTimeUsec (int cnt)
-   // {
-   // long t0, t1;
-   // t0 = getCurrentMsec();
-   // for (int i=0; i<cnt; i++)
-   // {
-   // }
-   // t1 = getCurrentMsec();
-   // return (1000*(stopTime-startTime-(t1-t0)))/(double)cnt;
-   // }
-
    /**
     * Returns a string describing the current elapsed time, divided by the
     * supplied count parameter. The resulting divided time is displayed in
@@ -115,6 +157,24 @@ public class FunctionTimer {
     */
    public String result (int cnt) {
       double usec = getTimeUsec() / cnt;
+      if (usec < 1000) {
+         return "" + format(usec) + " usec";
+      }
+      else {
+         return "" + format(usec/1000.0) + " msec";
+      }
+   }
+
+   /**
+    * Returns a string describing the average time, as returned by {@link
+    * #getAverageTimeUsec}. The result is displayed in milliseconds, unless it
+    * is less than 1 millisecond, in which case it is displayed in
+    * microseconds.
+    * 
+    * @return string describing the average time
+    */
+   public String averageTime () {
+      double usec = getTotalTimeUsec();
       if (usec < 1000) {
          return "" + format(usec) + " usec";
       }

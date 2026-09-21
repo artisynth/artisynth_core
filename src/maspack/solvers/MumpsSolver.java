@@ -95,6 +95,9 @@ public class MumpsSolver extends DirectSolverBase {
       DEFAULT,
    };
 
+   // cleared if the native library does not support iterative solves
+   private static boolean myIterativeSolvesSupported = true;
+
    // Error codes returned by MUMPS in INFOG(1). Only those which are likely
    // to arise in this context are named explicitly; all others are reported
    // numerically by getErrorMessage(). Additional information about an error
@@ -480,6 +483,16 @@ public class MumpsSolver extends DirectSolverBase {
 
    private native int doSolve (
       long handle, double[] xvecs, double[] bvecs, int nrhs);
+
+   private native int doIterativeSolve (
+      long handle, double[] vals, double[] x, double[] b, double tol,
+      int method, int maxSolves, int restart, boolean critical);
+
+   private native int doGetLastIterativeSolves (long handle);
+
+   private native double doGetLastIterativeResidual (long handle);
+
+   private native void doGetLastIterativeTimes (long handle, double[] times);
 
    private native void doRelease (long handle);
 
@@ -1266,7 +1279,74 @@ public class MumpsSolver extends DirectSolverBase {
     * {@inheritDoc}
     */
    public boolean hasIterativeSolves() {
-      return false;
+      return myIterativeSolvesSupported;
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>MUMPS does not provide iterative solves itself. Instead, the
+    * iteration is performed in the native wrapper, using the most recent
+    * factorization as a preconditioner and the supplied values for matrix
+    * products.
+    */
+   public synchronized int iterativeSolve (
+      double[] vals, double[] x, double[] b) {
+      checkFactored();
+      checkSolveArgs (x, b, 1);
+      if (vals.length < myNumVals) {
+         throw new IllegalArgumentException (
+            "vals is too small: length="+vals.length+
+            ", expected size is "+myNumVals);
+      }
+      myLastIterativeSolves = -1;
+      myLastIterativeResidual = -1;
+      if (!myIterativeSolvesSupported) {
+         return 0;
+      }
+      int iters;
+      try {
+         iters = doIterativeSolve (
+            myHandle, vals, x, b, myIterativeTolerance,
+            nativeMethodCode (myIterativeMethod), myIterativeMaxSolves,
+            myGmresRestart, getUseCriticalArrayAccess());
+         myLastIterativeSolves = doGetLastIterativeSolves (myHandle);
+         myLastIterativeResidual = doGetLastIterativeResidual (myHandle);
+      }
+      catch (UnsatisfiedLinkError e) {
+         // native library predates iterative solve support
+         myIterativeSolvesSupported = false;
+         return 0;
+      }
+      return iters;
+   }
+
+   /**
+    * Returns a time breakdown of the most recent call to {@link
+    * #iterativeSolve}, in msec: the total time spent in the native code, the
+    * time spent in preconditioner solves, and the time spent in matrix-vector
+    * products. The remainder of the total is vector operations and setup.
+    * Intended for performance analysis.
+    *
+    * @return total, preconditioner solve and matrix product times, or
+    * {@code null} if not available
+    */
+   public synchronized double[] getLastIterativeTimes() {
+      if (myHandle == 0 || !myIterativeSolvesSupported) {
+         return null;
+      }
+      double[] times = new double[3];
+      try {
+         doGetLastIterativeTimes (myHandle, times);
+      }
+      catch (UnsatisfiedLinkError e) {
+         // native library predates iterative solve timing
+         return null;
+      }
+      for (int i=0; i<times.length; i++) {
+         times[i] *= 1000;
+      }
+      return times;
    }
 
 

@@ -186,6 +186,11 @@ Link line: translate the `LDS_MUMPS` / `LDS_MKL` / `LDS_MUMPS_JNI` variables in
 (`--start-group`/`--end-group` has no MSVC equivalent and is not needed;
 `link.exe` resolves archives iteratively), then `libiomp5md.lib`.
 
+JNI objects: `MUMPS_OBJS` in `Makefile.mumps` — `MumpsJNI.cc`, `mumps.cc`
+and `hybridSolve.cc` (the GMRES/CGS hybrid solve loop, added 2026-09-11 and
+shared with the Pardiso DLL, whose `NMakefile` compiles it too). All three
+need the MKL include directory, since `hybridSolve.cc` uses `mkl_spblas.h`.
+
 Do NOT compile MUMPS with `-fopenmp`/`-qopenmp` *and* link a second OpenMP
 runtime. On Linux we compiled with `-fopenmp` but linked `-liomp5` instead of
 `-lgomp`, because libiomp5 implements the full GOMP ABI. With `ifx` the

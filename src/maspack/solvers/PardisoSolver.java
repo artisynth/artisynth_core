@@ -18,13 +18,13 @@ import java.util.*;
 
 /**
  * JNI interface to the Pardiso sparse solver. Usage of Pardiso
- * is usually dividing into three phases:
+ * is usually divided into three phases:
  *
  * <ul>
- * <li>An <i>analyze</i> phase that reorder the matrix to reduce
+ * <li>An <i>analyze</i> phase that reorders the matrix to reduce
  * fill-in and performs a symbolic factorization;
  * <li>A <i>factor</i> phase that numerically factors the matrix into
- * a sutiable decomposition;
+ * a suitable decomposition;
  * <li>A <i>solve</i> phase that uses the factorization to solve
  * M x = b for some given right-hand side b.
  * </ul>
@@ -46,7 +46,7 @@ import java.util.*;
  * is no longer required, in order to release internal native resources that
  * have been allocated for the Pardiso native code.
  *
- * It is not necessary to call the <code>analyze()</code> and
+ * <p>It is not necessary to call the <code>analyze()</code> and
  * <code>factor()</code> methods every time a solution is
  * required. <code>analyze()</code> needs to be called only when a matrix is
  * first presented to the solver or when its sparsity structure changes.
@@ -63,21 +63,28 @@ import java.util.*;
  *    solver.factor (vals);
  * </pre>
  * Here <code>vals</code>, <code>colIdxs</code>, and <code>rowOffs</code>
- * descrive the sparse matrix structure using the CRS format as described
+ * describe the sparse matrix structure using the CRS format as described
  * in the documentation for
  * {@link maspack.matrix.Matrix#setCRSValues Matrix.setCRSValues}.
  *
- * Pardiso also supports iterative solving, using preconditioned CGS iteration.
- * The preconditioner is supplied by the most recent matrix factorization.  If
- * the current matrix values are close to those associated with the
- * factorization, then the resulting iterative solution time can be
- * considerably faster than the alternative combination of a factor() and a
- * solve(). There are several <code>iterativeSolve()</code> methods, which
- * obtain the current matrix values either directly as an input argument, or
- * from a <code>Matrix</code> object supplied through the
- * <code>analyze()</code> methods. When an <code>iterativeSolve()</code> method
- * is successful, it returns a positive number indicating the number of
- * iterations performed.  A possible call sequence is as follows:
+ * <p>Pardiso also supports iterative solving, in which the most recent matrix
+ * factorization is used as a preconditioner. If the current matrix values
+ * are close to those associated with the factorization, then the resulting
+ * iterative solution time can be considerably faster than the alternative
+ * combination of a factor() and a solve(). By default, the iteration is
+ * performed by the native wrapper, using the method set by {@link
+ * #setIterativeMethod} (GMRES by default, or CGS), with the relative residual
+ * tolerance and maximum number of preconditioner solves set by {@link
+ * #setIterativeTolerance} and {@link #setIterativeMaxSolves}. Alternatively,
+ * Pardiso's own iterative solve can be selected using {@link
+ * #setUseNativeIterativeSolve} or {@link
+ * #setDefaultUseNativeIterativeSolve}. There are several
+ * <code>iterativeSolve()</code> methods, which obtain the current matrix
+ * values either directly as an input argument, or from a <code>Matrix</code>
+ * object supplied through the <code>analyze()</code> methods. When an
+ * <code>iterativeSolve()</code> method is successful, it returns a positive
+ * number indicating the number of iterations performed; otherwise it returns
+ * a value {@code <= 0}. A possible call sequence is as follows:
  *
  * <pre>
  * {@code
@@ -94,9 +101,10 @@ import java.util.*;
  * }
  * </pre>
  * 
- * A more sophisticated version of the above code will also call
+ * <p>A more sophisticated version of the above code will also call
  * <code>factor()</code> and <code>solve()</code> when the compute time
- * associated with <code>iterativeSolve()</code> exceeds a certain threshold.
+ * associated with <code>iterativeSolve()</code> becomes too large relative to
+ * that of a direct solve; {@link HybridSolvePolicy} implements such a policy.
  * After refactorization, the time required by <code>iterativeSolve()</code>
  * should be reduced since the next set of matrix values will again
  * (presumably) be close to those associated with the factorization.
@@ -110,6 +118,7 @@ public class PardisoSolver extends DirectSolverBase {
    // library that supports multiple rhs:  
    static String nativeLibrary = supportsMultipleRhs ?
       "PardisoJNI.2021.1.1" : "PardisoJNI.2021.1";         
+   //"PardisoJNI.2026.1.1" : "PardisoJNI.2021.1";         
 
    /**
     * Describes the reorder methods that can be used during the analyze phase
@@ -121,6 +130,21 @@ public class PardisoSolver extends DirectSolverBase {
       METIS_PARALLEL,
       DEFAULT,
    };
+
+   /**
+    * Initial value of {@link #getDefaultUseNativeIterativeSolve}.
+    */
+   public static final boolean DEFAULT_USE_NATIVE_ITERATIVE_SOLVE = false;
+   private static boolean myDefaultUseNativeIterativeSolve =
+      DEFAULT_USE_NATIVE_ITERATIVE_SOLVE;
+
+   // if true, iterativeSolve() uses Pardiso's own iterative solve instead of
+   // the GMRES or CGS iteration performed by the native wrapper
+   private boolean myUseNativeIterativeSolve = myDefaultUseNativeIterativeSolve;
+   // true if the most recent iterative solve was GMRES or CGS
+   private boolean myLastSolveWasHybrid = false;
+   // cleared if the native library does not support GMRES or CGS solves
+   private static boolean myHybridSolvesSupported = true;
 
    private static final int ERR_INCONSISTENT_INPUT = -1;
 
@@ -296,6 +320,10 @@ public class PardisoSolver extends DirectSolverBase {
    private native int doGetMatrixChecking (long handle);
    private native int doSetMatrixChecking (long handle, int enable);
 
+   private native int doSetIParam (long handle, int idx, int value);
+   private native int doGetIParam (long handle, int idx);
+   private native void doClearIParams (long handle);
+
    private native int doGetMessageLevel (long handle);
    private native int doSetMessageLevel (long handle, int level);
 
@@ -322,6 +350,16 @@ public class PardisoSolver extends DirectSolverBase {
 
    private native int doIterativeSolve (
       long handle, double[] vals, double[] x, double[] b, int tolExp);
+
+   private native int doHybridSolve (
+      long handle, double[] vals, double[] x, double[] b, double tol,
+      int method, int maxSolves, int restart, boolean critical);
+
+   private native int doGetLastIterativeSolves (long handle);
+
+   private native double doGetLastIterativeResidual (long handle);
+
+   private native void doGetLastIterativeTimes (long handle, double[] times);
 
    private native int doFactorAndSolve (
       long handle, double[] vals, double[] x, double[] b, int tolExp);
@@ -468,7 +506,9 @@ public class PardisoSolver extends DirectSolverBase {
     * perform after a solve. Setting this to 0 disables iterative
     * refinement. Setting this to -1 will cause Pardiso to choose a default
     * value appropriate to the matrix type. More iterative refinement steps
-    * will increase solution accuracy but slow down the solve.
+    * will increase solution accuracy but slow down the solve. This setting
+    * applies to direct solves; the preconditioner solves of the native
+    * wrapper's iterative methods never use refinement.
     *
     * @param nsteps maximum number of iterative refinement steps
     * @see #getMaxRefinementSteps
@@ -498,7 +538,7 @@ public class PardisoSolver extends DirectSolverBase {
 
    /**
     * Returns the number of iterative refinement steps that Pardiso
-    * actually performed during the most call to {@link #solve solve()}.
+    * actually performed during the most recent call to {@link #solve solve()}.
     *
     * @return number of iterative refinement steps actually performed
     * @see #getMaxRefinementSteps
@@ -748,6 +788,62 @@ public class PardisoSolver extends DirectSolverBase {
    }
 
    /**
+    * Expert tuning method: explicitly sets Pardiso's integer control
+    * parameter {@code iparm[idx]}, using the 0-based C indexing of Intel's
+    * documentation, overriding whatever value this class would otherwise
+    * use. The override is reapplied before every subsequent Pardiso phase
+    * (analyze, factor and solve), except that the preconditioner solves of
+    * the native wrapper's iterative methods always use {@code iparm[3] = 0}
+    * (no Pardiso iterative solve) and {@code iparm[7] = 0} (no iterative
+    * refinement). Incorrect values can cause Pardiso to fail
+    * or to return inaccurate results. Requires native library support that
+    * was added with PardisoJNI 2026.1.1.
+    *
+    * @param idx parameter index, in the range 0 to 63
+    * @param value parameter value
+    * @see #clearIParams
+    */
+   public synchronized void setIParam (int idx, int value) {
+      if (idx < 0 || idx >= 64) {
+         throw new IllegalArgumentException (
+            "iparm index " + idx + " not in the range [0,63]");
+      }
+      if (myHandle == 0) {
+         initialize();
+      }
+      doSetIParam (myHandle, idx, value);
+   }
+
+   /**
+    * Returns the value of Pardiso's integer parameter {@code iparm[idx]} as
+    * of the most recent Pardiso phase. This can be used to read output
+    * parameters, such as peak memory use.
+    *
+    * @param idx parameter index, in the range 0 to 63
+    * @return parameter value
+    */
+   public synchronized int getIParam (int idx) {
+      if (idx < 0 || idx >= 64) {
+         throw new IllegalArgumentException (
+            "iparm index " + idx + " not in the range [0,63]");
+      }
+      if (myHandle == 0) {
+         initialize();
+      }
+      return doGetIParam (myHandle, idx);
+   }
+
+   /**
+    * Removes all parameter overrides set using {@link #setIParam}.
+    */
+   public synchronized void clearIParams () {
+      if (myHandle == 0) {
+         initialize();
+      }
+      doClearIParams (myHandle);
+   }
+
+   /**
     * Sets the message level for the Pardiso native code.  0 disables messages,
     * while 1 causes printing of various stats and information about the solve
     * process. The message level should normally be set to 0.
@@ -826,7 +922,7 @@ public class PardisoSolver extends DirectSolverBase {
 
    /**
     * Returns the number of pivot perturbations that were required
-    * during the last recent numeric factorization (i.e., during
+    * during the most recent numeric factorization (i.e., during
     * the last <code>factor()</code> call). Pivot perturbation
     * generally indicates a singular, or very nearly singular, matrix.
     *
@@ -898,23 +994,40 @@ public class PardisoSolver extends DirectSolverBase {
 
 
    /**
-    * Implementation of
-    * {@link #iterativeSolve(double[],double[],int)} 
-    * that uses {@link maspack.matrix.VectorNd VectorNd} objects
-    * to store to the result and right-hand side.
+    * Implementation of {@link #iterativeSolve(double[],double[])} that uses
+    * {@link maspack.matrix.VectorNd VectorNd} objects to store to the result
+    * and right-hand side.
     *
     * @param x returns the solution value
     * @param b supplies the right-hand side
-    * @param tolExp exponent for the stopping criterion
-    * @return number of iterations performed, negated if unsuccessful
+    * @return number of iterations performed, or a value {@code <= 0} if
+    * unsuccessful
     * @throws ImproperStateException if not preceded by a call to
     * {@link #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or
     * {@link #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)},
     * or if the matrix has not previously been factored.
     * @throws IllegalArgumentException if the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size, or if
-    * <code>topExp</code> is negative.
+    * <code>b</code> are incompatible with the matrix size.
     */
+   public int iterativeSolve (VectorNd x, VectorNd b) {
+      checkFactored();
+      checkSolveArgs (x, b, 1);
+      return iterativeSolve (x.getBuffer(), b.getBuffer());
+   }
+
+   /**
+    * Performs {@link #iterativeSolve(VectorNd,VectorNd)} with a relative
+    * residual tolerance of {@code 10^-tolExp}.
+    *
+    * @param x returns the solution value
+    * @param b supplies the right-hand side
+    * @param tolExp exponent for the stopping criterion
+    * @return number of iterations performed, or a value {@code <= 0} if
+    * unsuccessful
+    * @deprecated use {@link #setIterativeTolerance} and {@link
+    * #iterativeSolve(VectorNd,VectorNd)} instead
+    */
+   @Deprecated
    public int iterativeSolve (VectorNd x, VectorNd b, int tolExp) {
       checkFactored();
       checkSolveArgs (x, b, 1);
@@ -922,66 +1035,76 @@ public class PardisoSolver extends DirectSolverBase {
    }
 
    /**
-    * Attempts to use preconditioned CGS iteration to solve M x = b for a given
-    * right-hand side <code>b</code>. Current numeric values for M are obtained
-    * from the matrix that was supplied by a previous call to {@link
+    * Attempts to iteratively solve M x = b for a given right-hand side
+    * <code>b</code>, using the most recent numeric factorization as a
+    * preconditioner. Current numeric values for M are obtained from the matrix
+    * that was supplied by a previous call to {@link
     * #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or {@link
-    * #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)}.  The
-    * most recent numeric factorization of this matrix will be used as a
-    * preconditioner for the CGS iteration, with a relative stopping criterion
-    * given by <code>10^-tolExp</code>. It is assumed that the matrix has
-    * been previously factored with a call to <code>factor()</code>.
-    *
-    * <p>If the CGS iteration is successful, this method returns a positive
-    * value giving the number of iterations required. If unsuccessful,
-    * it returns a non-postive value giving the negative of the number
-    * of iterations that were actually performed, and
-    * {@link #getErrorMessage getErrorMessage()} can be used to determine
-    * the underlying error.
+    * #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)}.
+    * Otherwise this method behaves identically to {@link
+    * #iterativeSolve(double[],double[],double[])}.
     *
     * @param x returns the solution value
     * @param b supplies the right-hand side
-    * @param tolExp exponent for the stopping criterion
-    * @return number of iterations performed, negated if unsuccessful
+    * @return number of iterations performed, or a value {@code <= 0} if
+    * unsuccessful
     * @throws ImproperStateException if not preceded by a call to
     * {@link #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or
     * {@link #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)},
     * or if the matrix has not previously been factored.
     * @throws IllegalArgumentException if the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size, or if
-    * <code>topExp</code> is negative.
+    * <code>b</code> are incompatible with the matrix size.
     */
-   public synchronized int iterativeSolve (double[] x, double[] b, int tolExp) {
+   public synchronized int iterativeSolve (double[] x, double[] b) {
       if (myMatrix == null) {
          throw new ImproperStateException (
             "analyze(Matrix) or analyzeAndFactor(Matrix) not previously called");
-      }  
+      }
       Partition part = getPartition (myType);
       myMatrix.getCRSValues (myVals, part, mySize, mySize);
-      return iterativeSolve (myVals, x, b, tolExp);
+      return iterativeSolve (myVals, x, b);
    }
 
    /**
-    * Attempts to use preconditioned CGS iteration to solve M x = b for a given
-    * right-hand side <code>b</code>. Current numeric values for M are
-    * supplied by the argument <code>vals</code>. Otherwise this
-    * method behaves identically to
-    * {@link #iterativeSolve(double[],double[],int)}.
+    * Performs {@link #iterativeSolve(double[],double[])} with a relative
+    * residual tolerance of {@code 10^-tolExp}.
     *
-    * @param vals supplied the current matrix values 
     * @param x returns the solution value
     * @param b supplies the right-hand side
     * @param tolExp exponent for the stopping criterion
-    * @return number of iterations performed, negated if unsuccessful
-    * @throws ImproperStateException if the matrix has not previously been
-    * factored.
-    * @throws IllegalArgumentException if there are insufficient values
-    * specified by <code>vals</code>, the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size, or if
-    * <code>topExp</code> is negative.
+    * @return number of iterations performed, or a value {@code <= 0} if
+    * unsuccessful
+    * @deprecated use {@link #setIterativeTolerance} and {@link
+    * #iterativeSolve(double[],double[])} instead
+    */
+   @Deprecated
+   public synchronized int iterativeSolve (double[] x, double[] b, int tolExp) {
+      double tol = getIterativeTolerance();
+      setIterativeTolerance (Math.pow (10.0, -tolExp));
+      try {
+         return iterativeSolve (x, b);
+      }
+      finally {
+         setIterativeTolerance (tol);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>By default, the method set by {@link #setIterativeMethod} is
+    * performed by the native wrapper; if it does not converge, 0 is
+    * returned. Alternatively, Pardiso's own iterative solve can be used (see
+    * {@link #setUseNativeIterativeSolve}): preconditioned CG for symmetric
+    * matrices and CGS otherwise. It applies the tolerance only approximately,
+    * rounded to a power of 10 and using Pardiso's own stopping criterion, and
+    * uses Pardiso's own iteration limit (150) instead of {@link
+    * #setIterativeMaxSolves}. If it fails, it returns a negative code equal to
+    * -(10*iterations + error). In either case, {@link #getErrorMessage
+    * getErrorMessage()} describes the failure.
     */
    public synchronized int iterativeSolve (
-      double[] vals, double[] x, double[] b, int tolExp) {
+      double[] vals, double[] x, double[] b) {
       checkFactored();
       checkSolveArgs (x, b, 1);
       if (vals.length < myNumVals) {
@@ -989,10 +1112,7 @@ public class PardisoSolver extends DirectSolverBase {
             "vals is too small: length="+vals.length+
             ", expected size is "+myNumVals);
       }
-      else if (tolExp < 0) {
-         throw new IllegalArgumentException ("tolExp should not be negative");
-      }   
-      
+
       // Some versions of Pardiso have a bug whereby iterative solves fail when
       // the RHS is zero. So check for rhs == 0 and simple return x = 0 when
       // this is the case.
@@ -1003,23 +1123,46 @@ public class PardisoSolver extends DirectSolverBase {
             break;
          }
       }
-      
+
       int rcode = 0;
+      myLastSolveWasHybrid = false;
+      myLastIterativeSolves = -1;
+      myLastIterativeResidual = -1;
       if (rhs0) {
-         // zero out solution
+         // zero out solution, which is exact, so report success, as the
+         // native wrapper does
          for (int i=0; i<mySize; i++) {
             x[i] = 0;
          }
+         rcode = 1;
+         myLastIterativeSolves = 0;
+         myLastIterativeResidual = 0;
       } else {
-         rcode = doIterativeSolve (myHandle, vals, x, b, tolExp);
+         if (!myUseNativeIterativeSolve) {
+            rcode = hybridSolve (vals, x, b);
+         }
+         if (!myLastSolveWasHybrid) {
+            rcode = doIterativeSolve (myHandle, vals, x, b, nativeTolExp());
+         }
       }
-      
+
       if (rcode < 0) {
          myErrMsg = getErrorMessage (rcode%10 - 20);
+      } else if (rcode == 0 && myLastSolveWasHybrid) {
+         myErrMsg = myIterativeMethod + " iterative solve did not converge";
       } else {
          myErrMsg = null;
       }
       return rcode;
+   }
+
+   /**
+    * Returns the exponent L for Pardiso's own iterative solve (iparm[3] =
+    * 10*L+K), which approximates the iterative tolerance by 10^-L.
+    */
+   private int nativeTolExp() {
+      int exp = (int)Math.round (-Math.log10 (myIterativeTolerance));
+      return Math.max (1, exp);
    }
 
    /**
@@ -1043,6 +1186,104 @@ public class PardisoSolver extends DirectSolverBase {
       else {
          return true;
       }
+   }
+
+   /**
+    * Performs a GMRES or CGS iterative solve in the native wrapper. Sets
+    * myLastSolveWasHybrid, unless the native library does not support this.
+    */
+   private int hybridSolve (double[] vals, double[] x, double[] b) {
+      if (!myHybridSolvesSupported) {
+         return 0;
+      }
+      try {
+         int rcode = doHybridSolve (
+            myHandle, vals, x, b, myIterativeTolerance,
+            nativeMethodCode (myIterativeMethod), myIterativeMaxSolves,
+            myGmresRestart, getUseCriticalArrayAccess());
+         myLastIterativeSolves = doGetLastIterativeSolves (myHandle);
+         myLastIterativeResidual = doGetLastIterativeResidual (myHandle);
+         myLastSolveWasHybrid = true;
+         return rcode;
+      }
+      catch (UnsatisfiedLinkError e) {
+         // native library predates GMRES/CGS support
+         myHybridSolvesSupported = false;
+         return 0;
+      }
+   }
+
+   /**
+    * Sets whether {@link #iterativeSolve} uses Pardiso's own iterative solve
+    * (preconditioned CG for symmetric matrices, CGS otherwise), instead of
+    * the method set by {@link #setIterativeMethod}, which is performed by the
+    * native wrapper. The default is given by {@link
+    * #getDefaultUseNativeIterativeSolve}. Pardiso's own solve applies the
+    * tolerance only approximately, ignores {@link #setIterativeMaxSolves},
+    * and does not provide {@link #getLastIterativeSolves}, {@link
+    * #getLastIterativeResidual} or {@link #getLastIterativeTimes}. It is also
+    * used if the native library does not support the wrapper's methods.
+    *
+    * @param enable if <code>true</code>, use Pardiso's own iterative solve
+    */
+   public void setUseNativeIterativeSolve (boolean enable) {
+      myUseNativeIterativeSolve = enable;
+   }
+
+   /**
+    * Queries whether {@link #iterativeSolve} uses Pardiso's own iterative
+    * solve. See {@link #setUseNativeIterativeSolve}.
+    *
+    * @return <code>true</code> if Pardiso's own iterative solve is used
+    */
+   public boolean getUseNativeIterativeSolve() {
+      return myUseNativeIterativeSolve;
+   }
+
+   /**
+    * Sets the default value of {@link #getUseNativeIterativeSolve} for
+    * solvers created after this call. Initially {@link
+    * #DEFAULT_USE_NATIVE_ITERATIVE_SOLVE} ({@code false}), so that the native
+    * wrapper's iterative method (GMRES by default) is used.
+    *
+    * @param enable if <code>true</code>, new solvers use Pardiso's own
+    * iterative solve
+    */
+   public static void setDefaultUseNativeIterativeSolve (boolean enable) {
+      myDefaultUseNativeIterativeSolve = enable;
+   }
+
+   /**
+    * Queries the default value of {@link #getUseNativeIterativeSolve} for
+    * newly created solvers. See {@link #setDefaultUseNativeIterativeSolve}.
+    *
+    * @return <code>true</code> if new solvers use Pardiso's own iterative
+    * solve
+    */
+   public static boolean getDefaultUseNativeIterativeSolve() {
+      return myDefaultUseNativeIterativeSolve;
+   }
+
+   /**
+    * Returns a time breakdown of the most recent call to {@link
+    * #iterativeSolve}, in msec: the total time spent in the native code, the
+    * time spent in preconditioner solves, and the time spent in matrix-vector
+    * products. The remainder of the total is vector operations and setup.
+    * Intended for performance analysis.
+    *
+    * @return total, preconditioner solve and matrix product times, or
+    * {@code null} if that call used Pardiso's own iterative solve
+    */
+   public synchronized double[] getLastIterativeTimes() {
+      if (myHandle == 0 || !myLastSolveWasHybrid) {
+         return null;
+      }
+      double[] times = new double[3];
+      doGetLastIterativeTimes (myHandle, times);
+      for (int i=0; i<times.length; i++) {
+         times[i] *= 1000;
+      }
+      return times;
    }
 
    private static void printUsage() {

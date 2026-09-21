@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include "mkl_version.h" // for INTEL_MKL_VERSION; mkl.h is not always included
 #include "pardisoMkl.h"
 
 #define debug 0
@@ -31,6 +32,7 @@ Pardiso4::Pardiso4 ()
    int i;
 
    myVals = (double*)0;
+   myCurVals = (double*)0;
    mySize = 0;
    myMaxSize = 0;	
    myMessageLevel = 0;
@@ -124,6 +126,8 @@ Pardiso4::Pardiso4 ()
 
 Pardiso4::~Pardiso4()
 {
+   // before the arrays it references are deleted
+   clearIterativeStructure();
    releaseMatrix();
    if (myMaxSize > 0)
     { delete[] myRows;
@@ -140,6 +144,7 @@ Pardiso4::~Pardiso4()
    if (myMaxNumVals > 0)
     { delete[] myCols;
       delete[] myVals;
+      delete[] myCurVals;
       myMaxNumVals = 0;
     }
 }
@@ -437,10 +442,43 @@ int Pardiso4::getMessageLevel () {
 //    return mkl_domain_get_max_threads (MKL_DOMAIN_PARDISO);
 // }
 
+int Pardiso4::setIParam (int idx, int value) {
+   if (idx < 0 || idx >= NUM_PARAMS) {
+      return -1;
+   }
+   myIParamOverrides[idx] = value;
+   myIParamIsOverridden[idx] = 1;
+   return 0;
+}
+
+int Pardiso4::getIParam (int idx) {
+   if (idx < 0 || idx >= NUM_PARAMS) {
+      return 0;
+   }
+   return myIParams[idx];
+}
+
+void Pardiso4::clearIParams () {
+   for (int i=0; i<NUM_PARAMS; i++) {
+      myIParamIsOverridden[i] = 0;
+   }
+}
+
+void Pardiso4::applyIParamOverrides () {
+   for (int i=0; i<NUM_PARAMS; i++) {
+      if (myIParamIsOverridden[i]) {
+         myIParams[i] = myIParamOverrides[i];
+      }
+   }
+}
+
 int Pardiso4::setMatrix (
    const double* vals, const int* rowIdxs, const int *colIdxs, int size, int numVals, int type)
 {
    int i;
+
+   // the iterative structure references arrays which may be reallocated
+   clearIterativeStructure();
 
    if (mySize > 0)
     { releaseMatrix(); 
@@ -477,12 +515,31 @@ int Pardiso4::setMatrix (
    int idummy;
    double ddummy;
 
+#if defined(INTEL_MKL_VERSION) && INTEL_MKL_VERSION >= 20260000
+   /* MKL 2026 added an optimization level L to iparm[1], which has the form
+      10*L + reorderMethod. According to some recent (2026) measurements, L=1
+      can reduce factor time by 35-45% for constrained (KKT) systems with
+      significant numbers of constraint, for a few percent more
+      memory. However, it had no measurable effect on unconstrained systems,
+      and higher values of L gave no further gain. This also appears to work
+      with the two-level factorization (iparm[23]=1), contrary to the
+      documentation. The level is not recognized by earlier MKL versions. */
+   myIParams[1] = 10 + getReorderMethod();
+#else
    myIParams[1] = getReorderMethod();
+#endif
    myIParams[9] = getPivotPerturbation();
    myIParams[10] = getApplyScaling();
    myIParams[12] = getApplyWeightedMatchings();
    myIParams[20] = getUse2x2Pivoting();
    myIParams[26] = getMatrixChecking();
+   /* Two-level parallel factorization algorithm (iparm(24) in Intel's 1-based
+      numbering => myIParams[23] here). According to some recent (2026)
+      measurments, for indefinite/KKT matrices (e.g., bilteral contact) it's a
+      same-or-better bet, albiet with somewhat noisy results. For SPD matrices
+      it measured consitently slower.  Gate on matrix type rather than leave it
+      at the library's own (apparently version-dependent) default. */
+   myIParams[23] = (myMatrixType == REAL_SYMMETRIC_INDEF) ? 1 : 0;
    myIParams[14] = 0; // output: peak memory
    myIParams[15] = 0; // output: memory
 
@@ -492,6 +549,7 @@ int Pardiso4::setMatrix (
     { myInternalStore[i] = 0; 
     }
    myIParams[17] = -1;
+   applyIParamOverrides();
    PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,
             &phase, &mySize, myVals, myRows, myCols, &idummy, 
             &myNumRightHandSides, myIParams, &myMessageLevel,
@@ -507,6 +565,11 @@ int Pardiso4::setMatrix (
     { myLastPhase = phase; 
     }
    myNumNonZerosInFactors = myIParams[17];
+   if (error == 0)
+    { setIterativeStructure (
+         size, numVals, myRows, myCols, myCurVals,
+         myMatrixType != REAL_UNSYMMETRIC);
+    }
    return error;
 }
 
@@ -557,6 +620,7 @@ int Pardiso4::factorMatrix (const double* vals)
 
    //myIParams[17] = -1; /* return number of nonzeros in factors */
 //   printf ("C-index=%d\n", myIParams[12]);
+   applyIParamOverrides();
    PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,
             &phase, &mySize, myVals, myRows, myCols, &idummy, 
             &myNumRightHandSides, myIParams, &myMessageLevel,
@@ -602,6 +666,7 @@ int Pardiso4::factorAndSolve (
    myIParams[26] = 0; // no matrix checking here
    myIParams[16] = 0; // output: memory usage
    myIParams[29] = 0; // output: SPD zero pivot
+   applyIParamOverrides();
 
    int i;
    if (vals != (double*)0)
@@ -658,6 +723,7 @@ int Pardiso4::solveMatrix (double* x, double* b)
    myIParams[7] = getMaxRefinementSteps();
    myIParams[3] = 0; /* no iterative solving */
    myIParams[26] = 0; // no matrix checking here
+   applyIParamOverrides();
 
    PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,
             &phase, &mySize, myVals, myRows, myCols, &idummy, 
@@ -685,6 +751,7 @@ int Pardiso4::solveMatrix (double* x, double* b, int nrhs)
    myIParams[7] = getMaxRefinementSteps();
    myIParams[3] = 0; /* no iterative solving */
    myIParams[26] = 0; // no matrix checking here
+   applyIParamOverrides();
 
    PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,
             &phase, &mySize, myVals, myRows, myCols, &idummy, 
@@ -733,6 +800,7 @@ int Pardiso4::iterativeSolve (
    else
     { myIParams[3] = (10*tolExp + 1);
     }
+   applyIParamOverrides();
 
    PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,
             &phase, &mySize, myVals, myRows, myCols, &idummy, 
@@ -747,6 +815,34 @@ int Pardiso4::iterativeSolve (
       myNumRefinementSteps = myIParams[6];
       return myIParams[19]; 
     }
+}
+
+/**
+ * Applies the preconditioner for hybrid iterative solves, z = M^{-1} r, as a
+ * phase 33 solve with the most recent factorization. Iterative refinement is
+ * disabled and the factored values (myVals, not the current values) are
+ * supplied, so this is a fixed forward/backward substitution. Note that MKL
+ * still performs two refinement steps if there were perturbed pivots, which
+ * GMRES tolerates since it stores the preconditioned vectors.
+ */
+int Pardiso4::precondSolve (double* z, const double* r)
+{
+   int error;
+   int phase = 33;
+   int idummy;
+   int nrhs = 1;
+   myIParams[5] = 0;  // write solution into z
+   myIParams[26] = 0; // no matrix checking here
+   applyIParamOverrides();
+   // despite overrides: never Pardiso's own iterative solve, and no iterative
+   // refinement, since the outer iteration controls the accuracy
+   myIParams[3] = 0;
+   myIParams[7] = 0;
+   // Pardiso does not modify b when iparm[5] = 0
+   PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,
+            &phase, &mySize, myVals, myRows, myCols, &idummy,
+            &nrhs, myIParams, &myMessageLevel, (double*)r, z, &error);
+   return error;
 }
 
 void Pardiso4::setSize (int size)
@@ -788,10 +884,14 @@ void Pardiso4::setNumVals (int num)
        { delete[] myVals;
        }
       if (myCols != (int*)0)
-       { delete[] myCols;           
+       { delete[] myCols;
+       }
+      if (myCurVals != (double*)0)
+       { delete[] myCurVals;
        }
       myVals = new double[num];
       myCols = new int[num];
+      myCurVals = new double[num];
       myMaxNumVals = num;
     }
    myNumVals = num;

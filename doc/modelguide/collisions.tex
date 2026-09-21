@@ -1880,6 +1880,15 @@ force vectors when they are drawn in response to {\sf
 drawContactForces} or {\sf drawFrictionForces} being {\tt true}.  The
 default value is 0.
 
+\item[negativeForceColor]\mbox{}
+
+A {\tt Color} value which, if non-null, specifies a distinct color to be used
+for rendering contact forces whose values are negative; i.e., directed opposite
+to the direction of the contact normal. This can only occur for vertex-based
+contacts which are enforced by bilateral constraints when the {\sf
+bilateralVertexContact} property is {\tt true}, and indicates temporary
+contact sticking.
+
 \item[colorMap]\mbox{}
 
 Composite property of type 
@@ -3480,3 +3489,32 @@ Section \ref{CollisionBehavior:sec}.
 \else
 \end{document}
 \fi
+
+Work this in somewhere:
+
+Contact results in inequality (i.e., unilateral) constraints. Assume you have a
+point in contact with a surface. Its velocity v_n in the direction of the
+contact surface normal must satisfy
+
+v_n >= 0
+
+which means the point is free to separate from the surface but not move into
+it. This is enforced by a reaction force f_n along the normal, which also
+satisfies
+
+f_n >= 0
+
+Moreover, f_n is 0 whenever v_n > 0 (since no need to restrain a separating
+contact) and v_n is 0 whenever f_n > 0 (the reaction force prevents the point
+from moving).
+
+Computing the velocities and reaction forces to satisfy all this is known as a
+"complementarity problem", and it's more computationally expensive than
+handling regular equality contraints, particularly when there are many contact
+points (as there are when doing FE or EFC contact).
+
+To speed things up, the default ArtiSynth method for FE and EFC contact is to
+treat the contacts as equality (bilateral) constraints during the velocity
+solve, such that v_n = 0, and then afterwards remove any contacts for which the
+resulting f_n < 0. This is the behavior when bilateralVertexContact=true,
+and while it results in faster computation

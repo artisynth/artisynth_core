@@ -2,6 +2,10 @@
 # only supported solver is MKL Pardiso. Support for Umfpack has been
 # dropped because the solver is slow.
 #
+# The MUMPS JNI library is built separately, using Makefile.mumps:
+#
+#    make -f Makefile.mumps
+#
 # As of November 2015, the first three version numbers of the
 # PardisoJNI library are set to reflect the numbers of the MKL
 # distribution on which it is based. So for example,
@@ -40,19 +44,20 @@ JAVAH = javah
 # Pardiso version number based on MKL 11.1.2, with support for setting
 # the maximum number of threads. Make sure there is no whitespace at
 # the end.
-PARDISO_VERSION = 2021.1.1
+PARDISO_VERSION = 2026.1.1
 
 ifeq ($(SYSTEM),Linux)
 	ifndef MKL_HOME
-	   MKL_HOME = /data/intel/oneapi/mkl/2021.1.1
+	   MKL_HOME = /data/intel/oneapi2026/mkl/2026.1.1
         endif
         ifndef MKL_THREAD_LIB
-	   MKL_THREAD_LIB = /data/intel/oneapi/compiler/2021.1.1/linux/compiler/lib
+	   MKL_THREAD_LIB = /data/intel/oneapi2026/compiler/2026.1.1/linux/compiler/lib
         endif
 	ifeq ($(ARCH), 64)
 	   NATIVE_DIR = Linux64
 	   PARDISO = pardisoX86_64
-	   MKL=$(MKL_HOME)/lib/intel64
+	   #MKL=$(MKL_HOME)/lib/intel64
+	   MKL=$(MKL_HOME)/lib
 	   # At last check, intel MKL blas were about 20% faster
            #
 	   # link with iomp5 because libiomp5 is more compatible when
@@ -68,7 +73,8 @@ ifeq ($(SYSTEM),Linux)
            #
 
            # -Wl,--wrap=memcpy
-	   LDS_PARDISO_MKL = -L$(MKL_THREAD_LIB)/intel64_lin \
+	   # LDS_PARDISO_MKL = -L$(MKL_THREAD_LIB)/intel64_lin
+	   LDS_PARDISO_MKL = -L$(MKL_THREAD_LIB) \
 	     -Wl,--start-group \
              $(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
              $(MKL)/libmkl_core.a -Wl,--end-group \
@@ -87,7 +93,7 @@ ifeq ($(SYSTEM),Linux)
 	endif
 	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux \
 		-I$(MKL_HOME)/include -I.
-	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o wrap_memcpy.o
+	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o hybridSolve.o wrap_memcpy.o
 	PARDISO_MKL_TARGET = libPardisoJNI.so.$(PARDISO_VERSION)
         # the use of rpath ensures that library dependencies can also be loaded
         # from lib/Linux or lib/Linux64; 
@@ -141,7 +147,7 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_37
         endif
 	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32" -I.
-	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o
+	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o hybridSolve.o
 	PARDISO_MKL_TARGET = PardisoJNI.$(PARDISO_VERSION).dll
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias
 else ifeq ($(SYSTEM),Darwin)
@@ -161,7 +167,7 @@ else ifeq ($(SYSTEM),Darwin)
 		$(MKL)/libmkl_core.a -liomp5 -lpthread     
 	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -I$(MKL_HOME)/include -I.
 	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
-	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o
+	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o hybridSolve.o
 	PARDISO_MKL_TARGET = libPardisoJNI.$(PARDISO_VERSION).dylib
 	LIB_FLAGS = -bundle -framework JavaNativeFoundation 
 endif
@@ -185,10 +191,14 @@ wrap_memcpy.o: wrap_memcpy.c
 testUtils.o: testUtils.h testUtils.cc
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o testUtils.o testUtils.cc
 
-pardisoMkl.o: pardisoMkl.cc pardisoMkl.h
+# hybrid (preconditioned iterative) solves, shared with the MUMPS JNI library
+hybridSolve.o: hybridSolve.cc hybridSolve.h
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o hybridSolve.o hybridSolve.cc
+
+pardisoMkl.o: pardisoMkl.cc pardisoMkl.h hybridSolve.h
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o pardisoMkl.o pardisoMkl.cc
 
-PardisoMklJNI.o: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h
+PardisoMklJNI.o: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h hybridSolve.h hybridSolveJNI.h
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o PardisoMklJNI.o PardisoMklJNI.cc
 
 pardisoMklTest.o: pardisoMklTest.cc 
@@ -198,8 +208,8 @@ pardiso_mkl_bug: pardiso_mkl_bug.c
 	$(C_COMP) $(C_FLAGS) -o pardiso_mkl_bug pardiso_mkl_bug.c
 	$(LDS_PARDISO_MKL)
 
-pardisoMklTest: pardisoMkl.o pardisoMklTest.o pardisoMkl.h
-	$(CC_COMP) $(CC_FLAGS) -o pardisoMklTest pardisoMklTest.o pardisoMkl.o \
+pardisoMklTest: pardisoMkl.o hybridSolve.o pardisoMklTest.o pardisoMkl.h
+	$(CC_COMP) $(CC_FLAGS) -o pardisoMklTest pardisoMklTest.o pardisoMkl.o hybridSolve.o \
 		-L$(LIB_TARGET_DIR) $(LDS_PARDISO_MKL)
 
 $(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET): $(PARDISO_MKL_OBJS) 

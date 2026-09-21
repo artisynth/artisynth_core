@@ -101,10 +101,9 @@ public abstract class MechSystemBase extends RenderableModelBase
    SparseBlockMatrix myMassMatrix;   
 
    public static PosStabilization DEFAULT_STABILIZATION =
-      PosStabilization.GlobalMass;
+      PosStabilization.GlobalStiffness;
    protected static PosStabilization myDefaultStabilization =
       DEFAULT_STABILIZATION;
-   //protected PosStabilization myStabilization = myDefaultStabilization;
 
    protected boolean myDynamicsEnabled = DEFAULT_DYNAMICS_ENABLED; 
    protected boolean myProfilingP = DEFAULT_PROFILING;
@@ -253,8 +252,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       myProps.add (
          "warmStartLCPs", "use warm starting for LCPs when possible",
          DEFAULT_WARM_START_LCPS);
-         
-
    }
 
    public void setPenetrationLimit (double lim) {
@@ -305,7 +302,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       else {
          mySolver = new MechSystemSolver (this);
-         mySolver.setStabilization (getStabilization());
+         mySolver.setStabilization (myDefaultStabilization);
          mySolver.setUpdateForcesAtStepEnd (getUpdateForcesAtStepEnd());
          mySolver.setIntegrator (getIntegrator());
          mySolver.setMatrixSolver (getMatrixSolver());

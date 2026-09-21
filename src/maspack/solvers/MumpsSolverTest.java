@@ -198,6 +198,12 @@ public class MumpsSolverTest extends DirectSolverTestBase {
       solver.dispose();
    }
 
+   protected void checkIterativeSolveInfo (DirectSolver solver, Object method) {
+      super.checkIterativeSolveInfo (solver, method);
+      check ("getLastIterativeTimes() != null",
+             ((MumpsSolver)solver).getLastIterativeTimes() != null);
+   }
+
    public void test() throws IOException {
       testBasics();
       testNullPivotDetection();

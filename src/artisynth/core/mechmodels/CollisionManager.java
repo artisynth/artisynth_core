@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.awt.Color;
 
 import maspack.collision.AbstractCollider;
 import maspack.collision.ContactInfo;
@@ -341,6 +342,9 @@ public class CollisionManager extends RenderableCompositeBase
 
    static double DEFAULT_CONTACT_FORCE_LEN_SCALE = 1.0;
    private double myContactForceLenScale = DEFAULT_CONTACT_FORCE_LEN_SCALE;
+
+   static Color DEFAULT_NEGATIVE_FORCE_COLOR = null;
+   private Color myNegativeForceColor = DEFAULT_NEGATIVE_FORCE_COLOR;
    
    // Estimate of the radius of the set of collidable objects.
    // Used for computing default tolerances.
@@ -487,6 +491,10 @@ public class CollisionManager extends RenderableCompositeBase
          "contactForceLenScale",
          "length scale to be used when drawing contact forces",
          DEFAULT_CONTACT_FORCE_LEN_SCALE);
+      myProps.add (
+         "negativeForceColor",
+         "if non-null, specifies color to draw negative forces with",
+         DEFAULT_NEGATIVE_FORCE_COLOR);
       myProps.addInheritable (
          "drawColorMap:Inherited", 
          "draw a color map of the specified data",
@@ -611,6 +619,8 @@ public class CollisionManager extends RenderableCompositeBase
       myDrawContactNormalsMode = PropertyMode.Inherited;
       myDrawContactForces = defaultDrawContactForces;
       myDrawContactForcesMode = PropertyMode.Inherited;
+      myNegativeForceColor = DEFAULT_NEGATIVE_FORCE_COLOR;
+      myContactForceLenScale = DEFAULT_CONTACT_FORCE_LEN_SCALE;
       myDrawFrictionForces = defaultDrawFrictionForces;
       myDrawFrictionForcesMode = PropertyMode.Inherited;
       myDrawColorMap = defaultDrawColorMap;
@@ -690,6 +700,33 @@ public class CollisionManager extends RenderableCompositeBase
 
     public double getContactForceLenScale() {
       return myContactForceLenScale;
+   }
+    
+   /**
+    * Sets a distinct color to be used for rendering contact forces whose
+    * values are negative; i.e., directed opposite to the direction of the
+    * contact normal. This can only occur for vertex-based contacts which are
+    * enforced by bilateral constraints when the {@code bilateralVertexContact}
+    * property is {@code true}.
+    *
+    * <p>Contact forces are only visible when the properties {@code
+    * drawContactForces} and {@code contactForceLenScale} are {@code true}
+    * and {@code > 0}.
+    *
+    * @param color negative contact force color, or {@code null}.
+    */
+   public void setNegativeForceColor (Color color) {
+      myNegativeForceColor = color;
+   }
+
+   /**
+    * Queries the color to be used for rendering negative contact forces, or
+    * {@code null} if there is no such color.
+    *
+    * @return negative contact force color, or {@code null}
+    */
+    public Color getNegativeForceColor() {
+      return myNegativeForceColor;
    }
     
    /** 

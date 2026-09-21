@@ -302,6 +302,153 @@ public abstract class DirectSolverBase implements DirectSolver {
    }
 
    // ------------------------------------------------------------------
+   // iterative solve settings
+   // ------------------------------------------------------------------
+
+   /**
+    * Default restart length for GMRES iterative solves.
+    */
+   public static final int DEFAULT_GMRES_RESTART = 20;
+
+   protected IterativeMethod myIterativeMethod = IterativeMethod.GMRES;
+   protected int myIterativeMaxSolves = DEFAULT_ITERATIVE_MAX_SOLVES;
+   protected double myIterativeTolerance = DEFAULT_ITERATIVE_TOLERANCE;
+   protected int myGmresRestart = DEFAULT_GMRES_RESTART;
+   // results of the most recent iterative solve; -1 if not available
+   protected int myLastIterativeSolves = -1;
+   protected double myLastIterativeResidual = -1;
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setIterativeMethod (IterativeMethod method) {
+      if (method == null) {
+         throw new IllegalArgumentException ("method is null");
+      }
+      myIterativeMethod = method;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public IterativeMethod getIterativeMethod() {
+      return myIterativeMethod;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setIterativeMaxSolves (int max) {
+      if (max < 1) {
+         throw new IllegalArgumentException (
+            "max solves is "+max+"; must be positive");
+      }
+      myIterativeMaxSolves = max;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getIterativeMaxSolves() {
+      return myIterativeMaxSolves;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setIterativeTolerance (double tol) {
+      if (!(tol > 0)) {
+         throw new IllegalArgumentException (
+            "tolerance is "+tol+"; must be positive");
+      }
+      myIterativeTolerance = tol;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public double getIterativeTolerance() {
+      return myIterativeTolerance;
+   }
+
+   /**
+    * Sets the restart length used when the iterative method is GMRES. The
+    * default is {@link #DEFAULT_GMRES_RESTART}.
+    *
+    * @param restart GMRES restart length
+    */
+   public void setGmresRestart (int restart) {
+      if (restart < 1) {
+         throw new IllegalArgumentException (
+            "restart is "+restart+"; must be positive");
+      }
+      myGmresRestart = restart;
+   }
+
+   /**
+    * Queries the GMRES restart length.
+    *
+    * @return GMRES restart length
+    */
+   public int getGmresRestart() {
+      return myGmresRestart;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getLastIterativeSolves() {
+      return myLastIterativeSolves;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public double getLastIterativeResidual() {
+      return myLastIterativeResidual;
+   }
+
+   /**
+    * Returns the code which the native hybrid solve implementation
+    * (lib/hybridSolve.h) uses for an iterative method.
+    *
+    * @param method iterative method
+    * @return native method code
+    */
+   protected static int nativeMethodCode (IterativeMethod method) {
+      return (method == IterativeMethod.CGS ? 1 : 0);
+   }
+
+   private static boolean myUseCriticalArrayAccess = true;
+
+   /**
+    * Sets whether native solvers use JNI critical array access
+    * ({@code GetPrimitiveArrayCritical}) to transfer array data for the
+    * iterative (GMRES or CGS) solves performed by their native wrappers.
+    * The value, right-hand side and solution arrays are then copied directly
+    * between Java and native storage, avoiding extra copies and allocation
+    * of the value array. Critical access is held only while copying, never
+    * during the solve, since on JDK 21 and earlier it defers garbage
+    * collection for all threads. The default is {@code true}. Currently
+    * used by {@link PardisoSolver} and {@link MumpsSolver}.
+    *
+    * @param enable if {@code true}, use critical array access
+    */
+   public static void setUseCriticalArrayAccess (boolean enable) {
+      myUseCriticalArrayAccess = enable;
+   }
+
+   /**
+    * Queries whether native solvers use JNI critical array access for their
+    * iterative solves. See {@link #setUseCriticalArrayAccess}.
+    *
+    * @return {@code true} if critical array access is used
+    */
+   public static boolean getUseCriticalArrayAccess() {
+      return myUseCriticalArrayAccess;
+   }
+
+   // ------------------------------------------------------------------
    // analyze
    // ------------------------------------------------------------------
 

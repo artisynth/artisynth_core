@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "mumps.h"
+#include "hybridSolveJNI.h"
 #include "maspack_solvers_MumpsSolver.h"
 
 JNIEXPORT jlong JNICALL Java_maspack_solvers_MumpsSolver_doInit (
@@ -371,4 +372,39 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doSolve__J_3D_3DI (
    env->ReleaseDoubleArrayElements (jxvec, xvec, 0);
    env->ReleaseDoubleArrayElements (jbvec, bvec, JNI_ABORT);
    return retcode;
+}
+
+/* --- iterative solves --- */
+
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doIterativeSolve (
+   JNIEnv *env, jobject obj, jlong handle, jdoubleArray jvals,
+   jdoubleArray jxvec, jdoubleArray jbvec, jdouble tol, jint method,
+   jint maxSolves, jint restart, jboolean critical)
+{
+   return hybridSolveJNI (
+      env, (Mumps*)handle, jvals, jxvec, jbvec, tol, method, maxSolves,
+      restart, critical);
+}
+
+JNIEXPORT jint JNICALL
+Java_maspack_solvers_MumpsSolver_doGetLastIterativeSolves (
+   JNIEnv *env, jobject obj, jlong handle)
+{
+   return ((Mumps*)handle)->getLastIterativeSolves();
+}
+
+JNIEXPORT jdouble JNICALL
+Java_maspack_solvers_MumpsSolver_doGetLastIterativeResidual (
+   JNIEnv *env, jobject obj, jlong handle)
+{
+   return ((Mumps*)handle)->getLastIterativeResidual();
+}
+
+JNIEXPORT void JNICALL
+Java_maspack_solvers_MumpsSolver_doGetLastIterativeTimes (
+   JNIEnv *env, jobject obj, jlong handle, jdoubleArray jtimes)
+{
+   double times[3];
+   ((Mumps*)handle)->getLastIterativeTimes (times);
+   env->SetDoubleArrayRegion (jtimes, 0, 3, times);
 }

@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.awt.Color;
 
 import artisynth.core.mechmodels.CollisionBehavior.Method;
 import artisynth.core.mechmodels.CollisionBehavior.VertexPenetrations;
@@ -174,6 +175,14 @@ public class CollisionHandler extends RenderableConstrainerBase
          }
       }
       return scale;
+   }
+
+   Color getNegativeForceColor() {
+      Color color = null;
+      if (myManager != null) {
+         color = myManager.getNegativeForceColor();
+      }
+      return color;
    }
 
    public ContactInfo getLastContactInfo() {
@@ -880,6 +889,7 @@ public class CollisionHandler extends RenderableConstrainerBase
          }
          case AUTO: {
             return (!hasLowDOF (myCollidable0) && !hasLowDOF (myCollidable1));
+            //return false;
          }
          default:{
             throw new InternalErrorException (

@@ -35,6 +35,7 @@ import maspack.numerics.BrentRootSolver;
 import maspack.numerics.GoldenSectionSearch;
 import maspack.solvers.CGSolver;
 import maspack.solvers.DirectSolver;
+import maspack.solvers.DirectSolverBase;
 import maspack.solvers.IterativeSolver;
 import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.solvers.KKTSolver;
@@ -1549,8 +1550,8 @@ public class MechSystemSolver {
       else if (myKKTSolver != null) {
          matsolver = myKKTSolver.getMatrixSolver();
       }
-      if (matsolver instanceof PardisoSolver) {
-         sb.append (", num threads="+((PardisoSolver)matsolver).getNumThreads());
+      if (matsolver instanceof DirectSolverBase) {
+         sb.append (", num threads="+((DirectSolverBase)matsolver).getNumThreads());
       }
       return sb.toString();
    }

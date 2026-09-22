@@ -8,8 +8,7 @@
 #                 script which exports only the JNI entry points)
 #   MUMPS, PORD   static, together with the libmpiseq MPI stub, since this
 #                 is an MPI-free (but OpenMP threaded) MUMPS build
-#   METIS, SCOTCH static, built PIC specifically for this library; see
-#                 MUMPS_COMPILATION.md for how they were made
+#   METIS, SCOTCH static, built PIC specifically for this library
 #   libiomp5      shared, found via $ORIGIN, and deliberately shared with
 #                 libPardisoJNI: MUMPS is compiled by gfortran -fopenmp, but
 #                 we link WITHOUT -fopenmp and with -liomp5 instead, since
@@ -31,9 +30,7 @@
 #   make -f Makefile.mumps clean.mumps
 #
 # The locations of MUMPS, MKL, SCOTCH and METIS may be overridden on the
-# command line or through the environment. Building those packages in the
-# first place is described in MUMPS_COMPILATION.md; the Windows port is
-# described in MUMPS_COMPILATION_WINDOWS.md.
+# command line or through the environment.
 
 ROOT_DIR = ../../../..
 
@@ -112,6 +109,10 @@ default: mumps
 mumps_version.map:
 	echo '{ global: Java_*; local: *; };' > mumps_version.map
 
+# Regenerated whenever MumpsSolver.java's native method declarations
+# change -- see the equivalent rule in ../Makefile (Pardiso) for why this
+# matters: without it, a new native method silently links under a mangled
+# symbol name instead of failing the build.
 maspack_solvers_MumpsSolver.h: ../MumpsSolver.java
 	javac -h . -d $(ROOT_DIR)/classes -cp "$(ROOT_DIR)/classes" \
 	   ../MumpsSolver.java

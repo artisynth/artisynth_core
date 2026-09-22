@@ -51,6 +51,14 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetNumThreads (
    return ((Mumps*)handle)->getNumThreads();
 }
 
+// static (no handle): a machine property, not a per-solver one; see
+// hybridSolve.h/.cc.
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetPhysicalCoreCount (
+   JNIEnv *env, jclass cls)
+{
+   return hybridGetPhysicalCoreCount();
+}
+
 /* --- statistics --- */
 
 JNIEXPORT jlong JNICALL

@@ -8,7 +8,7 @@ LIB_TARGET_DIR = $(ROOT_DIR)\lib\Windows64
 # Pardiso compiled with MKL 2026.1
 PARDISO_MKL_TARGET = PardisoJNI.2026.1.dll
 CC_COMP = cl # Visual Studio C/C++ compiler
-CC_FLAGS = /O2 /DWINDOWS_COMPILER 
+CC_FLAGS = /O2 /MD /DWINDOWS_COMPILER
 # location of current Java JDK:
 JAVA_HOME = "C:\Program Files\Java\jdk-1.8"
 # location of Intel libraries:
@@ -28,6 +28,18 @@ LIBMP = /LIBPATH:$(THREAD_HOME) libiomp5md.lib
 default: libs
 
 libs: $(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET)
+
+# Regenerate the JNI header whenever PardisoSolver.java's native method
+# declarations change -- mirrors NMakefile.mumps's equivalent rule. Without
+# this, PardisoMklJNI.obj's dependency on this header (below) is checked
+# against a stale file that nothing ever regenerates: a new native method
+# added to PardisoSolver.java then has no extern "C" declaration in scope
+# when PardisoMklJNI.cc defines it, so it compiles and links with NO ERROR
+# but under a C++-mangled symbol name instead of the plain one JNI expects
+# -- silent until the JVM throws UnsatisfiedLinkError trying to call it.
+maspack_solvers_PardisoSolver.h: ..\PardisoSolver.java
+	$(JAVA_HOME)\bin\javac -h . -d $(ROOT_DIR)\classes \
+	   -cp $(ROOT_DIR)\classes ..\PardisoSolver.java
 
 # hybrid (preconditioned iterative) solves, shared with the MUMPS JNI library
 hybridSolve.obj: hybridSolve.cc hybridSolve.h

@@ -13,9 +13,6 @@ starting from three pristine source trees.
     ~/packages/metis-5.1.0        METIS 5.1.0 source
     ~/packages/scotch-v7.0.12     SCOTCH 7.0.12 source   <-- note the "v"
 
-`~/packages/scotch-7.0.12` (no "v") is an old *install prefix*, not source, and
-is no longer referenced by anything. It can be deleted.
-
 ## Install prefixes (generated)
 
     ~/packages/metis-5.1.0-static
@@ -23,6 +20,32 @@ is no longer referenced by anything. It can be deleted.
 
 `MUMPS_5.9.1/Makefile.inc` points at these. Build order is therefore
 METIS -> SCOTCH -> MUMPS -> bundle.
+
+## How MUMPS is configured
+
+MUMPS 5.9.1, **MPI-free but OpenMP-threaded**, linked against Intel oneMKL,
+packaged as a single stand-alone `libMumpsJNI.so.5.9.1` in
+`artisynth_core/lib/Linux64/`, alongside `libPardisoJNI.so.2025.3`.
+
+Configuration decisions (all verified on Linux):
+
+| Item          | Choice                                          |
+|---------------|-------------------------------------------------|
+| Parallelism   | OpenMP only. No MPI; MUMPS' `libseq`/`libmpiseq` stub replaces it. No ScaLAPACK. |
+| Integers      | 32-bit, LP64 interface throughout (MUMPS, METIS `IDXTYPEWIDTH 32`, SCOTCH `INTSIZE=32`) |
+| Orderings     | PORD (bundled) + METIS 5.1.0 + SCOTCH 7.0.12. `-Dpord -Dmetis -Dscotch`. NOT `-Dptscotch`/`-Dparmetis` (those are the MPI variants). |
+| BLAS/LAPACK   | Intel oneMKL, static, hidden from the DLL's export table |
+| OpenMP runtime| `libiomp5` — **shared, one per process, deliberately shared with Pardiso** |
+| Linkage       | Everything static except the OpenMP + language runtimes |
+
+Measured on Linux: 216k-unknown 3D Laplacian, 7.15 s @ 1 thread -> 2.78 s @ 8
+threads. All 7 `ICNTL(7)` orderings work from inside the library, which exports
+only its `Java_maspack_solvers_MumpsSolver_*` entry points;
+`libPardisoJNI.so.2025.3` exports 18,387 symbols.
+
+Target application: symmetric indefinite KKT systems `[M G^T; G R]`, `SYM=2`.
+Recommended ordering: **METIS** (`ICNTL(7)=5`) with default `ICNTL(12)`;
+`ICNTL(13)=1` if exact inertia is wanted in `INFOG(12)`.
 
 --------------------------------------------------------------------------
 ## (a) Build
@@ -90,8 +113,9 @@ AVX-512 kernels are runtime-dispatched and expected):
 
     cd ~/packages/MUMPS_5.9.1 && make clean
 
-    rm -rf ~/packages/metis-5.1.0/build     ~/packages/metis-5.1.0-static
-    rm -rf ~/packages/scotch-v7.0.12/build-static ~/packages/scotch-7.0.12-static
+    cd ~/packages
+    rm -rf metis-5.1.0/build metis-5.1.0-static
+    rm -rf scotch-v7.0.12/build scotch-v7.0.12/build-static scotch-7.0.12-static
 
 MUMPS' own `make clean` is thorough: it removes `lib/*.a`, `lib/*.so`, all
 objects and `.mod` files, `include/mumps_int_def.h` (generated), and cleans
@@ -103,8 +127,6 @@ not the installed `libMumpsJNI.so.*` in `lib/Linux64/`.
 --------------------------------------------------------------------------
 ## Environment gotcha
 
-`~/.cshrc` sets `OMP_NUM_THREADS 1`, which silently defeats the threaded
-build. Override it when timing or running.
-
-See `MUMPS_COMPILATION_WINDOWS.md` for the Windows port, and the header
-comment of `Makefile.mumps` for the reasoning behind each link-line decision.
+For binary repeatability reasons, the environment variable
+OMP_NUM_THREADS is set to 1 on some systems, which silently defeats
+the threaded build. Override it when timing or running.

@@ -180,6 +180,11 @@ JNI_H_FILES = maspack_solvers_PardisoSolver.h
 
 # pardiso JNI and test programs
 
+# Regenerated whenever PardisoSolver.java's native method declarations
+# change (unlike the Windows NMakefile, which lacked this rule until a new
+# native method there compiled and linked with no error but under a
+# C++-mangled symbol name -- no extern "C" declaration was in scope for it
+# -- and only failed at runtime with UnsatisfiedLinkError).
 maspack_solvers_PardisoSolver.h: ../PardisoSolver.java
 	$(JAVAH) $(JAVAHFLAGS) maspack.solvers.PardisoSolver
 

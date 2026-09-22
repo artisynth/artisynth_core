@@ -58,9 +58,6 @@ import maspack.solvers.FemMatrixGenerator.ElemType;
  * </pre>
  * Running with {@code -out} performs the analysis automatically once the sweep
  * finishes.
- *
- * <p>See {@code ThreadCountSweep.md} for the results obtained on a reference
- * machine and for notes on running this elsewhere.
  */
 public class ThreadCountSweep {
 

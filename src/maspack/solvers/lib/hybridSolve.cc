@@ -19,8 +19,121 @@
 #include <cmath>
 #include <chrono>
 
+#ifdef WINDOWS_COMPILER
+#include <windows.h>
+#elif defined(DARWIN)
+#include <sys/sysctl.h>
+#else
+#include <stdio.h>
+#endif
+
 #include "mkl_spblas.h"
 #include "hybridSolve.h"
+
+/* --------------------------------------------------------------------
+ * hybridGetPhysicalCoreCount(): see hybridSolve.h. Queried once (below)
+ * and cached, since this is a machine property, not something that can
+ * change between calls.
+ * -------------------------------------------------------------------- */
+
+#ifdef WINDOWS_COMPILER
+
+// GetLogicalProcessorInformation (the non-"Ex" form) is used for
+// simplicity: one fixed-size struct per entry, no variable-length records
+// to walk. Its known limitation is systems with more than 64 logical
+// processors (multiple "processor groups"), which it does not enumerate
+// across -- not a machine this code is expected to run on; the "Ex" form
+// with GetLogicalProcessorInformationEx would be needed there.
+static int queryPhysicalCoreCount()
+{
+   DWORD len = 0;
+   GetLogicalProcessorInformation (NULL, &len);
+   if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || len == 0) {
+      return -1;
+   }
+   SYSTEM_LOGICAL_PROCESSOR_INFORMATION* buf =
+      (SYSTEM_LOGICAL_PROCESSOR_INFORMATION*)malloc (len);
+   if (buf == NULL) {
+      return -1;
+   }
+   int count = -1;
+   if (GetLogicalProcessorInformation (buf, &len)) {
+      int n = (int)(len/sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+      count = 0;
+      for (int i=0; i<n; i++) {
+         if (buf[i].Relationship == RelationProcessorCore) {
+            count++;
+         }
+      }
+   }
+   free (buf);
+   return count;
+}
+
+#elif defined(DARWIN)
+
+// macOS: hw.physicalcpu is exactly this (as opposed to hw.logicalcpu,
+// which includes hyperthreads) -- no parsing needed.
+static int queryPhysicalCoreCount()
+{
+   int count;
+   size_t size = sizeof(count);
+   if (sysctlbyname ("hw.physicalcpu", &count, &size, NULL, 0) != 0) {
+      return -1;
+   }
+   return count;
+}
+
+#else
+
+// Linux: count distinct (physical id, core id) pairs in /proc/cpuinfo. A
+// plain line-oriented parse rather than a dependency on libnuma/hwloc.
+static int queryPhysicalCoreCount()
+{
+   FILE* f = fopen ("/proc/cpuinfo", "r");
+   if (f == NULL) {
+      return -1;
+   }
+   // far more (physicalId,coreId) pairs than any real machine has
+   const int MAX_PAIRS = 4096;
+   long long seen[MAX_PAIRS];
+   int numSeen = 0;
+   int physId = 0;
+   char line[256];
+   while (fgets (line, sizeof(line), f)) {
+      int val;
+      if (sscanf (line, "physical id : %d", &val) == 1) {
+         physId = val;
+      }
+      else if (sscanf (line, "core id : %d", &val) == 1) {
+         long long key = ((long long)physId << 32) | (unsigned int)val;
+         bool found = false;
+         for (int i=0; i<numSeen; i++) {
+            if (seen[i] == key) {
+               found = true;
+               break;
+            }
+         }
+         if (!found && numSeen < MAX_PAIRS) {
+            seen[numSeen++] = key;
+         }
+      }
+   }
+   fclose (f);
+   return numSeen > 0 ? numSeen : -1;
+}
+
+#endif
+
+static int thePhysicalCoreCount = -2; // -2: not yet queried
+
+int hybridGetPhysicalCoreCount()
+{
+   if (thePhysicalCoreCount == -2) {
+      thePhysicalCoreCount = queryPhysicalCoreCount();
+   }
+   return thePhysicalCoreCount;
+}
 
 static double dot (const double* a, const double* b, int n)
 {

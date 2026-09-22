@@ -154,6 +154,18 @@ public abstract class DirectSolverBase implements DirectSolver {
    protected abstract int getNumThreadsNative();
 
    /**
+    * Returns the number of physical CPU cores on this machine, as opposed
+    * to logical/hyperthreaded processors, or a value {@code <= 0} if it
+    * could not be determined. Backed by {@code hybridGetPhysicalCoreCount()}
+    * in {@code hybridSolve.cc}, shared by the MUMPS and Pardiso native
+    * libraries -- see {@link #getPhysicalCoreCount} for the cached,
+    * fallback-applying wrapper callers should normally use instead.
+    *
+    * @return physical core count, or {@code <= 0} if undetermined
+    */
+   protected abstract int getPhysicalCoreCountNative();
+
+   /**
     * Returns a message describing the indicated native return code.
     *
     * @param rcode native return code
@@ -271,27 +283,38 @@ public abstract class DirectSolverBase implements DirectSolver {
     * Sets the number of threads that this solver should use. The results are
     * undefined if this number exceeds the maximum number of threads available
     * on the system. Setting <code>num</code> to a value {@code <=} 0 will
-    * reset the number of threads to the default used by OpenMP, which is
-    * typically the value stored in the environment variable
-    * <code>OMP_NUM_THREADS</code>.
+    * reset the number of threads to {@link #myNominalNumThreads}, i.e.,
+    * whatever this solver would have been assigned when created: the thread
+    * pool's own natural default, overridden by {@link #getDefaultNumThreads}
+    * if positive, and capped by {@link #getPhysicalCoreCount}.
     *
     * <p><b>Note:</b> the thread count is a property of the process rather than
     * of an individual solver, so changing it here affects all solvers running
     * in the same process. It should also not be changed in between the
     * analyze, factor and solve phases.
     *
+    * <p>A positive value here is also recorded as the highest priority input
+    * to automatic thread throttling (see {@link #maxThreadsNnz}), taking
+    * precedence over everything else, including {@link #getPhysicalCoreCount}.
+    *
     * @param num number of threads to use
     * @see #getNumThreads
     */
    public synchronized void setNumThreads (int num) {
       ensureInitialized();
-      setNumThreadsNative (num);
+      myExplicitNumThreads = num;
+      int numThreads = (num > 0 ? num : myNominalNumThreads);
+      if (numThreads != getNumThreadsNative()) {
+         setNumThreadsNative (numThreads);
+      }
    }
 
    /**
     * Returns the number of threads that this solver is using. By default,
-    * this is the number used by OpenMP, which is typically the value stored
-    * in the environment variable <code>OMP_NUM_THREADS</code>.
+    * this is {@link #myNominalNumThreads} -- the thread pool's own natural
+    * default (typically <code>OMP_NUM_THREADS</code>), overridden by {@link
+    * #getDefaultNumThreads} if positive, and capped by {@link
+    * #getPhysicalCoreCount}.
     *
     * @return number of threads being used
     * @see #setNumThreads
@@ -299,6 +322,210 @@ public abstract class DirectSolverBase implements DirectSolver {
    public synchronized int getNumThreads() {
       ensureInitialized();
       return getNumThreadsNative();
+   }
+
+   // -2: not yet queried; a machine property, so cached once for the whole
+   // process rather than per solver instance or per call
+   private static int myPhysicalCoreCount = -2;
+
+   /**
+    * Returns the number of physical CPU cores on this machine, as opposed
+    * to logical/hyperthreaded processors -- queried natively (see {@link
+    * #getPhysicalCoreCountNative}) since Java has no portable way to tell
+    * the two apart, and hyperthreads provide little to no benefit for
+    * compute-bound work like sparse factorization (see {@link
+    * #maxThreadsNnz}). Falls back to {@link Runtime#availableProcessors}
+    * (logical count, with a printed warning) if native detection runs but
+    * fails, or returns {@code -1} if this solver's native library predates
+    * {@link #getPhysicalCoreCountNative} entirely -- callers should treat
+    * that as "undetermined" and skip whatever they would otherwise have
+    * capped by it, rather than treating {@code -1} as a literal core count.
+    *
+    * <p>Queried once and cached for the life of the process: this is not
+    * meticulously synchronized against concurrent first calls from
+    * different solver instances, but the query is cheap, side-effect-free
+    * and deterministic, so a benign race only risks redoing it once, never
+    * an inconsistent result.
+    *
+    * @return physical core count on this machine, or {@code -1} if
+    * undetermined
+    */
+   public int getPhysicalCoreCount() {
+      ensureInitialized();
+      if (myPhysicalCoreCount == -2) {
+         int n;
+         try {
+            n = getPhysicalCoreCountNative();
+            if (n <= 0) {
+               n = Runtime.getRuntime().availableProcessors();
+               System.out.println (
+                  "note: native physical core count detection failed; using " +
+                  n + " logical processors instead " +
+                  "(Runtime.availableProcessors()), which may include " +
+                  "hyperthreads");
+            }
+         }
+         catch (UnsatisfiedLinkError e) {
+            // this solver's native library predates physical core count
+            // support (e.g. Pardiso built against an older PardisoJNI that
+            // lacks it): leave the count undetermined (-1) rather than
+            // falling back to the logical count, so callers skip the hard
+            // cap entirely instead of deriving one from the wrong
+            // (hyperthreaded) number.
+            n = -1;
+         }
+         myPhysicalCoreCount = n;
+      }
+      return myPhysicalCoreCount;
+   }
+
+   /**
+    * Number of threads explicitly requested for this instance via {@link
+    * #setNumThreads}, or {@code <= 0} if none has been requested. When
+    * positive, this takes priority over everything else -- including
+    * {@link #maxThreadsNnz} throttling and the {@link #getPhysicalCoreCount}
+    * cap -- since the caller asked for it explicitly.
+    */
+   protected int myExplicitNumThreads = -1;
+
+   /**
+    * Number of threads that the solver is assigned when it is created. This
+    * is the number of threads that the solver would assign on its own, overridden
+    * by {@link #myDefaultNumThreads} and, when known, capped by {@link
+    * #getPhysicalCoreCount()}.
+    */
+   protected int myNominalNumThreads = -1;
+
+   /**
+    * Initializes this solver's thread count. Queries the underlying thread
+    * pool's natural (OpenMP/system) count, overrides it with {@link
+    * #myDefaultNumThreads} if positive, caps the result at {@link
+    * #getPhysicalCoreCount} (when that is known -- see its documentation
+    * for when it isn't), and records it in {@link #myNominalNumThreads}.
+    *
+    * <p>Subclasses should call this from their constructor, once the native
+    * solver handle has been created, in place of calling {@code
+    * setNumThreads(myDefaultNumThreads)} directly: going through {@link
+    * #setNumThreads} here would incorrectly record {@link
+    * #myDefaultNumThreads} as an explicit per-instance request (see {@link
+    * #myExplicitNumThreads}), causing it to permanently outrank later
+    * changes to the default.
+    */
+   protected void initThreadState() {
+      setNumThreadsNative (-1);
+      int natNumThreads = getNumThreadsNative();
+      int numThreads = natNumThreads;
+      if (myDefaultNumThreads > 0) {
+         numThreads = myDefaultNumThreads;
+      }
+      int physCores = getPhysicalCoreCount();
+      if (physCores > 0 && numThreads > physCores) {
+         numThreads = physCores;
+      }
+      if (numThreads != natNumThreads) {
+         setNumThreadsNative (numThreads);
+      }
+      myNominalNumThreads = numThreads;
+   }
+
+   /**
+    * One entry in a thread-count throttling table used by {@link
+    * #maxThreadsNnz}: for matrices with at most {@code nnz} non-zero
+    * values, the thread count should be capped at {@code maxThreads}. Thus
+    * {@code nnz} is the <i>upper</i> bound of the range this entry covers,
+    * so a table with a single threshold -- cap to some value below it,
+    * apply no cap (see {@link #lookupMaxThreads}, which then falls through
+    * to {@link #getPhysicalCoreCount} via {@link #myNominalNumThreads})
+    * above it -- needs only one entry.
+    *
+    * @see #lookupMaxThreads
+    */
+   protected static class ThreadLimit {
+      final int nnz;
+      final int maxThreads;
+
+      public ThreadLimit (int nnz, int maxThreads) {
+         this.nnz = nnz;
+         this.maxThreads = maxThreads;
+      }
+   }
+
+   /**
+    * Looks up the thread limit for a matrix with {@code nnz} non-zero
+    * values in {@code table}, an ascending-{@code nnz} list of {@link
+    * ThreadLimit} entries, each giving the upper bound of the range it
+    * covers. Returns the {@code maxThreads} of the first entry whose {@code
+    * nnz} is {@code >=} the given value; if none is (i.e. the matrix is
+    * larger than every entry in the table), {@code -1} is returned (no
+    * limit), which in practice still leaves the thread count capped at
+    * {@link #getPhysicalCoreCount} -- see {@link #applyThreadThrottle}.
+    *
+    * @param table ascending-{@code nnz} thread limit table, entries giving
+    * range upper bounds
+    * @param nnz number of non-zero values to look up
+    * @return thread limit for {@code nnz}, or {@code -1} if none applies
+    */
+   protected static int lookupMaxThreads (ThreadLimit[] table, int nnz) {
+      for (ThreadLimit lim : table) {
+         if (nnz <= lim.nnz) {
+            return lim.maxThreads;
+         }
+      }
+      return -1;
+   }
+
+   /**
+    * Returns the maximum number of threads this solver should use to
+    * analyze/factor a matrix with {@code nnz} non-zero values and the
+    * indicated type, or a value {@code <= 0} if no limit should be applied.
+    * Called automatically from {@link #setMatrix}.
+    *
+    * <p>This exists because some direct solvers (MUMPS in particular, on
+    * Windows) incur a large, largely size-independent per-factor thread-team
+    * overhead, so that using more than one thread on a small matrix can cost
+    * several times more than using one. The default implementation applies
+    * no limit;
+    * subclasses for which this matters should override it, typically using
+    * a small platform-specific {@link ThreadLimit} table together with
+    * {@link #lookupMaxThreads}.
+    *
+    * @param nnz number of non-zero values in the matrix, as passed to
+    * {@link #setMatrixNative} (i.e., for symmetric types, the count for the
+    * upper triangle only)
+    * @param type or-ed flags giving the matrix type
+    * @return maximum number of threads to use, or {@code <=0} for no limit
+    */
+   protected int maxThreadsNnz (int nnz, int type) {
+      return -1;
+   }
+
+   /**
+    * Adjusts this solver's thread count, if necessary, to respect the limit
+    * returned by {@link #maxThreadsNnz} for a matrix with {@code nnz}
+    * non-zero values and the given type. Has no effect if {@link
+    * #maxThreadsNnz} returns a value {@code <= 0}.
+    *
+    * <p>Has no effect if an explicit {@link #setNumThreads} value is in
+    * force (see {@link #myExplicitNumThreads}), which always takes priority.
+    * Otherwise, the thread count used is the smaller of the limit and
+    * {@link #myNominalNumThreads} (the count this solver would otherwise be
+    * using: the thread pool's natural default, overridden by {@link
+    * #getDefaultNumThreads} if positive, and capped by {@link
+    * #getPhysicalCoreCount}). This ensures throttling only ever lowers the
+    * thread count, never raises it above what the caller or system would
+    * otherwise have chosen.
+    */
+   protected void applyThreadThrottle (int nnz, int type) {
+      if (myExplicitNumThreads <= 0) {
+
+         int cap = maxThreadsNnz (nnz, type);
+         if (cap > 0) {
+            int numThreads = Math.min (cap, myNominalNumThreads);
+            if (numThreads != getNumThreadsNative()) {
+               setNumThreadsNative (numThreads);
+            }
+         }
+      }
    }
 
    // ------------------------------------------------------------------
@@ -489,6 +716,7 @@ public abstract class DirectSolverBase implements DirectSolver {
 
       ensureInitialized();
       checkSetArgs (vals, rowOffs, colIdxs, size, numVals);
+      applyThreadThrottle (numVals, type);
       int rcode = setMatrixNative (vals, rowOffs, colIdxs, size, numVals, type);
       if (!isError (rcode)) {
          setState (ANALYZED);

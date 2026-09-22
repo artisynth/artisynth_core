@@ -15,6 +15,20 @@
 #ifndef HYBRID_SOLVE_H
 #define HYBRID_SOLVE_H
 
+// Returns the number of physical CPU cores on this machine, as opposed to
+// logical/hyperthreaded processors, or a value <= 0 if it could not be
+// determined. MKL and other threaded libraries default their own thread
+// count to this (not the logical count), for good reason: hyperthreads
+// provide little to no benefit for compute-bound work like sparse
+// factorization -- see maspack.solvers.DirectSolverBase.maxThreadsNnz.
+// Free function, not a HybridSolver method, since
+// it's a machine property rather than a per-solver one; queried once and
+// cached (see hybridSolve.cc), so cheap to call from every solver's
+// initialization. Shared by the MUMPS and Pardiso JNI wrappers so both can
+// throttle against the real physical ceiling rather than a hardcoded,
+// machine-specific table value.
+int hybridGetPhysicalCoreCount();
+
 // methods for HybridSolver::iterativeSolve(). Derived classes may add
 // methods numbered from HYBRID_NUM_METHODS.
 #define HYBRID_GMRES       0

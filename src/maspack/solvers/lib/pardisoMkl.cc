@@ -559,7 +559,9 @@ int Pardiso4::setMatrix (
    myAnalysisMemoryUsage = myIParams[15];
 
    if (error != 0)
-    { printf ("\nPardiso: ERROR during symbolic factorization: %d\n", error); 
+    { if (myMessageLevel != 0) {
+         printf ("\nPardiso: ERROR during symbolic factorization: %d\n", error);
+      }
     }
    else
     { myLastPhase = phase; 
@@ -585,7 +587,9 @@ int Pardiso4::releaseMatrix ()
                &nrhs, myIParams, &myMessageLevel,
                null, null, &error);
       if (error != 0)
-       { printf ("\nPardiso: ERROR during matrix release: %d\n", error); 
+       { if (myMessageLevel != 0) {
+            printf ("\nPardiso: ERROR during matrix release: %d\n", error);
+         }
        }
     }
    return error;
@@ -630,13 +634,15 @@ int Pardiso4::factorMatrix (const double* vals)
    //  { printf ("Pardiso: num perturbed pivots=%d\n", myIParams[13]);
    //  }
    if (error != 0)
-    { printf ("\nPardiso: ERROR during numeric factorization: %d\n", error); 
+    { if (myMessageLevel != 0) {
+         printf ("\nPardiso: ERROR during numeric factorization: %d\n", error);
+      }
       if (myMatrixType == REAL_SYMMETRIC_POSDEF) {
 	mySPDZeroPivot = myIParams[29];
       }
     }
    else
-    { myLastPhase = phase; 
+    { myLastPhase = phase;
       if (myMatrixType == REAL_SYMMETRIC) {
 	myNumPosEigenvalues = myIParams[21];
 	myNumNegEigenvalues = myIParams[22];
@@ -691,7 +697,9 @@ int Pardiso4::factorAndSolve (
             b, x, &error);
    myNumPerturbedPivots = myIParams[13];
    if (error != 0)
-    { printf ("\nPardiso: ERROR during numeric factor and solve: %d\n", error); 
+    { if (myMessageLevel != 0) {
+         printf ("\nPardiso: ERROR during numeric factor and solve: %d\n", error);
+      }
       if (myMatrixType == REAL_SYMMETRIC_POSDEF) {
 	mySPDZeroPivot = myIParams[29];
       }
@@ -731,7 +739,9 @@ int Pardiso4::solveMatrix (double* x, double* b)
             b, x, &error);
 
    if (error != 0)
-    { printf ("\nPardiso: ERROR during solution: %d\n", error); 
+    { if (myMessageLevel != 0) {
+         printf ("\nPardiso: ERROR during solution: %d\n", error);
+      }
     }
    else
     { myLastPhase = phase; 
@@ -759,7 +769,9 @@ int Pardiso4::solveMatrix (double* x, double* b, int nrhs)
             b, x, &error);
 
    if (error != 0)
-    { printf ("\nPardiso: ERROR during solution: %d\n", error); 
+    { if (myMessageLevel != 0) {
+         printf ("\nPardiso: ERROR during solution: %d\n", error);
+      }
     }
    else
     { myLastPhase = phase; 

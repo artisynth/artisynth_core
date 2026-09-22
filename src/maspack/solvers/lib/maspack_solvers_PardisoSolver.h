@@ -99,6 +99,14 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSetNumThreads
 
 /*
  * Class:     maspack_solvers_PardisoSolver
+ * Method:    doGetPhysicalCoreCount
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doGetPhysicalCoreCount
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
  * Method:    doGetNumNonZerosInFactors
  * Signature: (J)I
  */

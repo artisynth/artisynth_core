@@ -48,6 +48,15 @@ JNIEXPORT jint JNICALL
    return mkl_domain_get_max_threads (MKL_DOMAIN_ALL); //PARDISO);
 }
 
+// static (no handle): a machine property, not a per-solver one; see
+// hybridSolve.h/.cc.
+JNIEXPORT jint JNICALL
+   Java_maspack_solvers_PardisoSolver_doGetPhysicalCoreCount (
+      JNIEnv *env, jclass cls)
+{
+   return hybridGetPhysicalCoreCount();
+}
+
 JNIEXPORT jint JNICALL
    Java_maspack_solvers_PardisoSolver_doSetMaxRefinementSteps (
       JNIEnv *env, jobject obj, jlong handle, jint nsteps)

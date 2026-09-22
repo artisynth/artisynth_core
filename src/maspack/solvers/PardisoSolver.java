@@ -118,7 +118,7 @@ public class PardisoSolver extends DirectSolverBase {
    // library that supports multiple rhs:  
    static String nativeLibrary = supportsMultipleRhs ?
       "PardisoJNI.2021.1.1" : "PardisoJNI.2021.1";         
-   //"PardisoJNI.2026.1.1" : "PardisoJNI.2021.1";         
+      //"PardisoJNI.2026.1" : "PardisoJNI.2021.1";         
 
    /**
     * Describes the reorder methods that can be used during the analyze phase
@@ -284,6 +284,8 @@ public class PardisoSolver extends DirectSolverBase {
 
    private native int doGetNumThreads (long handle);
    private native int doSetNumThreads (long handle, int num);
+   // static: a machine property, not a per-solver one
+   private static native int doGetPhysicalCoreCount();
 
    private native int doGetNumNonZerosInFactors (long handle);
    private native int doGetNumNegEigenvalues (long handle);
@@ -420,7 +422,7 @@ public class PardisoSolver extends DirectSolverBase {
       // create the handle here because earlier JNI implementations of
       // setNumThreads required this internally:
       myHandle = doInit();
-      setNumThreads (myDefaultNumThreads);
+      initThreadState();
    }
 
 
@@ -1501,6 +1503,22 @@ public class PardisoSolver extends DirectSolverBase {
 
    protected int getNumThreadsNative() {
       return doGetNumThreads (myHandle);
+   }
+
+   protected int getPhysicalCoreCountNative() {
+      return doGetPhysicalCoreCount();
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Pardiso's small-matrix thread overhead on Windows is much smaller
+    * than MUMPS's, so no throttling is applied here for now; this inherits
+    * {@link DirectSolverBase}'s default of {@code -1} explicitly, as a
+    * record that the omission is deliberate rather than an oversight.
+    */
+   protected int maxThreadsNnz (int nnz, int type) {
+      return -1;
    }
 
 }

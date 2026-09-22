@@ -408,6 +408,8 @@ public class MumpsSolver extends DirectSolverBase {
 
    private native int doGetNumThreads (long handle);
    private native int doSetNumThreads (long handle, int num);
+   // static: a machine property, not a per-solver one
+   private static native int doGetPhysicalCoreCount();
 
    private native long doGetNumNonZerosInFactors (long handle);
    private native int doGetNumNegEigenvalues (long handle);
@@ -512,6 +514,14 @@ public class MumpsSolver extends DirectSolverBase {
             case Windows32:
             case Windows64: {
                NativeLibraryManager.load ("libiomp5md");
+               // Intel Fortran/SVML runtime, needed only by MUMPS (not
+               // Pardiso, which has no Fortran code) and not present in any
+               // standard system search location -- must be resident before
+               // MumpsJNI loads, same reason as libiomp5md above. Order
+               // matters: libifcoremd itself depends on libmmd.
+               NativeLibraryManager.load ("libmmd");
+               NativeLibraryManager.load ("svml_dispmd");
+               NativeLibraryManager.load ("libifcoremd");
                break;
             }
             case MacOS64: {
@@ -548,7 +558,7 @@ public class MumpsSolver extends DirectSolverBase {
       // create the handle here because earlier JNI implementations of
       // setNumThreads required this internally:
       myHandle = doInit();
-      setNumThreads (myDefaultNumThreads);
+      initThreadState();
    }
 
 
@@ -1417,6 +1427,66 @@ public class MumpsSolver extends DirectSolverBase {
 
    protected int getNumThreadsNative() {
       return doGetNumThreads (myHandle);
+   }
+
+   protected int getPhysicalCoreCountNative() {
+      return doGetPhysicalCoreCount();
+   }
+
+   // ------------------------------------------------------------------
+   // thread throttling
+   //
+   // Empirically measured (factor+solve cost swept across matrix sizes and
+   // thread counts): per-factor() thread-team overhead is roughly an order
+   // of magnitude higher on Windows than Linux, so small matrices should
+   // stay single-threaded on Windows at a much larger size than on Linux.
+   //
+   // These tables give a schedule of the number of threads to use (right
+   // value) up to a specified number of matrix non-zeros (nnz, left value). 
+   // Multiple entries are possible but in general there is general one
+   // nnz beyond which threading becomes effective. This can be measured
+   // using the Java program {@link FindSolverThreadThreshold}.
+   // ------------------------------------------------------------------
+
+   private static final ThreadLimit[] WINDOWS_THREAD_LIMITS = {
+      new ThreadLimit (146100, 1),
+   };
+
+   private static final ThreadLimit[] LINUX_THREAD_LIMITS = {
+      new ThreadLimit (65536, 1),
+      new ThreadLimit (2097152, 7),
+   };
+
+   // macOS: no measurements exist for this platform yet -- this is a guess
+   // by analogy to Linux, not Windows, since MUMPS on macOS is built with
+   // the same gfortran+iomp5 toolchain as Linux (see Makefile's MacOS64
+   // case), not the MSVC/ifx toolchain responsible for Windows' outsized
+   // thread-team overhead. Replace once real measurements are available.
+   private static final ThreadLimit[] MACOS_THREAD_LIMITS = LINUX_THREAD_LIMITS;
+
+   private static final boolean ourIsWindows =
+      System.getProperty ("os.name").toLowerCase().startsWith ("windows");
+
+   private static final boolean ourIsMacOS =
+      System.getProperty ("os.name").toLowerCase().startsWith ("mac");
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>MUMPS is given only the upper triangle for symmetric matrices, so
+    * <code>nnz</code> is doubled in that case before consulting the table,
+    * since the tables above are expressed in terms of the full matrix nnz.
+    * This is an approximation (it ignores the diagonal, counted once
+    * rather than twice), good to a percent or so for the matrix sizes
+    * these tables apply to.
+    */
+   protected int maxThreadsNnz (int nnz, int type) {
+      if ((type & Matrix.SYMMETRIC) != 0) {
+         nnz *= 2;
+      }
+      ThreadLimit[] table = ourIsWindows ? WINDOWS_THREAD_LIMITS :
+         (ourIsMacOS ? MACOS_THREAD_LIMITS : LINUX_THREAD_LIMITS);
+      return lookupMaxThreads (table, nnz);
    }
 
 }

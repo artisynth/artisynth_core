@@ -30,11 +30,29 @@ public class PointMesh extends MeshBase {
 
    PointMeshRenderer myMeshRenderer = null;
 
-   protected AABBTree myBVTree = null;
-   protected boolean myBVTreeValid = false;
+   // volatile to allow double-checked locking in getBVTree()
+   protected volatile AABBTree myBVTree = null;
+   protected volatile boolean myBVTreeValid = false;
    // if > 0, causes normals to be rendered
    protected double myNormalRenderLen = 0;
 
+   /** 
+    * Invalidates the bvHierarchy
+    */
+   protected void invalidateBoundingInfo () {
+      super.invalidateBoundingInfo();
+      myBVTreeValid = false;
+   }
+
+   /** 
+    * Clears the bvHierarchy
+    */
+   protected void clearBoundingInfo () {
+      super.clearBoundingInfo();
+      myBVTreeValid = false;
+      myBVTree = null;
+   }
+ 
    /**
     * {@inheritDoc}
     */
@@ -224,8 +242,6 @@ public class PointMesh extends MeshBase {
     * Creates a copy of this mesh.
     */
    public PointMesh copy() {
-      myBVTree = null;
-      myBVTreeValid = false;
       return (PointMesh)super.copy();
    }
 
@@ -252,19 +268,43 @@ public class PointMesh extends MeshBase {
       super.addMesh (mesh, respectTransforms);
    }
 
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Thread-safe with respect to concurrent calls, provided the mesh
+    * itself is not modified while they occur: the tree is built or updated
+    * at most once, using double-checked locking.
+    */
    public AABBTree getBVTree() {
-       if (myBVTree == null || !myBVTreeValid) {
-          myBVTree = new AABBTree();
-          myBVTree.setMaxLeafElements (8);
-          int numElems = numVertices();
-          Boundable[] elements = 
-             myVertices.toArray(new Boundable[numElems]);
-          
-          myBVTree.build (elements, numElems);
-          myBVTreeValid = true;
-       }
-       return myBVTree;
-    }
+      AABBTree tree = myBVTree;
+      if (tree != null && myBVTreeValid) {
+         return tree; // fast path, no lock
+      }
+      synchronized (this) {
+         tree = myBVTree;
+         if (tree == null || !myBVTreeValid) {
+            tree = new AABBTree();
+            tree.setMaxLeafElements (8);
+            int numElems = numVertices();
+            Boundable[] elements = 
+               myVertices.toArray(new Boundable[numElems]);
+
+            tree.build (elements, numElems);
+            tree.setBvhToWorld (XMeshToWorld);
+            // publish fully built tree before setting myBVTreeValid
+            myBVTree = tree;
+            myBVTreeValid = true;
+         }
+         return tree;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   protected BVTree getExistingBVTree() {
+      return myBVTree;
+   }
 
    /**
     * Tests to see if a mesh equals this one. The meshes are equal if they are

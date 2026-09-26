@@ -473,6 +473,10 @@ public abstract class MeshBase implements Renderable, Cloneable {
       XMeshToWorld.set (X);
       myXMeshToWorldIsIdentity = X.equals (RigidTransform3d.IDENTITY);
       invalidateWorldCoords();
+      BVTree tree = getExistingBVTree();
+      if (tree != null) {
+         tree.setBvhToWorld (X);
+      }
    }
    
    public void transformToWorld (Point3d pnt) {
@@ -3076,6 +3080,19 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * @return bounding volume tree
     */
    public abstract BVTree getBVTree();
+
+   /**
+    * Returns the bounding volume tree currently held by this mesh, without
+    * creating or updating it, or {@code null} if there is none. Used to keep
+    * the tree's BVH-to-world transform consistent with the mesh-to-world
+    * transform. Subclasses which cache a tree returned by {@link #getBVTree}
+    * should override this method.
+    *
+    * @return current bounding volume tree, or {@code null}
+    */
+   protected BVTree getExistingBVTree() {
+      return null;
+   }
 
    /**
     * For debugging only: checks to see if mesh1 has any vertices, or vertex

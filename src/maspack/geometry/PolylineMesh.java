@@ -31,8 +31,9 @@ public class PolylineMesh extends MeshBase {
 
    PolylineMeshRenderer myMeshRenderer = null;
 
-   protected AABBTree myBVTree = null;
-   protected boolean myBVTreeValid = false;
+   // volatile to allow double-checked locking in getBVTree()
+   protected volatile AABBTree myBVTree = null;
+   protected volatile boolean myBVTreeValid = false;
    protected int renderSkip = 0;   // render every 1+skip lines
    
    @Override 
@@ -44,6 +45,7 @@ public class PolylineMesh extends MeshBase {
    @Override 
    public void clearBoundingInfo() {
       super.clearBoundingInfo();
+      myBVTreeValid = false;
       myBVTree = null;
    }
 
@@ -407,8 +409,6 @@ public class PolylineMesh extends MeshBase {
     * Creates a copy of this mesh.
     */
    public PolylineMesh copy() {
-      myBVTree = null;
-      myBVTreeValid = false;
       return (PolylineMesh)super.copy();
    }
 
@@ -487,16 +487,39 @@ public class PolylineMesh extends MeshBase {
       }
    }
 
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Thread-safe with respect to concurrent calls, provided the mesh
+    * itself is not modified while they occur: the tree is built or updated
+    * at most once, using double-checked locking.
+    */
    public AABBTree getBVTree() {
-      if (myBVTree == null) {
-         myBVTree = new AABBTree (this, 8);
-         myBVTree.setBvhToWorld (XMeshToWorld);
-         myBVTreeValid = true;
+      AABBTree tree = myBVTree;
+      if (tree != null && myBVTreeValid) {
+         return tree; // fast path, no lock
       }
-      else if (!myBVTreeValid) {
-         myBVTree.update();
-         myBVTreeValid = true;
+      synchronized (this) {
+         tree = myBVTree;
+         if (tree == null) {
+            tree = new AABBTree (this, 8);
+            tree.setBvhToWorld (XMeshToWorld);
+            // publish fully built tree before setting myBVTreeValid
+            myBVTree = tree;
+            myBVTreeValid = true;
+         }
+         else if (!myBVTreeValid) {
+            tree.update();
+            myBVTreeValid = true;
+         }
+         return tree;
       }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   protected BVTree getExistingBVTree() {
       return myBVTree;
    }
    

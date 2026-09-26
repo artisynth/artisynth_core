@@ -71,8 +71,9 @@ public class PolygonalMesh extends MeshBase {
    //OBBTree obbtree = null;
    //private AjlBvTree bvHierarchy = null;
    //private boolean bvHierarchyValid = false;
-   private BVTree myBVTree = null;
-   private boolean myBVTreeUpdated = false;
+   // volatile to allow double-checked locking in getBVTree()
+   private volatile BVTree myBVTree = null;
+   private volatile boolean myBVTreeUpdated = false;
    
    // topological properties
    private boolean myTopologyPredicatesValid = false;
@@ -124,6 +125,7 @@ public class PolygonalMesh extends MeshBase {
     */
    protected void clearBoundingInfo () {
       super.clearBoundingInfo();
+      myBVTreeUpdated = false;
       myBVTree = null;
    }
 
@@ -634,16 +636,6 @@ public class PolygonalMesh extends MeshBase {
          addFace (f.getVertexIndices());
       }
       setMeshToWorld (old.XMeshToWorld);
-   }
-
-   public void setMeshToWorld (RigidTransform3d X) {
-      super.setMeshToWorld (X);
-      //      if (obbtree != null) {
-      //         obbtree.setBvhToWorld (X);
-      //      }
-      if (myBVTree != null) {
-         myBVTree.setBvhToWorld (X);
-      }
    }
 
    /**
@@ -3686,21 +3678,44 @@ public class PolygonalMesh extends MeshBase {
       return (new RigidTransform3d(cov, R));
    }
 
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Thread-safe with respect to concurrent calls, provided the mesh
+    * itself is not modified while they occur: the tree is built or updated
+    * at most once, using double-checked locking.
+    */
    public BVTree getBVTree() {
-      if (myBVTree == null) {
-         if (isFixed) {
-            myBVTree = new OBBTree (this, 2);
-         }
-         else {
-            myBVTree = new AABBTree (this);
-         }
-         myBVTree.setBvhToWorld (XMeshToWorld);
-         myBVTreeUpdated = true;
+      BVTree tree = myBVTree;
+      if (tree != null && myBVTreeUpdated) {
+         return tree; // fast path, no lock
       }
-      else if (!myBVTreeUpdated) {
-         myBVTree.update();
-         myBVTreeUpdated = true;
+      synchronized (this) {
+         tree = myBVTree;
+         if (tree == null) {
+            if (isFixed) {
+               tree = new OBBTree (this, 2);
+            }
+            else {
+               tree = new AABBTree (this);
+            }
+            tree.setBvhToWorld (XMeshToWorld);
+            // publish fully built tree before setting myBVTreeUpdated
+            myBVTree = tree;
+            myBVTreeUpdated = true;
+         }
+         else if (!myBVTreeUpdated) {
+            tree.update();
+            myBVTreeUpdated = true;
+         }
+         return tree;
       }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   protected BVTree getExistingBVTree() {
       return myBVTree;
    }
 

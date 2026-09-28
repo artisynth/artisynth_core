@@ -214,6 +214,24 @@ public abstract class MaterialBase
       }
    }
 
+   /**
+    * Creates a change event for when a material is replaced. Unlike {@link
+    * #symmetryOrStateChanged}, this always returns an event, so that hosts
+    * can be notified of the change even if neither the state nor the tangent
+    * symmetry has changed.
+    *
+    * @param name name of the material property
+    * @param mat1 new material (may be {@code null})
+    * @param mat2 old material (may be {@code null})
+    * @return change event describing the replacement
+    */
+   public static MaterialChangeEvent createChangeEvent (
+      String name, MaterialBase mat1, MaterialBase mat2) {
+      return new MaterialChangeEvent (
+         (ModelComponent)null, name,
+         stateChanged (mat1, mat2), tangentSymmetryChanged (mat1, mat2));
+   }
+
    protected void notifyHostOfPropertyChange (
       String name, MaterialBase mat1, MaterialBase mat2) {
       

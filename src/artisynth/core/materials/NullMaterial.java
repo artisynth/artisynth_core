@@ -40,4 +40,10 @@ public class NullMaterial extends FemMaterial {
       return false;
    }
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == NullMaterial.class;
+   }
 }

@@ -245,4 +245,10 @@ public class VerondaWestmannMaterial extends IncompressibleMaterialBase {
       }
       // C2 is unitless
    }
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == VerondaWestmannMaterial.class;
+   }
 }

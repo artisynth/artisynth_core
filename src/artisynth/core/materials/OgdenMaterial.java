@@ -64,9 +64,6 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    ScalarFieldComponent myAlpha5Field = null;
    ScalarFieldComponent myAlpha6Field = null;
 
-   private SymmetricMatrix3d myB;
-   private SymmetricMatrix3d myB2;
-   private SymmetricMatrix3d myTmp;
    
    static {
       myProps.addInheritableWithField (
@@ -103,9 +100,6 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
     * Creates a new OgdenMaterial with default parameter values.
     */
    public OgdenMaterial () {
-      myB   = new SymmetricMatrix3d();
-      myB2  = new SymmetricMatrix3d();
-      myTmp = new SymmetricMatrix3d();
    }
 
    /**
@@ -540,13 +534,15 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    public void computeDevStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
 
       double J = def.getDetF();
 
       sigma.setZero();
 
       // Calculate Deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);
+      computeDevLeftCauchyGreen(B,def);
 
       Vector3d lam = new Vector3d();
       Vector3d lamSqr  = new Vector3d();
@@ -570,7 +566,7 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       
       // Calculate principal stretches and principal directions
       // Eigenvalues of B are squares of the principal stretches
-      myB.getEigenValues(lamSqr, principalDirection);
+      B.getEigenValues(lamSqr, principalDirection);
       for ( int i=0; i<3; i++) {
          lam.set(i, Math.sqrt(lamSqr.get(i)) );
       }
@@ -667,9 +663,11 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    public double computeDevStrainEnergy (
       DeformedPoint def, Matrix3d Q, double excitation, 
       MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
       
       // Calculate Deviatoric left Cauchy-Green tensor
-      computeLeftCauchyGreen(myB,def);
+      computeLeftCauchyGreen(B,def);
 
       Vector3d principalStretch   = new Vector3d();
       Vector3d principalStretch2  = new Vector3d();
@@ -693,7 +691,7 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       
       // Calculate principal stretches and principal directions
       // Eigenvalues of B are squares of the principal stretches
-      myB.getEigenValues(principalStretch2, null);
+      B.getEigenValues(principalStretch2, null);
       for ( int i=0; i<3; i++) {
          principalStretch.set(i, Math.sqrt(principalStretch2.get(i)) );
       }
@@ -732,9 +730,6 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       OgdenMaterial mat = (OgdenMaterial)super.clone();
       mat.myMu = Arrays.copyOf (myMu, myMu.length);
       mat.myAlpha = Arrays.copyOf (myAlpha, myAlpha.length);
-      mat.myB = new SymmetricMatrix3d();
-      mat.myB2 = new SymmetricMatrix3d();
-      mat.myTmp = new SymmetricMatrix3d();
       return mat;
    }
 
@@ -780,4 +775,10 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       }
    }
    
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == OgdenMaterial.class;
+   }
 }

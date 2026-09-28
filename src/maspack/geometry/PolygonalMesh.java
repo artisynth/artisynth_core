@@ -3720,6 +3720,7 @@ public class PolygonalMesh extends MeshBase {
    }
 
    public void clearBVTree() {
+      myBVTreeUpdated = false;
       myBVTree = null;
    }
 

@@ -3074,8 +3074,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
 
    /**
-    * Returns a bounding volume tree to be used for proximity queries
-    * involving this mesh.
+    * Returns a bounding volume tree to be used for proximity queries involving
+    * this mesh. Subclasses should implement this method to ensure that it is
+    * thread-safe.
     *
     * @return bounding volume tree
     */

@@ -52,10 +52,6 @@ public class FullBlemkerMuscle extends MuscleMaterial {
    protected ScalarFieldComponent myG1Field = null;
    protected ScalarFieldComponent myG2Field = null;
 
-   protected SymmetricMatrix3d myB = new SymmetricMatrix3d();
-   protected SymmetricMatrix3d myB2 = new SymmetricMatrix3d();
-   protected Vector3d myTmp = new Vector3d();
-   protected SymmetricMatrix3d myMat = new SymmetricMatrix3d();
 
    // Set this true to keep the tangent matrix continuous (and symmetric) at
    // lam = lamOpt, at the expense of slightly negative forces for lam < lamOpt
@@ -475,6 +471,11 @@ public class FullBlemkerMuscle extends MuscleMaterial {
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Vector3d dir0, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
+      SymmetricMatrix3d B2 = new SymmetricMatrix3d();
+      Vector3d tmpv = new Vector3d();
+      SymmetricMatrix3d tmpm = new SymmetricMatrix3d();
 
       double maxLambda = getMaxLambda(def);
       double optLambda = getOptLambda(def);
@@ -482,7 +483,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       double g1 = getG1(def);
       double g2 = getG2(def);
       
-      Vector3d a = myTmp;
+      Vector3d a = tmpv;
       def.getF().mul (a, dir0);
       double mag = a.norm();
       double J = def.getDetF();
@@ -499,16 +500,16 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       double I5 = 0;
 
        // calculate deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);     
+      computeDevLeftCauchyGreen(B,def);     
       
       // calculate square of B
-      myB2.mulTransposeLeft (myB);
+      B2.mulTransposeLeft (B);
       Vector3d Ba = new Vector3d();
-      myB.mul (Ba, a);
+      B.mul (Ba, a);
 
       // Invariants of deviatoric part of B
-      I1 = myB.trace();
-      I2 = 0.5*(I1*I1 - myB2.trace());      
+      I1 = B.trace();
+      I2 = 0.5*(I1*I1 - B2.trace());      
       I5 = I4*Ba.dot(a);
 
       // calculate new invariants
@@ -595,14 +596,14 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       W4 = F1D4 + F2D4 + FfD4;
       W5 = F1D5 + F2D5;
 
-      myMat.scale (W1 + W2*I1, myB);
-      myMat.scaledAdd (-W2, myB2, myMat);
-      myMat.addScaledDyad (I4*W4, a);
-      myMat.addScaledSymmetricDyad (I4*W5, Ba, a);
-      myMat.deviator();
-      myMat.scale (2.0/J);
+      tmpm.scale (W1 + W2*I1, B);
+      tmpm.scaledAdd (-W2, B2, tmpm);
+      tmpm.addScaledDyad (I4*W4, a);
+      tmpm.addScaledSymmetricDyad (I4*W5, Ba, a);
+      tmpm.deviator();
+      tmpm.scale (2.0/J);
 
-      sigma.set (myMat);
+      sigma.set (tmpm);
 
       if (D != null) {
          double Ji = 1/J;
@@ -697,16 +698,16 @@ public class FullBlemkerMuscle extends MuscleMaterial {
 
          SymmetricMatrix3d AA = new SymmetricMatrix3d();
          SymmetricMatrix3d AB = new SymmetricMatrix3d();
-         SymmetricMatrix3d WCCC = myMat;
+         SymmetricMatrix3d WCCC = tmpm;
 
          AA.dyad (a);
          AB.symmetricDyad (a, Ba);
 
          WCCC.scale (
             W11*I1 + W12*I1*I1 + W2*I1 + 2*W12*I2 + 2*W22*I1*I2 +
-            W14*I4 + W24*I1*I4 + 2*W15*I5 + 2*W25*I1*I5, myB);
+            W14*I4 + W24*I1*I4 + 2*W15*I5 + 2*W25*I1*I5, B);
          WCCC.scaledAdd (
-            -(W12*I1 + 2*W22*I2 + W2 + W24*I4 + 2*W25*I5), myB2, WCCC);
+            -(W12*I1 + 2*W22*I2 + W2 + W24*I4 + 2*W25*I5), B2, WCCC);
          WCCC.scaledAdd (
             (W14*I1 + 2*W24*I2 + W44*I4 + 2*W45*I5)*I4, AA, WCCC);
          WCCC.scaledAdd (
@@ -714,36 +715,36 @@ public class FullBlemkerMuscle extends MuscleMaterial {
 
          D.setZero();
          TensorUtils.addTensorProduct (
-            D, (W11 + 2.0*W12*I1 + W2 + W22*I1*I1)*4*Ji, myB);
-         TensorUtils.addSymmetricTensorProduct (D, -(W12+W22*I1)*4*Ji, myB, myB2);
-         TensorUtils.addTensorProduct (D, W22*4*Ji, myB2);
-         TensorUtils.addSymmetricTensorProduct (D, (W14+W24*I1)*I4*4*Ji, myB, AA);
-         TensorUtils.addSymmetricTensorProduct (D, (W15+W25*I1)*I4*4*Ji, myB, AB);
-         TensorUtils.addSymmetricTensorProduct (D, (-W24*I4)*4*Ji, myB2, AA);
+            D, (W11 + 2.0*W12*I1 + W2 + W22*I1*I1)*4*Ji, B);
+         TensorUtils.addSymmetricTensorProduct (D, -(W12+W22*I1)*4*Ji, B, B2);
+         TensorUtils.addTensorProduct (D, W22*4*Ji, B2);
+         TensorUtils.addSymmetricTensorProduct (D, (W14+W24*I1)*I4*4*Ji, B, AA);
+         TensorUtils.addSymmetricTensorProduct (D, (W15+W25*I1)*I4*4*Ji, B, AB);
+         TensorUtils.addSymmetricTensorProduct (D, (-W24*I4)*4*Ji, B2, AA);
 
          TensorUtils.addTensorProduct (D, (W44*I4*I4)*4*Ji, AA);
          TensorUtils.addSymmetricTensorProduct (D, (W45*I4)*I4*4*Ji, AA, AB);
          TensorUtils.addTensorProduct (D, (W55)*I4*I4*4*Ji, AB);
-         TensorUtils.addSymmetricTensorProduct4 (D, W5*I4*4*Ji, AA, myB);
+         TensorUtils.addSymmetricTensorProduct4 (D, W5*I4*4*Ji, AA, B);
         
          TensorUtils.addScaledIdentityProduct (D, 4/9.0*Ji*(CW2CCC-WCC));
          WCCC.scale (-4/3.0*Ji);
          TensorUtils.addSymmetricIdentityProduct (D, WCCC);
          TensorUtils.addScaledIdentity (D, 4/3.0*Ji*WCC);
 
-         // compute stress (in myMat) due to this material 
-         myMat.scale (W1 + W2*I1, myB);
-         myMat.scaledAdd (-W2, myB2, myMat);
+         // compute stress (in tmpm) due to this material 
+         tmpm.scale (W1 + W2*I1, B);
+         tmpm.scaledAdd (-W2, B2, tmpm);
 
-         myMat.scaledAdd (I4*W4, AA);
-         myMat.scaledAdd (I4*W5, AB);
-         myMat.deviator();
-         myMat.scale (2.0/J);
+         tmpm.scaledAdd (I4*W4, AA);
+         tmpm.scaledAdd (I4*W5, AB);
+         tmpm.deviator();
+         tmpm.scale (2.0/J);
         
-         //myMat.set (def.getStrain());
-         //myMat.deviator();
-         myMat.scale (-2.0/3.0);
-         TensorUtils.addSymmetricIdentityProduct (D, myMat);
+         //tmpm.set (def.getStrain());
+         //tmpm.deviator();
+         tmpm.scale (-2.0/3.0);
+         TensorUtils.addSymmetricIdentityProduct (D, tmpm);
 
          D.setLowerToUpper();
       }
@@ -753,6 +754,10 @@ public class FullBlemkerMuscle extends MuscleMaterial {
    public double computeStrainEnergyDensity (
       DeformedPoint def, Vector3d dir0, double excitation, 
       MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
+      SymmetricMatrix3d B2 = new SymmetricMatrix3d();
+      Vector3d tmpv = new Vector3d();
 
       double lamMax = getMaxLambda(def);
       double lamOpt = getOptLambda(def);
@@ -760,7 +765,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       double g1 = getG1(def);
       double g2 = getG2(def);
       
-      Vector3d a = myTmp;
+      Vector3d a = tmpv;
       def.getF().mul (a, dir0);
       double mag = a.norm();
       if (mag == 0.0) {
@@ -780,16 +785,16 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       double I5 = 0;
 
        // calculate deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);     
+      computeDevLeftCauchyGreen(B,def);     
       
       // calculate square of B
-      myB2.mulTransposeLeft (myB);
+      B2.mulTransposeLeft (B);
       Vector3d Ba = new Vector3d();
-      myB.mul (Ba, a);
+      B.mul (Ba, a);
 
       // Invariants of deviatoric part of B
-      I1 = myB.trace();
-      I2 = 0.5*(I1*I1 - myB2.trace());      
+      I1 = B.trace();
+      I2 = 0.5*(I1*I1 - B2.trace());      
       I5 = I4*Ba.dot(a);
 
       // calculate new invariants
@@ -834,7 +839,9 @@ public class FullBlemkerMuscle extends MuscleMaterial {
    }
    
    public double computeStretch (Vector3d dir0, DeformedPoint def) {
-      Vector3d a = myTmp;
+      // temporaries allocated locally for thread safety
+      Vector3d tmpv = new Vector3d();
+      Vector3d a = tmpv;
       def.getF().mul(a, dir0);
       double mag = a.norm();
       double J = def.getDetF();
@@ -860,10 +867,6 @@ public class FullBlemkerMuscle extends MuscleMaterial {
 
    public FullBlemkerMuscle clone() {
       FullBlemkerMuscle mat = (FullBlemkerMuscle)super.clone();
-      mat.myTmp = new Vector3d();
-      mat.myMat = new SymmetricMatrix3d();
-      mat.myB = new SymmetricMatrix3d();
-      mat.myB2 = new SymmetricMatrix3d();
       return mat;
    }
 
@@ -893,4 +896,10 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       BD.scale (Math.pow(def.getDetF(), -2.0/3.0));
    }
    
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == FullBlemkerMuscle.class;
+   }
 }

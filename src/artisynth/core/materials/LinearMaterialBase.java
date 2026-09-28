@@ -73,13 +73,11 @@ public abstract class LinearMaterialBase extends FemMaterial {
       return myCorotatedMode;
    }
 
-   private SVDecomposition3d mySVD = null;
    protected RotationMatrix3d computeRotation(Matrix3d F, SymmetricMatrix3d P) {
-      if (mySVD == null) {
-         mySVD = new SVDecomposition3d();
-      }
+      // SVD allocated locally for thread safety
+      SVDecomposition3d svd = new SVDecomposition3d();
       RotationMatrix3d R = new RotationMatrix3d();
-      mySVD.polarDecomposition (R, P, F);
+      svd.polarDecomposition (R, P, F);
       return R;
    }
    

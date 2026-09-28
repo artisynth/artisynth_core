@@ -3,8 +3,10 @@ package artisynth.core.materials;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
+import java.util.List;
 
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.FieldComponent;
 import artisynth.core.modelbase.FieldPropertyList;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
@@ -163,6 +165,37 @@ public abstract class FemMaterial extends MaterialBase
     */
    public boolean isCorotated() {
 	  return false;
+   }
+
+   /**
+    * Queries whether this material's stress, tangent and energy methods can
+    * be called concurrently from multiple threads (for different deformed
+    * points). This requires that the methods do not modify any shared
+    * internal state. The default implementation returns {@code false};
+    * subclasses which are thread safe should override this. If the material
+    * has properties bound to fields (see {@link #collectFieldBindings}), then
+    * concurrent use additionally requires that {@link
+    * FieldComponent#updateForConcurrentAccess} has been called for each of
+    * those fields.
+    *
+    * @return {@code true} if this material is thread safe
+    */
+   public boolean isThreadSafe() {
+      return false;
+   }
+
+   /**
+    * Adds to {@code fields} any fields that this material's properties are
+    * bound to. Materials that contain other materials should override this
+    * to include the fields of those materials.
+    *
+    * @param fields list to which bound fields are added
+    */
+   public void collectFieldBindings (List<FieldComponent> fields) {
+      PropertyList props = getAllPropertyInfo();
+      if (props instanceof FieldPropertyList) {
+         ((FieldPropertyList)props).getPropertyFields (this, fields);
+      }
    }
    
    public boolean equals (FemMaterial mat) {

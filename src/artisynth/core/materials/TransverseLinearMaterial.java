@@ -24,11 +24,14 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    private static Vector3d DEFAULT_DIRECTION = new Vector3d(0, 0, 1);
    private Vector3d myDirection = new Vector3d(DEFAULT_DIRECTION);
 
-   private Matrix6d myC;        // anisotropic stiffness matrix
+   // anisotropic stiffness matrix, cached when parameters are not field-bound
+   private Matrix6d myC;
    private Vector2d myE;        // radial, z-axis young's modulus
    private double myG;          // shear modulus
    private Vector2d myNu;       // radial, z-axis Poisson's ratio
-   private boolean stiffnessValid;
+   // volatile, since myC may be lazily built from multiple threads, and
+   // setting this publishes it
+   private volatile boolean stiffnessValid;
 
    // private VectorFieldPointFunction<Vector2d> myEFunction = null;
    // private ScalarFieldPointFunction myGFunction = null;
@@ -89,11 +92,20 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
 
    public Matrix6d getStiffnessTensor() {
-      maybeUpdateStiffness (/*defp=*/null);
-      return myC;
+      return getStiffness (/*defp=*/null);
    }
-   
-   protected void updateStiffnessTensor (Vector2d E, double G) {
+
+   /**
+    * Computes the stiffness tensor for the given Young's moduli, shear
+    * modulus and anisotropic direction.
+    *
+    * @param C returns the stiffness tensor
+    * @param E radial and axial Young's moduli
+    * @param G shear modulus
+    * @param dir anisotropic direction
+    */
+   protected void computeStiffnessTensor (
+      Matrix6d C, Vector2d E, double G, Vector3d dir) {
       
       Matrix6d invC = new Matrix6d();
       
@@ -114,10 +126,12 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       invC.m55 = invC.m44;
       
       SVDecomposition svd = new SVDecomposition(invC);
-      if (myC == null) {
-         myC = new Matrix6d();
+      svd.pseudoInverse(C);
+      if (!dir.equals (DEFAULT_DIRECTION)) {
+         RotationMatrix3d R = new RotationMatrix3d();
+         R.setZDirection (dir);
+         TensorUtils.rotateTangent (C, C, R);
       }
-      svd.pseudoInverse(myC);
       
       //      Matrix6d C = AnisotropicLinearMaterial.createIsotropicStiffness((myE.x + myE.y)/2, (myNu.x + myNu.y)/2);
       //      Matrix6d Cinv = new Matrix6d();
@@ -279,39 +293,56 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       notifyHostOfPropertyChange("poissonsRatio");
    }
    
-   protected void maybeUpdateStiffness(DeformedPoint defp) {
-      boolean functionalParams = (myEField != null || myGField != null);
-      if (!stiffnessValid || functionalParams) {
-         Vector2d E;
-         double G;
+   /**
+    * Returns the stiffness tensor for a given deformed point. If any
+    * parameters are bound to fields, the tensor is computed for the point
+    * and returned in a new matrix. Otherwise, a cached tensor is returned,
+    * which is built lazily if necessary. This method is thread safe (for the
+    * cached case, provided the parameters are not changed concurrently).
+    *
+    * @param defp deformed point, or {@code null} to use the explicit
+    * parameter settings
+    * @return stiffness tensor (should not be modified)
+    */
+   protected Matrix6d getStiffness (DeformedPoint defp) {
+      boolean functionalParams =
+         (myEField != null || myGField != null || myDirectionField != null);
+      if (functionalParams) {
+         Matrix6d C = new Matrix6d();
          if (defp != null) {
-            E = getYoungsModulus(defp);
-            G = getShearModulus(defp);
+            computeStiffnessTensor (
+               C, getYoungsModulus(defp), getShearModulus(defp),
+               getDirection(defp));
          }
          else {
             // no deformed point. Use explicit parameter settings
-            E = getYoungsModulus();
-            G = getShearModulus();           
+            computeStiffnessTensor (
+               C, getYoungsModulus(), getShearModulus(), getDirection());
          }
-         updateStiffnessTensor (E, G);
-         Vector3d dir = getDirection (defp);
-         if (!dir.equals (DEFAULT_DIRECTION)) {
-            RotationMatrix3d R = new RotationMatrix3d();
-            R.setZDirection (dir);
-            TensorUtils.rotateTangent (myC, myC, R);
+         return C;
+      }
+      if (!stiffnessValid) {
+         // lazy update is synchronized since it may occur in multiple threads
+         synchronized (this) {
+            if (!stiffnessValid) {
+               // build in a new matrix, so that the old one (which may still
+               // be referenced) is not modified
+               Matrix6d C = new Matrix6d();
+               computeStiffnessTensor (
+                  C, getYoungsModulus(), getShearModulus(), getDirection());
+               myC = C;
+               stiffnessValid = true; // publishes myC
+            }
          }
       }
-      if (!functionalParams) {
-         stiffnessValid = true;
-      }
+      return myC;
    }
    
    @Override
    protected void multiplyC (
       SymmetricMatrix3d sigma, SymmetricMatrix3d eps, DeformedPoint defp) {
       
-      // update stiffness
-      maybeUpdateStiffness (defp);
+      Matrix6d C = getStiffness (defp);
 
       double e00 = eps.m00;
       double e11 = eps.m11;
@@ -321,26 +352,25 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       double e12 = eps.m12;
 
       // perform multiplication
-      double s00 = myC.m00*e00 + myC.m01*e11 + myC.m02*e22 +
-         2*myC.m03*e01 + 2*myC.m04*e12 + 2*myC.m05*e02;
-      double s11 = myC.m10*e00 + myC.m11*e11 + myC.m12*e22 +
-         2*myC.m13*e01 + 2*myC.m14*e12 + 2*myC.m15*e02;
-      double s22 = myC.m20*e00 + myC.m21*e11 + myC.m22*e22 +
-         2*myC.m23*e01 + 2*myC.m24*e12 + 2*myC.m25*e02;
-      double s01 = myC.m30*e00 + myC.m31*e11 + myC.m32*e22 +
-         2*myC.m33*e01 + 2*myC.m34*e12 + 2*myC.m35*e02;
-      double s12 = myC.m40*e00 + myC.m41*e11 + myC.m42*e22 +
-         2*myC.m43*e01 + 2*myC.m44*e12 + 2*myC.m45*e02;
-      double s02 = myC.m50*e00 + myC.m51*e11 + myC.m52*e22 +
-         2*myC.m53*e01 + 2*myC.m54*e12 + 2*myC.m55*e02;
+      double s00 = C.m00*e00 + C.m01*e11 + C.m02*e22 +
+         2*C.m03*e01 + 2*C.m04*e12 + 2*C.m05*e02;
+      double s11 = C.m10*e00 + C.m11*e11 + C.m12*e22 +
+         2*C.m13*e01 + 2*C.m14*e12 + 2*C.m15*e02;
+      double s22 = C.m20*e00 + C.m21*e11 + C.m22*e22 +
+         2*C.m23*e01 + 2*C.m24*e12 + 2*C.m25*e02;
+      double s01 = C.m30*e00 + C.m31*e11 + C.m32*e22 +
+         2*C.m33*e01 + 2*C.m34*e12 + 2*C.m35*e02;
+      double s12 = C.m40*e00 + C.m41*e11 + C.m42*e22 +
+         2*C.m43*e01 + 2*C.m44*e12 + 2*C.m45*e02;
+      double s02 = C.m50*e00 + C.m51*e11 + C.m52*e22 +
+         2*C.m53*e01 + 2*C.m54*e12 + 2*C.m55*e02;
 
       sigma.set(s00, s11, s22, s01, s02, s12);
    }
    
    @Override
    protected void getC(Matrix6d C, DeformedPoint defp) {
-      maybeUpdateStiffness(defp);
-      C.set(myC);
+      C.set (getStiffness (defp));
    }
 
    public boolean equals (FemMaterial mat) {
@@ -348,7 +378,10 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
          return false;
       }
       TransverseLinearMaterial linm = (TransverseLinearMaterial)mat;
-      if (!myC.equals(linm)) {
+      if (!myE.equals (linm.myE) ||
+          !myNu.equals (linm.myNu) ||
+          myG != linm.myG ||
+          !myDirection.equals (linm.myDirection)) {
          return false;
       }
       else {
@@ -388,4 +421,10 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
 
    // XXX scan/write for functions
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == TransverseLinearMaterial.class;
+   }
 }

@@ -234,4 +234,10 @@ public class LinearMaterial extends LinearMaterialBase {
       }
    }
    
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == LinearMaterial.class;
+   }
 }

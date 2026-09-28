@@ -8,6 +8,8 @@ import java.util.List;
 
 import artisynth.core.femmodels.FemCutPlane;
 import artisynth.core.femmodels.FemElement3dBase;
+import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.ShellElement3d;
 import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode;
@@ -304,6 +306,35 @@ public class ScalarNodalField extends ScalarFemField {
          initCacheArray (myFem.getShellElements().getNumberLimit());
    }
 
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Computes the cached values for all elements, so that subsequent
+    * queries only read the cache.
+    */
+   @Override
+   public void updateForConcurrentAccess() {
+      if (myVolumetricValues == null) {
+         initializeCache();
+      }
+      for (FemElement3d e : myFem.getElements()) {
+         int eidx = e.getNumber();
+         double[] varray = myVolumetricValues.get(eidx);
+         if (varray == null) {
+            varray = initValueArray (/*elemType*/0, eidx);
+            myVolumetricValues.set (eidx, varray);
+         }
+      }
+      for (ShellElement3d e : myFem.getShellElements()) {
+         int eidx = e.getNumber();
+         double[] varray = myShellValues.get(eidx);
+         if (varray == null) {
+            varray = initValueArray (/*elemType*/1, eidx);
+            myShellValues.set (eidx, varray);
+         }
+      }
+   }
+
    protected double getCachedValue (int elemType, int elemIdx, int subIdx) {
       if (myVolumetricValues == null) {
          initializeCache();
@@ -406,6 +437,18 @@ public class ScalarNodalField extends ScalarFemField {
    public void clearCacheIfNecessary() {
       myVolumetricValues = null;
       myShellValues = null;
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Also clears the cached values at the element integration points,
+    * since these are interpolated from the nodal values.
+    */
+   @Override
+   protected void notifyValuesChanged() {
+      super.notifyValuesChanged();
+      clearCacheIfNecessary();
    }
 
    /**

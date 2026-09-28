@@ -99,6 +99,26 @@ public class FieldPropertyList extends PropertyList {
       }
    }
 
+   /**
+    * Adds to {@code fields} each field that is bound to one of the field
+    * properties in this list for the specified host.
+    *
+    * @param host host object for the properties
+    * @param fields list to which bound fields are added
+    */
+   public void getPropertyFields (
+      HasProperties host, java.util.List<FieldComponent> fields) {
+      for (int i = 0; i < size(); i++) {
+         PropertyDesc desc = get(i);
+         if (desc instanceof FieldPropertyDesc) {
+            FieldComponent field = ((FieldPropertyDesc)desc).getField (host);
+            if (field != null) {
+               fields.add (field);
+            }
+         }
+      }
+   }
+
    FieldPropertyDesc getDescForFieldName (String fieldName) {
       if (fieldName.endsWith ("Field")) {
          PropertyDesc desc = get (fieldName.substring (0, fieldName.length()-5));

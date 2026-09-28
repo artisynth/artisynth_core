@@ -51,6 +51,12 @@ public class IncompressibleMaterial extends IncompressibleMaterialBase {
       return (myBulkPotential == BulkPotential.QUADRATIC);
    }
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == IncompressibleMaterial.class;
+   }
 }
    
    

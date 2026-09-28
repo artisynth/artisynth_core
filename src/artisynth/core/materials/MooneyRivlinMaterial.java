@@ -47,12 +47,8 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
    ScalarFieldComponent myC20Field = null;
    ScalarFieldComponent myC02Field = null;
 
-   private SymmetricMatrix3d myB;
-   private SymmetricMatrix3d myB2;
-   private SymmetricMatrix3d myTmp;
 
    // storage for phi and it's first two derivatives
-   private double[] myPhiVals = new double[3];
 
    static {
       myProps.addInheritableWithField (
@@ -79,9 +75,6 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
     * Creates a new MooneyRivlinMaterial with default parameter values.
     */
    public MooneyRivlinMaterial (){
-      myB = new SymmetricMatrix3d();
-      myB2 = new SymmetricMatrix3d();
-      myTmp = new SymmetricMatrix3d();
    }
 
    /**
@@ -332,8 +325,9 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
 
    public double computeDeviatoricEnergy (Matrix3dBase Cdev) {
       double I1 = Cdev.trace();
-      myTmp.mulTransposeLeft (Cdev);
-      double I2 = 0.5*(I1*I1 - myTmp.trace());
+      SymmetricMatrix3d CC = new SymmetricMatrix3d();
+      CC.mulTransposeLeft (Cdev);
+      double I2 = 0.5*(I1*I1 - CC.trace());
       double I1_3 = I1-3;
       double I2_3 = I2-3;
       double W = (myC10*I1_3 + myC01*I2_3 + myC11*I1_3*I2_3 +
@@ -352,14 +346,18 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
 
       double J = def.getDetF();
 
-      computePhiVals (myPhiVals, J);
-      double phi = myPhiVals[0];
-      double dphi = myPhiVals[1];
+      // scratch variables are allocated locally for thread safety
+      double[] phiVals = new double[3];
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
+      SymmetricMatrix3d B2 = new SymmetricMatrix3d();
+      computePhiVals (phiVals, J);
+      double phi = phiVals[0];
+      double dphi = phiVals[1];
 
-      computeLeftCauchyGreen(myB,def);
+      computeLeftCauchyGreen(B,def);
       // scale to compute deviatoric part; use phi in place of pow(J,-2/3);
-      myB.scale (phi);
-      myB2.mulTransposeLeft (myB); // compute B*B
+      B.scale (phi);
+      B2.mulTransposeLeft (B); // compute B*B
 
       double c10 = getC10(def);
       double c01 = getC01(def);
@@ -367,14 +365,14 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       double c20 = getC20(def);
       double c02 = getC02(def);
       
-      double I1 = myB.trace();
-      double I2 = 0.5*(I1*I1 - myB2.trace());
+      double I1 = B.trace();
+      double I2 = 0.5*(I1*I1 - B2.trace());
 
       double W1 = c10 + c11*(I2-3) + c20*2*(I1-3);
       double W2 = c01 + c11*(I1-3) + c02*2*(I2-3);
 
-      sigma.scale (W1 + W2*I1, myB);
-      sigma.scaledAdd (-W2, myB2, sigma);
+      sigma.scale (W1 + W2*I1, B);
+      sigma.scaledAdd (-W2, B2, sigma);
 
       double dev = (dphi/phi)*sigma.trace();
       sigma.scale (2.0/J);
@@ -385,7 +383,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       if (D != null) {
 
          double Ji = 1.0/J;
-         double ddphi = myPhiVals[2];
+         double ddphi = phiVals[2];
 
          double W11 = 2*c20;
          double W12 = c11;
@@ -416,15 +414,16 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
          TensorUtils.addSymmetricTensorProduct (
             D, J*r, sigma, SymmetricMatrix3d.IDENTITY);
 
-         TensorUtils.addTensorProduct4 (D, w1*4.0*Ji, myB);
-         TensorUtils.addTensorProduct (D, w2*4.0*Ji, myB);
-         TensorUtils.addSymmetricTensorProduct (D, w3*4.0*Ji, myB, myB2);
-         TensorUtils.addTensorProduct (D, w4*4.0*Ji, myB2);
+         TensorUtils.addTensorProduct4 (D, w1*4.0*Ji, B);
+         TensorUtils.addTensorProduct (D, w2*4.0*Ji, B);
+         TensorUtils.addSymmetricTensorProduct (D, w3*4.0*Ji, B, B2);
+         TensorUtils.addTensorProduct (D, w4*4.0*Ji, B2);
 
-         myTmp.scale (wc1, myB);  
-         myTmp.scaledAdd (wc2, myB2);
+         SymmetricMatrix3d Tmp = new SymmetricMatrix3d();
+         Tmp.scale (wc1, B);  
+         Tmp.scaledAdd (wc2, B2);
          TensorUtils.addSymmetricTensorProduct (
-            D, 2*r,myTmp,SymmetricMatrix3d.IDENTITY);
+            D, 2*r,Tmp,SymmetricMatrix3d.IDENTITY);
 
          D.setLowerToUpper();
       }
@@ -472,9 +471,6 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
 
    public MooneyRivlinMaterial clone() {
       MooneyRivlinMaterial mat = (MooneyRivlinMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
-      mat.myB2 = new SymmetricMatrix3d();
-      mat.myTmp = new SymmetricMatrix3d();
       return mat;
    }
 
@@ -532,4 +528,10 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
    }
 
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == MooneyRivlinMaterial.class;
+   }
 }

@@ -80,12 +80,6 @@ public abstract class MuscleMaterial extends FemMaterial {
       notifyHostOfPropertyChange();
    }
 
-   /** 
-    * Hook to notify associated components of change in parameters.
-    */
-   protected void notifyHostOfPropertyChange() {
-   }
-
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state) {

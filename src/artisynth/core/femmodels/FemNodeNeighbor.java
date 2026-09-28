@@ -31,6 +31,10 @@ public class FemNodeNeighbor {
    protected int myShellRefCnt;  // number of referencing shell elements
    // block used in the incompressibility constraint matrix.
    protected Matrix3x1Block myDivBlk;
+   // neighbor that is the transpose of this one (i.e., whose node is the
+   // node owning this neighbor, and which belongs to this neighbor's node).
+   // Set lazily, and cleared when either neighbor is removed.
+   protected FemNodeNeighbor myTransposeNbr;
    // Matrix3x1Block myDivBlk1;
 
    public void zeroStiffness() {
@@ -93,6 +97,16 @@ public class FemNodeNeighbor {
     * Sets the stiffness components of this node neighbour to the transpose of
     * the stiffness components of another node neighbour. 
     */
+   /**
+    * Clears the transpose links associated with this neighbor.
+    */
+   void clearTransposeNbr() {
+      if (myTransposeNbr != null) {
+         myTransposeNbr.myTransposeNbr = null;
+         myTransposeNbr = null;
+      }
+   }
+
    public void setTransposedStiffness (FemNodeNeighbor nbr) {
       myK00.transpose (nbr.myK00);
       if (nbr.myKX != null) {

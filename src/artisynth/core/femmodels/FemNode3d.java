@@ -721,6 +721,38 @@ public class FemNode3d extends FemNode implements Boundable {
       return null;
    }
 
+   /**
+    * Returns the neighbor of {@code nbr.myNode} which refers back to this
+    * node, caching the result in {@code nbr}. {@code nbr} should be one of
+    * this node's (direct) neighbors.
+    */
+   FemNodeNeighbor getTransposeNeighbor (FemNodeNeighbor nbr) {
+      FemNodeNeighbor nbrT = nbr.myTransposeNbr;
+      if (nbrT == null) {
+         nbrT = nbr.myNode.getNodeNeighbor (this);
+         if (nbrT != null) {
+            nbr.myTransposeNbr = nbrT;
+            nbrT.myTransposeNbr = nbr;
+         }
+      }
+      return nbrT;
+   }
+
+   /**
+    * Indirect neighbor version of {@link #getTransposeNeighbor}.
+    */
+   FemNodeNeighbor getTransposeIndirectNeighbor (FemNodeNeighbor nbr) {
+      FemNodeNeighbor nbrT = nbr.myTransposeNbr;
+      if (nbrT == null) {
+         nbrT = nbr.myNode.getIndirectNeighbor (this);
+         if (nbrT != null) {
+            nbr.myTransposeNbr = nbrT;
+            nbrT.myTransposeNbr = nbr;
+         }
+      }
+      return nbrT;
+   }
+
    public FemNodeNeighbor getNodeNeighborBySolveIndex (int idx) {
       for (FemNodeNeighbor nbr : myNodeNeighbors) {
          if (nbr.myNode.getLocalSolveIndex() == idx) {
@@ -745,6 +777,7 @@ public class FemNode3d extends FemNode implements Boundable {
          nbr.myVolumeRefCnt--;
       }
       if (nbr.myShellRefCnt + nbr.myVolumeRefCnt == 0) {
+         nbr.clearTransposeNbr();
          myNodeNeighbors.remove (nbr);
       }
    }
@@ -797,6 +830,9 @@ public class FemNode3d extends FemNode implements Boundable {
 
    public void clearIndirectNeighbors() {
       if (myIndirectNeighbors != null) {
+         for (FemNodeNeighbor nbr : myIndirectNeighbors) {
+            nbr.clearTransposeNbr();
+         }
          myIndirectNeighbors.clear();
          myIndirectNeighbors = null;
       }

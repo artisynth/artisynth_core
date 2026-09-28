@@ -32,6 +32,8 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    // volatile, since myC may be lazily built from multiple threads, and
    // setting this publishes it
    private volatile boolean stiffnessValid;
+   // lock for lazily computing the stiffness tensor myC
+   private Object myStiffnessLock = new Object();
 
    // private VectorFieldPointFunction<Vector2d> myEFunction = null;
    // private ScalarFieldPointFunction myGFunction = null;
@@ -322,8 +324,10 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
          return C;
       }
       if (!stiffnessValid) {
-         // lazy update is synchronized since it may occur in multiple threads
-         synchronized (this) {
+         // lazy update is synchronized since it may occur in multiple
+         // threads. A private lock is used, since the thread that starts a
+         // parallel computation may hold this material's monitor.
+         synchronized (myStiffnessLock) {
             if (!stiffnessValid) {
                // build in a new matrix, so that the old one (which may still
                // be referenced) is not modified
@@ -393,6 +397,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       TransverseLinearMaterial mat = (TransverseLinearMaterial)super.clone();
       mat.myC = null;
       mat.stiffnessValid = false;
+      mat.myStiffnessLock = new Object();
       mat.myE = myE.clone();
       mat.myNu = myNu.clone();
       mat.myG = myG;

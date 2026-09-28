@@ -37,6 +37,9 @@ public class VectorNodalField<T extends VectorObject<T>>
    ArrayList<T> myValues;
    protected ArrayList<T[]> myVolumetricValues;   
    protected ArrayList<T[]> myShellValues;   
+   // true if updateForConcurrentAccess() has filled the cache for all
+   // elements; cleared whenever the cache is cleared
+   protected boolean myCacheFilled = false;
 
    protected void initValues() {
       myValues = new ArrayList<>();
@@ -299,6 +302,9 @@ public class VectorNodalField<T extends VectorObject<T>>
     */
    @Override
    public void updateForConcurrentAccess() {
+      if (myCacheFilled) {
+         return;
+      }
       if (myVolumetricValues == null) {
          initializeCache();
       }
@@ -318,6 +324,7 @@ public class VectorNodalField<T extends VectorObject<T>>
             myShellValues.set (eidx, varray);
          }
       }
+      myCacheFilled = true;
    }
 
    protected T getCachedValue (int elemType, int elemIdx, int subIdx) {
@@ -416,6 +423,7 @@ public class VectorNodalField<T extends VectorObject<T>>
    public void clearCacheIfNecessary() {
       myVolumetricValues = null;
       myShellValues = null;
+      myCacheFilled = false;
    }
 
    /**

@@ -216,6 +216,42 @@ public class StiffnessWarper3d {
    }
    
    /**
+    * Adds R K0 R^T to K, where R is the warping rotation. Implemented
+    * explicitly to avoid allocating temporary storage.
+    *
+    * @param K matrix to add to
+    * @param K0 unrotated stiffness
+    */
+   protected void addRotatedStiffness (Matrix3d K, Matrix3d K0) {
+      RotationMatrix3d R = this.R;
+      double r00 = R.m00, r01 = R.m01, r02 = R.m02;
+      double r10 = R.m10, r11 = R.m11, r12 = R.m12;
+      double r20 = R.m20, r21 = R.m21, r22 = R.m22;
+
+      // T = K0 R^T
+      double t00 = K0.m00*r00 + K0.m01*r01 + K0.m02*r02;
+      double t01 = K0.m00*r10 + K0.m01*r11 + K0.m02*r12;
+      double t02 = K0.m00*r20 + K0.m01*r21 + K0.m02*r22;
+      double t10 = K0.m10*r00 + K0.m11*r01 + K0.m12*r02;
+      double t11 = K0.m10*r10 + K0.m11*r11 + K0.m12*r12;
+      double t12 = K0.m10*r20 + K0.m11*r21 + K0.m12*r22;
+      double t20 = K0.m20*r00 + K0.m21*r01 + K0.m22*r02;
+      double t21 = K0.m20*r10 + K0.m21*r11 + K0.m22*r12;
+      double t22 = K0.m20*r20 + K0.m21*r21 + K0.m22*r22;
+
+      // K += R T
+      K.m00 += r00*t00 + r01*t10 + r02*t20;
+      K.m01 += r00*t01 + r01*t11 + r02*t21;
+      K.m02 += r00*t02 + r01*t12 + r02*t22;
+      K.m10 += r10*t00 + r11*t10 + r12*t20;
+      K.m11 += r10*t01 + r11*t11 + r12*t21;
+      K.m12 += r10*t02 + r11*t12 + r12*t22;
+      K.m20 += r20*t00 + r21*t10 + r22*t20;
+      K.m21 += r20*t01 + r21*t11 + r22*t21;
+      K.m22 += r20*t02 + r21*t12 + r22*t22;
+   }
+
+   /**
     * Adds the total stiffness contributions between nodes i and j
     * from all cached linear and corotated linear materials to the given 
     * matrix
@@ -228,9 +264,7 @@ public class StiffnessWarper3d {
      
       // corotated component
       if (corotated != null) {
-         Matrix3d Kr = new Matrix3d();
-         rotateStiffness(Kr, corotated.getInitialStiffness00(i, j));
-         K.add(Kr);
+         addRotatedStiffness (K, corotated.getInitialStiffness00(i, j));
       }
       
       // linear component

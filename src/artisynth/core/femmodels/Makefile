@@ -24,6 +24,7 @@ JAVA_TEST_PROGRAMS = \
 	AbaqusReaderWriterTest \
 	FemModel3dTest \
 	TetrahedralizerTest \
-	StressStrainSettingsTest
+	StressStrainSettingsTest \
+	ParallelAssemblyTest
 
 -include $(ROOT_DIR)/Makefile.base

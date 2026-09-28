@@ -6,18 +6,22 @@
  */
 package artisynth.core.femmodels;
 
+import maspack.concurrency.ParallelLoop;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.fields.ScalarNodalField;
@@ -136,6 +140,50 @@ PointAttachable, ConnectableBody {
    protected boolean myFrameRelativeP;
    public static boolean useFrameRelativeCouplingMasses = false;
    protected boolean profileStressAndStiffness = false;
+
+   /**
+    * Enables multi-threaded computation of element stresses and stiffnesses
+    * in {@link #updateStressAndStiffness}, along with multi-threaded node
+    * loops for clearing and transposing stiffness blocks and for assembling
+    * them into the solve matrix (e.g., {@link #addPosJacobian} and {@link
+    * #addVelJacobian}). The number of threads is controlled by {@link
+    * ParallelLoop#setNumThreads}.
+    *
+    * <p>Element stresses and stiffnesses, for both volumetric and shell
+    * elements, are computed using an element block coloring (see {@link
+    * #getElementColoring}): elements are grouped into blocks, and blocks of
+    * the same color share no nodes. Colors are processed in sequence and the
+    * blocks of each color in parallel, so that nodal forces, stresses and
+    * stiffness blocks can be accumulated without locking. Temporary storage
+    * and element condition information are kept in per-thread {@link
+    * StressScratch} objects; code called from the element loop must not
+    * write to shared data, such as the static data shared by all elements of
+    * a given class. Since neither the decision to use the colored loop nor
+    * its accumulation order depends on the number of threads, results are
+    * bitwise identical for any number of threads, although they differ at
+    * roundoff from those of the serial loop.
+    *
+    * <p>The colored loop is used only if all the materials involved
+    * (element and model materials, augmenting materials supplied by material
+    * bundles, and auxiliary muscle materials) are thread safe (see {@link
+    * FemMaterial#isThreadSafe}), and if there is enough estimated work (see
+    * {@link #estimateElementWork}); otherwise, the elements are processed
+    * serially. The result of this check is cached, along with the fields
+    * bound to the materials, and is cleared by {@link
+    * #clearCachedMaterialData} whenever a material or the model structure
+    * changes. Before each parallel loop, the bound fields are prepared using
+    * {@link FieldComponent#updateForConcurrentAccess}.
+    *
+    * <p>The force-only computation performed by {@link #updateStress} is
+    * currently serial.
+    */
+   public static boolean useParallelAssembly = true;
+   // if non-null, accumulates timing (in nsec) for phases of
+   // updateStressAndStiffness(): volume update, volumetric and shell
+   // elements, and transposed stiffness fill
+   public static long[] phaseTimes = null;
+   // minimum number of nodes processed by each thread in node loops
+   protected static int NODE_CHUNK_SIZE = 256;
    protected boolean attachFrameToAllNodes = true;
 
    protected PointList<FemNode3d> myNodes;
@@ -247,6 +295,142 @@ PointAttachable, ConnectableBody {
    protected Vector3d[] myNodalConstraints = new Vector3d[MAX_NODAL_INCOMP_NODES];
    // temp for computing element-wise linear stiffness strain
    protected SymmetricMatrix3d myEps = new SymmetricMatrix3d();
+
+   /**
+    * Scratch storage used when computing element stresses and stiffnesses,
+    * allowing the computation to be done in multiple threads, each of which
+    * uses its own scratch object. Also records element condition information
+    * (minimum detJ and number of inverted elements), which is later merged
+    * into the model.
+    */
+   protected static class StressScratch {
+      VectorNd pressures;
+      VectorNd avgDetFs;
+      MatrixNd Rinv;
+      Vector3d[] nodalConstraints;
+      Vector3d[] GNx = new Vector3d[0];
+
+      double minDetJ = Double.MAX_VALUE;
+      FemElement3dBase minDetJElement = null;
+      int numInverted = 0;
+
+      StressScratch () {
+         pressures = new VectorNd(MAX_PRESSURE_VALS);
+         avgDetFs = new VectorNd(MAX_PRESSURE_VALS);
+         Rinv = new MatrixNd();
+         nodalConstraints = new Vector3d[MAX_NODAL_INCOMP_NODES];
+         for (int i=0; i<nodalConstraints.length; i++) {
+            nodalConstraints[i] = new Vector3d();
+         }
+      }
+
+      StressScratch (
+         VectorNd pressures, VectorNd avgDetFs, MatrixNd Rinv,
+         Vector3d[] nodalConstraints) {
+         this.pressures = pressures;
+         this.avgDetFs = avgDetFs;
+         this.Rinv = Rinv;
+         this.nodalConstraints = nodalConstraints;
+      }
+
+      /**
+       * Returns storage for shape function gradients for n nodes.
+       */
+      Vector3d[] getGNx (int n) {
+         if (GNx.length < n) {
+            Vector3d[] newGNx = new Vector3d[n];
+            for (int i=0; i<n; i++) {
+               newGNx[i] = (i < GNx.length ? GNx[i] : new Vector3d());
+            }
+            GNx = newGNx;
+         }
+         return GNx;
+      }
+
+      void clearConditionInfo() {
+         minDetJ = Double.MAX_VALUE;
+         minDetJElement = null;
+         numInverted = 0;
+      }
+
+      boolean checkElementCondition (
+         FemElement3dBase e, double detJ, boolean recordInversion) {
+         if (detJ < minDetJ) {
+            minDetJ = detJ;
+            minDetJElement = e;
+         }
+         if (detJ <= 0 && recordInversion) {
+            e.setInverted(true);
+            numInverted++;
+            return false;
+         }
+         else {
+            return true;
+         }
+      }
+   }
+
+   // scratch storage for serial stress computation, which uses the model's
+   // own temp storage
+   protected StressScratch mySerialScratch = null;
+   /**
+    * Block coloring of the volumetric and shell elements. The elements are
+    * divided into blocks, and the blocks are colored so that blocks of the
+    * same color share no nodes. Elements are identified by their index in a
+    * combined ordering in which the volumetric elements are followed by the
+    * shell elements (see {@link #getColoredElement}). For each color, {@code
+    * elems[c]} gives the indices of the elements in all its blocks
+    * (concatenated), and {@code offs[c]} gives the offsets of each block
+    * within {@code elems[c]}.
+    */
+   protected static class ElementColoring {
+      int[][] elems;
+      int[][] offs;
+      boolean spatialOrder;
+      int numElems;     // total number of elements
+      int numVolElems;  // number of volumetric elements
+      int numBlocks;
+      int blockSize;
+
+      int numColors() {
+         return elems.length;
+      }
+
+      int numBlocks (int c) {
+         return offs[c].length-1;
+      }
+   }
+
+   // element block coloring for parallel stress computation
+   protected ElementColoring myElementColoring = null;
+   // maximum number of elements in each block used for element coloring
+   protected static int ELEM_BLOCK_SIZE = 64;
+   // the block size is reduced until there are at least this many blocks
+   // per color (on average), to provide enough parallel work
+   protected static int MIN_BLOCKS_PER_COLOR = 16;
+   // Minimum estimated work (see estimateElementWork()) for each chunk of
+   // elements processed by a single thread. One work unit corresponds to
+   // roughly 0.01-0.03 usec. Elements are processed in parallel only if the
+   // work per color is at least twice this; the value was chosen from
+   // benchmarks near the break-even point.
+   protected static double ELEM_CHUNK_WORK = 2000;
+   // Minimum total estimated work for the colored (parallel) element loop.
+   // Below this, fixed per-color overheads outweigh any parallel speedup.
+   protected static double MIN_PARALLEL_ELEM_WORK = 200000;
+   // minimum number of elements for each chunk, computed from
+   // ELEM_CHUNK_WORK and the average element work
+   protected int myElemChunkSize = 1;
+   // minimum number of elements per chunk when computing element volumes
+   protected static int VOLUME_CHUNK_SIZE = 256;
+   // true if element stresses were computed in parallel on the last call to
+   // updateStressAndStiffness()
+   protected boolean myElementStressParallelP = false;
+   // cached result of checkElementStressInParallel(), together with the
+   // fields that must be prepared for concurrent access. Cleared by
+   // clearCachedMaterialData().
+   protected boolean myParallelCheckValid = false;
+   private boolean myParallelCheckResult = false;
+   private FieldComponent[] myParallelFields = null;
 
    // protected ArrayList<FemSurface> myEmbeddedSurfaces;
    protected MeshComponentList<FemMeshComp> myMeshList;
@@ -2170,7 +2354,15 @@ PointAttachable, ConnectableBody {
       myHardIncompMethodValidP = false;
       myHardIncompConfigValidP = false;
       myAllElements = null;
+      myElementColoring = null;
       myNumTetElements = -1; // invalidates all element counts
+   }
+
+   @Override
+   protected void clearCachedMaterialData() {
+      super.clearCachedMaterialData();
+      myParallelCheckValid = false;
+      myParallelFields = null;
    }
 
    // Called when the geometry (but not the topology) of one or
@@ -2328,9 +2520,15 @@ PointAttachable, ConnectableBody {
       double volume = 0;
       clearElementConditionInfo();
       boolean amatsInvertible = areInvertible (getAugmentingMaterials());
-      for (FemElement3dBase e : getAllElements()) {
+      double[] detJs = computeElementVolumes (/*returnDetJs=*/true);
+      int nvolElems = myElements.size();
+      ArrayList<FemElement3dBase> allElems = getAllElements();
+      for (int k=0; k<allElems.size(); k++) {
+         FemElement3dBase e = allElems.get(k);
          FemMaterial mat = getElementMaterial(e);
-         double detJ = e.computeVolumes();
+         // volumetric elements come first in allElems, and their volumes
+         // have already been computed
+         double detJ = (k < nvolElems ? detJs[k] : e.computeVolumes());
          e.setInverted(false);
          boolean invertible = (e.materialsAreInvertible() && amatsInvertible);
          if (!mat.isLinear() && !invertible) {
@@ -2738,6 +2936,13 @@ PointAttachable, ConnectableBody {
    
    protected void computePressuresAndRinv(
       FemElement3d e, IncompressibleMaterialBase imat, FemDeformedPoint dpnt) {
+      computePressuresAndRinv (
+         e, imat, dpnt, myPressures, myAvgDetFs, myRinv);
+   }
+
+   protected void computePressuresAndRinv(
+      FemElement3d e, IncompressibleMaterialBase imat, FemDeformedPoint dpnt,
+      VectorNd myPressures, VectorNd myAvgDetFs, MatrixNd myRinv) {
 
       int npvals = e.numPressureVals();
 
@@ -3020,6 +3225,7 @@ PointAttachable, ConnectableBody {
    }
 
    public void updateStress() {
+      // Note: unlike updateStressAndStiffness(), this is always done serially
       // clear existing internal forces and maybe stiffnesses
       timerStart();
       for (FemNode3d n : myNodes) {
@@ -3072,23 +3278,28 @@ PointAttachable, ConnectableBody {
       setNodalIncompBlocksAllocated (getSoftIncompMethod()==IncompMethod.NODAL);
 
       // clear existing internal forces and maybe stiffnesses
-      for (FemNode3d n : myNodes) {
-         n.myInternalForce.setZero();
-         if (n.myBackNode != null) {
-            n.myBackNode.myInternalForce.setZero();
-         }
-         if (!myStiffnessesValidP) {
-            for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
-               nbr.zeroStiffness();
+      forNodeRange ((lo, hi) -> {
+         for (int i=lo; i<hi; i++) {
+            FemNode3d n = myNodes.get(i);
+            n.myInternalForce.setZero();
+            if (n.myBackNode != null) {
+               n.myBackNode.myInternalForce.setZero();
             }
-            // used for soft nodal-based incompressibilty:
-            for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
-               nbr.zeroStiffness();
+            if (!myStiffnessesValidP) {
+               for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+                  nbr.zeroStiffness();
+               }
+               // used for soft nodal-based incompressibilty:
+               for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
+                  nbr.zeroStiffness();
+               }
             }
+            n.zeroStressStrain();
          }
-         n.zeroStressStrain();
-      }
+      });
+      long t0 = (phaseTimes != null ? System.nanoTime() : 0);
       updateVolume();
+      long t1 = (phaseTimes != null ? System.nanoTime() : 0);
 
       IncompMethod softIncomp = getSoftIncompMethod();
 
@@ -3115,33 +3326,46 @@ PointAttachable, ConnectableBody {
 
       ArrayList<FemMaterial> amats = getAugmentingMaterials();
 
-      for (FemElement3d e : myElements) {
-         FemMaterial mat = getElementMaterial(e);
-         computeStressAndStiffness(e, mat, amats, D, softIncomp);
-         if (checkTangentStability) {
-            double s = checkMatrixStability(D);
-            if (s < mins) {
-               mins = s;
-               minE = e;
+      long t2 = (phaseTimes != null ? System.nanoTime() : 0);
+      myElementStressParallelP =
+         (useParallelAssembly && !checkTangentStability &&
+          canComputeElementStressInParallel (amats));
+      if (myElementStressParallelP) {
+         computeElementStressInParallel (amats, softIncomp);
+      }
+      else {
+         for (FemElement3d e : myElements) {
+            FemMaterial mat = getElementMaterial(e);
+            computeStressAndStiffness(e, mat, amats, D, softIncomp);
+            if (checkTangentStability) {
+               double s = checkMatrixStability(D);
+               if (s < mins) {
+                  mins = s;
+                  minE = e;
+               }
             }
          }
       }
-      for (ShellElement3d e : myShellElements) {
-         FemMaterial mat = getElementMaterial(e);
-         if (e.getElementClass() == ElementClass.SHELL) {
-            computeShellStressAndStiffness(e, mat, amats, D);
-         }
-         else {
-            computeMembraneStressAndStiffness(e, mat, amats, D);
-         }
-         if (checkTangentStability) {
-            double s = checkMatrixStability(D);
-            if (s < mins) {
-               mins = s;
-               minE = e;
+      if (!myElementStressParallelP) {
+         // shell elements are included in the parallel computation
+         for (ShellElement3d e : myShellElements) {
+            FemMaterial mat = getElementMaterial(e);
+            if (e.getElementClass() == ElementClass.SHELL) {
+               computeShellStressAndStiffness(e, mat, amats, D);
+            }
+            else {
+               computeMembraneStressAndStiffness(e, mat, amats, D);
+            }
+            if (checkTangentStability) {
+               double s = checkMatrixStability(D);
+               if (s < mins) {
+                  mins = s;
+                  minE = e;
+               }
             }
          }
-      }     
+      }
+      long t3 = (phaseTimes != null ? System.nanoTime() : 0);
 
       // incompressibility
       if ((softIncomp == IncompMethod.NODAL) && 
@@ -3166,31 +3390,42 @@ PointAttachable, ConnectableBody {
          }
       }
 
+      long t4 = (phaseTimes != null ? System.nanoTime() : 0);
       if (!myStiffnessesValidP && mySolveMatrixSymmetricP) {
-         for (FemNode3d n : myNodes) {
-            int bi = n.getLocalSolveIndex();
-            if (bi != -1) {
-               for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
-                  int bj = nbr.myNode.getLocalSolveIndex();
-                  if (bj > bi) {
-                     FemNodeNeighbor nbrT =
-                        nbr.myNode.getNodeNeighborBySolveIndex(bi);
-                     nbrT.setTransposedStiffness(nbr);
+         // Each transposed neighbor is set only by the node with the lower
+         // solve index, so this can be done in parallel
+         forNodeRange ((lo, hi) -> {
+            for (int i=lo; i<hi; i++) {
+               FemNode3d n = myNodes.get(i);
+               int bi = n.getLocalSolveIndex();
+               if (bi != -1) {
+                  for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+                     int bj = nbr.myNode.getLocalSolveIndex();
+                     if (bj > bi) {
+                        FemNodeNeighbor nbrT = n.getTransposeNeighbor(nbr);
+                        nbrT.setTransposedStiffness(nbr);
+                     }
                   }
-               }
-               // used for soft nodal-based incompressibilty:
-               for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
-                  int bj = nbr.myNode.getLocalSolveIndex();
-                  if (bj > bi) {
-                     FemNodeNeighbor nbrT =
-                        nbr.myNode.getIndirectNeighborBySolveIndex(bi);
-                     nbrT.setTransposedStiffness(nbr);
+                  // used for soft nodal-based incompressibilty:
+                  for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
+                     int bj = nbr.myNode.getLocalSolveIndex();
+                     if (bj > bi) {
+                        FemNodeNeighbor nbrT =
+                           n.getTransposeIndirectNeighbor(nbr);
+                        nbrT.setTransposedStiffness(nbr);
+                     }
                   }
                }
             }
-         }
+         });
       }
 
+      if (phaseTimes != null) {
+         long t5 = System.nanoTime();
+         phaseTimes[0] += t1-t0; // volume
+         phaseTimes[1] += t3-t2; // volumetric elements
+         phaseTimes[2] += t5-t4; // transpose
+      }
       if (myComputeStrainEnergy) {
          myStrainEnergy = collectStrainEnergy();
       }
@@ -3202,6 +3437,555 @@ PointAttachable, ConnectableBody {
       if (profileStressAndStiffness) {
          timerStop("stressAndStiffness");
       }
+   }
+
+   /**
+    * Records the fields bound to the materials checked for thread safety.
+    */
+   private static class MaterialCheck {
+      // bound fields, as an identity-based set since fields could in
+      // principle override equals()
+      Set<FieldComponent> fields =
+         Collections.newSetFromMap (new IdentityHashMap<>());
+      // most recently checked material, to skip repeated checks when
+      // consecutive elements share the same material
+      FemMaterial lastMaterial = null;
+      // most recently added field, to skip repeated set insertions when
+      // many materials are bound to the same field
+      FieldComponent lastField = null;
+      // scratch list for collecting the fields of each material
+      ArrayList<FieldComponent> matFields = new ArrayList<>();
+      // one element for each combination of element class and ElementClass
+      // (e.g., shell vs. membrane) encountered, used to initialize lazily
+      // created class data
+      ArrayList<FemElement3dBase> classElems = new ArrayList<>();
+      FemElement3dBase lastClassElem = null;
+   }
+
+   /**
+    * Determines if a material is thread safe. Any fields that its properties
+    * are bound to are recorded in {@code checked} so that they can be
+    * prepared for concurrent access.
+    */
+   private boolean isThreadSafe (FemMaterial mat, MaterialCheck checked) {
+      if (mat == checked.lastMaterial) {
+         return true;
+      }
+      if (!mat.isThreadSafe()) {
+         return false;
+      }
+      ArrayList<FieldComponent> fields = checked.matFields;
+      fields.clear();
+      mat.collectFieldBindings (fields);
+      for (int i=0; i<fields.size(); i++) {
+         FieldComponent field = fields.get(i);
+         if (field != checked.lastField) {
+            checked.fields.add (field);
+            checked.lastField = field;
+         }
+      }
+      checked.lastMaterial = mat;
+      return true;
+   }
+
+   /**
+    * Estimates the relative amount of work needed to compute the stress and
+    * stiffness for an element. This consists of a fixed overhead, plus a term
+    * proportional to the number of node-node stiffness blocks times the
+    * number of integration points (or a small constant factor for linear
+    * materials, whose stiffness is precomputed and only needs rotating).
+    * Shell elements have four 3 x 3 stiffness blocks per node pair (since
+    * their nodes also have directors); membrane elements have one.
+    */
+   protected double estimateElementWork (FemElement3dBase e, FemMaterial mat) {
+      int nn = e.numNodes();
+      int factor = (mat.isLinear() ? 3 : e.numIntegrationPoints());
+      if (e.getElementClass() == ElementClass.SHELL) {
+         factor *= 4;
+      }
+      return 50 + nn*nn*factor;
+   }
+
+   /**
+    * Determines if an auxiliary material is thread safe. Only the standard
+    * element descriptors for auxiliary material and muscle bundles are
+    * supported, in which case thread safety depends on the underlying
+    * material. The descriptors' own computations only read shared data
+    * (bundle materials and excitations), and each descriptor belongs to a
+    * single element.
+    */
+   private boolean isAuxMaterialThreadSafe (
+      AuxiliaryMaterial amat, MaterialCheck checked) {
+      FemMaterial mat;
+      if (amat.getClass() == MuscleElementDesc.class) {
+         mat = ((MuscleElementDesc)amat).getEffectiveMuscleMaterial();
+      }
+      else if (amat.getClass() == AuxMaterialElementDesc.class) {
+         mat = ((AuxMaterialElementDesc)amat).getEffectiveMaterial();
+      }
+      else {
+         return false;
+      }
+      return mat == null || isThreadSafe (mat, checked);
+   }
+
+   /**
+    * Determines whether the stresses and stiffnesses for the volumetric and
+    * shell elements can be computed using the colored (parallel) element
+    * loop, and if so, prepares any fields bound to the materials for
+    * concurrent access. The underlying check is cached, and redone only after {@link
+    * #clearCachedMaterialData} has been called, which occurs whenever a
+    * material or the model structure changes.
+    */
+   protected boolean canComputeElementStressInParallel (
+      ArrayList<FemMaterial> amats) {
+      if (!myParallelCheckValid) {
+         myParallelFields = null;
+         myParallelCheckResult = checkElementStressInParallel (amats);
+         myParallelCheckValid = true;
+      }
+      if (myParallelCheckResult) {
+         // prepare bound fields (e.g., fill caches) so that queries from
+         // multiple threads only read them. Needed on every call since
+         // field values may have changed.
+         for (FieldComponent field : myParallelFields) {
+            field.updateForConcurrentAccess();
+         }
+      }
+      return myParallelCheckResult;
+   }
+
+   /**
+    * Determines whether the stresses and stiffnesses for the volumetric and
+    * shell elements can be computed using the colored (parallel) element
+    * loop. This requires that all materials are thread safe, and that there
+    * is enough estimated work, both overall and per element color. The decision
+    * does not depend on the number of threads. If the result is {@code true},
+    * then as side effects, static data associated with each element class is
+    * initialized (so that it will not be lazily initialized from multiple
+    * threads), {@code myParallelFields} is set to the fields bound to the
+    * materials, and {@code myElemChunkSize} is set.
+    */
+   private boolean checkElementStressInParallel (
+      ArrayList<FemMaterial> amats) {
+
+      int nelems = myElements.size() + myShellElements.size();
+      if (nelems == 0) {
+         return false;
+      }
+      MaterialCheck checked = new MaterialCheck();
+      if (amats != null) {
+         for (FemMaterial amat : amats) {
+            if (!isThreadSafe (amat, checked)) {
+               return false;
+            }
+         }
+      }
+      double work = 0;
+      int nvol = myElements.size();
+      for (int k=0; k<nelems; k++) {
+         FemElement3dBase e = getColoredElement (k, nvol);
+         FemMaterial mat = getElementMaterial(e);
+         if (!isThreadSafe (mat, checked)) {
+            return false;
+         }
+         work += estimateElementWork (e, mat);
+         if (!sameElementKind (e, checked.lastClassElem)) {
+            boolean found = false;
+            for (FemElement3dBase ce : checked.classElems) {
+               if (sameElementKind (e, ce)) {
+                  found = true;
+                  break;
+               }
+            }
+            if (!found) {
+               checked.classElems.add (e);
+            }
+            checked.lastClassElem = e;
+         }
+         if (e.numAugmentingMaterials() > 0) {
+            for (FemMaterial amat : e.getAugmentingMaterials()) {
+               if (!isThreadSafe (amat, checked)) {
+                  return false;
+               }
+            }
+         }
+         if (e.myAuxMaterials != null) {
+            // access list directly, since getAuxiliaryMaterials() copies it
+            for (int i=0; i<e.myAuxMaterials.size(); i++) {
+               if (!isAuxMaterialThreadSafe (e.myAuxMaterials.get(i), checked)) {
+                  return false;
+               }
+            }
+         }
+      }
+      if (work < MIN_PARALLEL_ELEM_WORK) {
+         return false;
+      }
+      // Require at least two chunks per color on average, where the number
+      // of chunks is limited by both the number of blocks and the work.
+      // This does not depend on the number of threads, so that the
+      // accumulation order (and hence the result) is the same for any
+      // number of threads.
+      ElementColoring coloring = getElementColoring();
+      int ncolors = coloring.numColors();
+      double blocksPerColor = coloring.numBlocks/(double)ncolors;
+      double chunksPerColor =
+         Math.min (blocksPerColor, work/ncolors/ELEM_CHUNK_WORK);
+      if (chunksPerColor < 2) {
+         return false;
+      }
+      // chunk size is given in blocks
+      double blockWork = work/coloring.numBlocks;
+      myElemChunkSize =
+         Math.max (1, (int)Math.ceil (ELEM_CHUNK_WORK/blockWork));
+      for (FemElement3dBase e : checked.classElems) {
+         initializeLazyElementData (e);
+      }
+      myParallelFields =
+         checked.fields.toArray (new FieldComponent[checked.fields.size()]);
+      return true;
+   }
+
+   /**
+    * Computes the volumes of the volumetric elements, in parallel if {@link
+    * #useParallelAssembly} is {@code true}.
+    *
+    * @param returnDetJs if {@code true}, return the minimum Jacobian
+    * determinant for each element
+    * @return minimum Jacobian determinants, if requested
+    */
+   protected double[] computeElementVolumes (boolean returnDetJs) {
+      int nelems = myElements.size();
+      double[] detJs = (returnDetJs ? new double[nelems] : null);
+      int minChunk = VOLUME_CHUNK_SIZE;
+      if (useParallelAssembly &&
+          ParallelLoop.numChunks (nelems, minChunk) > 1) {
+         initializeLazyElementClassData();
+         ParallelLoop.forRange (nelems, minChunk, (lo, hi) -> {
+            for (int k=lo; k<hi; k++) {
+               double detJ = myElements.get(k).computeVolumes();
+               if (detJs != null) {
+                  detJs[k] = detJ;
+               }
+            }
+         });
+      }
+      else {
+         for (int k=0; k<nelems; k++) {
+            double detJ = myElements.get(k).computeVolumes();
+            if (detJs != null) {
+               detJs[k] = detJ;
+            }
+         }
+      }
+      return detJs;
+   }
+
+   @Override
+   protected double computeVolume() {
+      // compute element volumes (possibly in parallel), then sum them
+      // serially in the same order as getAllElements()
+      computeElementVolumes (/*returnDetJs=*/false);
+      double volume = 0;
+      for (FemElement3d e : myElements) {
+         volume += e.getVolume();
+      }
+      for (ShellElement3d e : myShellElements) {
+         e.computeVolumes();
+         volume += e.getVolume();
+      }
+      return volume;
+   }
+
+   /**
+    * Initializes lazily created element data for one element of each
+    * volumetric element class, so that static data shared by all elements
+    * of that class will not be lazily created from multiple threads.
+    */
+   protected void initializeLazyElementClassData() {
+      Class<?> lastClass = null;
+      ArrayList<Class<?>> eclasses = new ArrayList<>();
+      for (FemElement3d e : myElements) {
+         Class<?> eclass = e.getClass();
+         if (eclass != lastClass) {
+            if (!eclasses.contains (eclass)) {
+               eclasses.add (eclass);
+               initializeLazyElementData (e);
+            }
+            lastClass = eclass;
+         }
+      }
+   }
+
+   /**
+    * Initializes element data that might otherwise be lazily created,
+    * including static data shared by all elements of the same class.
+    */
+   private void initializeLazyElementData (FemElement3dBase e) {
+      e.getIntegrationPoints();
+      e.getIntegrationData();
+      e.getWarpingPoint();
+      e.getWarpingData();
+      if (e instanceof FemElement3d) {
+         ((FemElement3d)e).getPressureWeightMatrix();
+      }
+      e.getNodalAveragingMatrix();
+   }
+
+   /**
+    * Queries whether two elements have the same class and element class
+    * (e.g., shell vs. membrane), and hence share the same static data.
+    */
+   private static boolean sameElementKind (
+      FemElement3dBase e0, FemElement3dBase e1) {
+      return (e1 != null && e0.getClass() == e1.getClass() &&
+              e0.getElementClass() == e1.getElementClass());
+   }
+
+   /**
+    * Computes the stresses and stiffnesses for the volumetric and shell
+    * elements using the element block coloring. Colors are processed in
+    * sequence, and the blocks within each color are processed in parallel
+    * (if more than one thread is available), with the elements within each
+    * block processed in order. Since blocks of the same color share no
+    * nodes, nodal forces and stiffness blocks can be accumulated without
+    * conflict, and the accumulation order is the same for any number of
+    * threads.
+    */
+   protected void computeElementStressInParallel (
+      ArrayList<FemMaterial> amats, IncompMethod softIncomp) {
+
+      ElementColoring coloring = getElementColoring();
+      int nvol = coloring.numVolElems;
+      for (int c=0; c<coloring.numColors(); c++) {
+         int[] elems = coloring.elems[c];
+         int[] offs = coloring.offs[c];
+         ParallelLoop.forRange (
+            coloring.numBlocks(c), myElemChunkSize, (lo, hi) -> {
+            StressScratch scratch = new StressScratch();
+            Matrix6d D = new Matrix6d();
+            for (int k=offs[lo]; k<offs[hi]; k++) {
+               int idx = elems[k];
+               if (idx < nvol) {
+                  FemElement3d e = myElements.get(idx);
+                  computeStressAndStiffness (
+                     e, getElementMaterial(e), amats, D, softIncomp, scratch);
+               }
+               else {
+                  ShellElement3d e = myShellElements.get(idx-nvol);
+                  computeShellElementStressAndStiffness (
+                     e, getElementMaterial(e), amats, D, scratch);
+               }
+            }
+            mergeElementConditionInfo (scratch);
+         });
+      }
+   }
+
+   /**
+    * Returns the element with index {@code k} in the combined ordering used
+    * for element coloring, in which the {@code nvol} volumetric elements are
+    * followed by the shell elements.
+    */
+   protected FemElement3dBase getColoredElement (int k, int nvol) {
+      return (k < nvol ? myElements.get(k) : myShellElements.get(k-nvol));
+   }
+
+   /**
+    * Returns the element block coloring, computing it if necessary. Block
+    * colorings are first computed, using the maximum block size, for both the
+    * element index order and a spatial order, and the order giving fewer
+    * colors is chosen. Index order works well for structured meshes, while
+    * spatial order is needed for meshes (such as those produced by tetgen)
+    * whose element numbering is not spatially coherent. The block size is
+    * then halved until there are at least {@link #MIN_BLOCKS_PER_COLOR}
+    * blocks per color. The result does not depend on the number of threads.
+    */
+   protected ElementColoring getElementColoring() {
+      ElementColoring coloring = myElementColoring;
+      if (coloring == null ||
+          coloring.numVolElems != myElements.size() ||
+          coloring.numElems != myElements.size()+myShellElements.size()) {
+         int bsize = Math.max (1, ELEM_BLOCK_SIZE);
+         ElementColoring indexColoring =
+            computeElementColoring (bsize, /*spatial=*/false);
+         ElementColoring spatialColoring =
+            computeElementColoring (bsize, /*spatial=*/true);
+         if (spatialColoring.numColors() < indexColoring.numColors()) {
+            coloring = spatialColoring;
+         }
+         else {
+            coloring = indexColoring;
+         }
+         while (bsize > 1 &&
+                coloring.numBlocks < MIN_BLOCKS_PER_COLOR*coloring.numColors()) {
+            bsize /= 2;
+            coloring = computeElementColoring (bsize, coloring.spatialOrder);
+         }
+         myElementColoring = coloring;
+      }
+      return coloring;
+   }
+
+   /**
+    * Returns a string describing the element coloring (for diagnostics).
+    */
+   protected String getElementColoringInfo() {
+      ElementColoring coloring = getElementColoring();
+      return ("colors=" + coloring.numColors() +
+              " blocks=" + coloring.numBlocks +
+              " blockSize=" + coloring.blockSize +
+              " order=" + (coloring.spatialOrder ? "spatial" : "index"));
+   }
+
+   /**
+    * Returns element indices sorted by the Morton (Z-order) code of the
+    * element centroids, which gives a spatially coherent ordering.
+    */
+   protected int[] computeSpatialElementOrder() {
+      int nvol = myElements.size();
+      int nelems = nvol + myShellElements.size();
+      Point3d[] cents = new Point3d[nelems];
+      Point3d pmin = new Point3d (Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
+      Point3d pmax = new Point3d (-Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE);
+      for (int k=0; k<nelems; k++) {
+         Point3d cent = new Point3d();
+         getColoredElement(k, nvol).computeCentroid (cent);
+         cents[k] = cent;
+         pmin.min (cent);
+         pmax.max (cent);
+      }
+      Vector3d range = new Vector3d();
+      range.sub (pmax, pmin);
+      double rmax = Math.max (range.maxElement(), 1e-300);
+      long[] keys = new long[nelems];
+      for (int k=0; k<nelems; k++) {
+         long ix = (long)((cents[k].x-pmin.x)/rmax*1023.999);
+         long iy = (long)((cents[k].y-pmin.y)/rmax*1023.999);
+         long iz = (long)((cents[k].z-pmin.z)/rmax*1023.999);
+         long code = 0;
+         for (int b=0; b<10; b++) {
+            code |= ((ix >> b) & 1L) << (3*b);
+            code |= ((iy >> b) & 1L) << (3*b+1);
+            code |= ((iz >> b) & 1L) << (3*b+2);
+         }
+         // pack code and index so a sort gives a deterministic order
+         keys[k] = (code << 32) | k;
+      }
+      Arrays.sort (keys);
+      int[] order = new int[nelems];
+      for (int k=0; k<nelems; k++) {
+         order[k] = (int)(keys[k] & 0xffffffffL);
+      }
+      return order;
+   }
+
+   /**
+    * Computes a greedy block coloring of the volumetric and shell
+    * elements. Elements (in the combined index order described for {@link
+    * #getColoredElement}, or spatial order if {@code spatial} is {@code
+    * true}) are divided
+    * into consecutive blocks of size {@code blockSize}, which are then
+    * colored using a bit mask for each node to record the colors of the
+    * blocks that use it. Each mask consists of {@code nwords} 64-bit words,
+    * and {@code nwords} is increased as needed.
+    */
+   protected ElementColoring computeElementColoring (
+      int blockSize, boolean spatial) {
+      int nvol = myElements.size();
+      int nelems = nvol + myShellElements.size();
+      int[] order;
+      if (spatial) {
+         order = computeSpatialElementOrder();
+      }
+      else {
+         order = new int[nelems];
+         for (int k=0; k<nelems; k++) {
+            order[k] = k;
+         }
+      }
+      int nblocks = (nelems+blockSize-1)/blockSize;
+      int nnodes = myNodes.getNumberLimit();
+      int nwords = 1;
+      long[] nodeMasks = new long[nnodes*nwords];
+      long[] bmask = new long[nwords];
+      int[] bcolors = new int[nblocks];
+      int[] ccounts = new int[64*nwords]; // number of blocks for each color
+      int[] ecounts = new int[64*nwords]; // number of elements for each color
+      int ncolors = 0;
+      for (int b=0; b<nblocks; b++) {
+         int k0 = b*blockSize;
+         int k1 = Math.min (nelems, k0+blockSize);
+         // find colors used by blocks adjacent to the block's nodes
+         for (int w=0; w<nwords; w++) {
+            bmask[w] = 0;
+         }
+         for (int k=k0; k<k1; k++) {
+            for (FemNode3d n : getColoredElement(order[k], nvol).getNodes()) {
+               int off = n.getNumber()*nwords;
+               for (int w=0; w<nwords; w++) {
+                  bmask[w] |= nodeMasks[off+w];
+               }
+            }
+         }
+         // find the first free color
+         int c = -1;
+         for (int w=0; w<nwords; w++) {
+            if (bmask[w] != -1L) {
+               c = 64*w + Long.numberOfTrailingZeros (~bmask[w]);
+               break;
+            }
+         }
+         if (c == -1) {
+            // all colors used: add another word to the masks
+            c = 64*nwords;
+            long[] newMasks = new long[nnodes*(nwords+1)];
+            for (int i=0; i<nnodes; i++) {
+               for (int w=0; w<nwords; w++) {
+                  newMasks[i*(nwords+1)+w] = nodeMasks[i*nwords+w];
+               }
+            }
+            nwords++;
+            nodeMasks = newMasks;
+            bmask = new long[nwords];
+            ccounts = Arrays.copyOf (ccounts, 64*nwords);
+            ecounts = Arrays.copyOf (ecounts, 64*nwords);
+         }
+         for (int k=k0; k<k1; k++) {
+            for (FemNode3d n : getColoredElement(order[k], nvol).getNodes()) {
+               nodeMasks[n.getNumber()*nwords + c/64] |= (1L << (c%64));
+            }
+         }
+         bcolors[b] = c;
+         ccounts[c]++;
+         ecounts[c] += k1-k0;
+         ncolors = Math.max (ncolors, c+1);
+      }
+      ElementColoring coloring = new ElementColoring();
+      coloring.elems = new int[ncolors][];
+      coloring.offs = new int[ncolors][];
+      for (int c=0; c<ncolors; c++) {
+         coloring.elems[c] = new int[ecounts[c]];
+         coloring.offs[c] = new int[ccounts[c]+1];
+         ccounts[c] = 0;
+         ecounts[c] = 0;
+      }
+      for (int b=0; b<nblocks; b++) {
+         int c = bcolors[b];
+         int k0 = b*blockSize;
+         int k1 = Math.min (nelems, k0+blockSize);
+         for (int k=k0; k<k1; k++) {
+            coloring.elems[c][ecounts[c]++] = order[k];
+         }
+         coloring.offs[c][++ccounts[c]] = ecounts[c];
+      }
+      coloring.spatialOrder = spatial;
+      coloring.numElems = nelems;
+      coloring.numVolElems = nvol;
+      coloring.numBlocks = nblocks;
+      coloring.blockSize = blockSize;
+      return coloring;
    }
 
    /**
@@ -3488,6 +4272,69 @@ PointAttachable, ConnectableBody {
       FemElement3d e, FemMaterial mat, ArrayList<FemMaterial> amats, 
       Matrix6d D, IncompMethod softIncomp) {
 
+      StressScratch scratch = getSerialScratch();
+      computeStressAndStiffness (e, mat, amats, D, softIncomp, scratch);
+      mergeElementConditionInfo (scratch);
+   }
+
+   /**
+    * Returns the scratch object used for serial stress computation, with its
+    * condition information cleared.
+    */
+   private StressScratch getSerialScratch() {
+      if (mySerialScratch == null) {
+         mySerialScratch = new StressScratch (
+            myPressures, myAvgDetFs, myRinv, myNodalConstraints);
+      }
+      mySerialScratch.clearConditionInfo();
+      return mySerialScratch;
+   }
+
+   /**
+    * Creates the element's material state objects if necessary. These are
+    * otherwise created lazily only when state is first saved or advanced,
+    * and so may not yet exist if stresses are computed before then (e.g.,
+    * by {@code initialize()}). Only affects the given element, so it can be
+    * called from multiple threads for different elements.
+    */
+   protected void ensureStateObjects (FemElement3dBase e) {
+      if (e.myNumMaterialsWithState == -1) {
+         e.updateStateObjects();
+      }
+   }
+
+   // lock for merging element condition information from multiple threads.
+   // A private lock is used, rather than synchronizing on the model, since
+   // the thread that starts the parallel computation may already hold the
+   // model's monitor (e.g., via a synchronized property setter), which
+   // would deadlock the worker threads.
+   private final Object myConditionInfoLock = new Object();
+
+   /**
+    * Merges element condition information from a scratch object into the
+    * model. Can be called concurrently from multiple threads.
+    */
+   protected void mergeElementConditionInfo (StressScratch scratch) {
+      synchronized (myConditionInfoLock) {
+         if (scratch.minDetJ < myMinDetJ) {
+            myMinDetJ = scratch.minDetJ;
+            myMinDetJElement = scratch.minDetJElement;
+         }
+         myNumInverted += scratch.numInverted;
+      }
+   }
+
+   /**
+    * Computes the stress and stiffness for a volumetric element, using the
+    * temporary storage supplied by {@code scratch}. Provided that the
+    * materials are thread safe, this can be called concurrently for elements
+    * that share no nodes, using a different scratch object for each thread.
+    */
+   protected void computeStressAndStiffness (
+      FemElement3d e, FemMaterial mat, ArrayList<FemMaterial> amats, 
+      Matrix6d D, IncompMethod softIncomp, StressScratch scratch) {
+
+      ensureStateObjects (e);
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
       IntegrationData3d[] idata = e.getIntegrationData();
       FemNode3d[] nodes = e.getNodes();
@@ -3572,10 +4419,14 @@ PointAttachable, ConnectableBody {
       SymmetricMatrix3d C = new SymmetricMatrix3d();
 
       // initialize incompressible pressure
-      double[] pbuf = myPressures.getBuffer();
-      double[] jbuf = myAvgDetFs.getBuffer();
+      double[] pbuf = scratch.pressures.getBuffer();
+      double[] jbuf = scratch.avgDetFs.getBuffer();
       if (softIncomp == IncompMethod.ELEMENT) {
-         computePressuresAndRinv (e, imat, dpnt);
+         computePressuresAndRinv (
+            e, imat, dpnt, scratch.pressures, scratch.avgDetFs, scratch.Rinv);
+         // buffers may have been reallocated
+         pbuf = scratch.pressures.getBuffer();
+         jbuf = scratch.avgDetFs.getBuffer();
          if (D != null) {
             constraints = e.getIncompressConstraints();
             for (int i = 0; i < e.myNodes.length; i++) {
@@ -3603,11 +4454,15 @@ PointAttachable, ConnectableBody {
          dpnt.setFromIntegrationPoint (pt, dt, null, e, k);
 
          double detJ = invJ.fastInvert(dpnt.getJ()); // pt.computeInverseJacobian();
-         checkElementCondition (e, detJ, !invertible);
+         scratch.checkElementCondition (e, detJ, !invertible);
 
          // compute shape function gradient and volume fraction
          double dv = detJ * pt.getWeight();
-         Vector3d[] GNx = pt.updateShapeGradient(invJ);
+         // use per-thread storage, since the integration point (and its
+         // internal shape gradient storage) is shared by all elements of
+         // the same class
+         Vector3d[] GNx = scratch.getGNx (nodes.length);
+         pt.computeShapeGradient (invJ, GNx);
 
          // compute pressure and average detF
          double pressure = 0;
@@ -3747,7 +4602,9 @@ PointAttachable, ConnectableBody {
                         FemNodeNeighbor nbr = e.myNbrs[i][j];
                         nbr.addMaterialStiffness (GNx[i], D, GNx[j], dv);
                         nbr.addGeometricStiffness (GNx[i], sigma, GNx[j], dv);
-                        nbr.addPressureStiffness (GNx[i], p, GNx[j], dv);   
+                        if (p != 0) {
+                           nbr.addPressureStiffness (GNx[i], p, GNx[j], dv);
+                        }
                         if (kp != 0) {
                            nbr.addDilationalStiffness (kp, GNx[i], GNx[j]);
                         }
@@ -3799,16 +4656,17 @@ PointAttachable, ConnectableBody {
       if (D != null) {
          if (softIncomp == IncompMethod.NODAL && e instanceof TetElement) {
             // tet nodal incompressibility
-            ((TetElement)e).getAreaWeightedNormals(myNodalConstraints);
+            Vector3d[] nodalConstraints = scratch.nodalConstraints;
+            ((TetElement)e).getAreaWeightedNormals(nodalConstraints);
             for (int i = 0; i < 4; i++) {
-               myNodalConstraints[i].scale(-1 / 12.0);
+               nodalConstraints[i].scale(-1 / 12.0);
             }
 
             for (int i=0; i<e.numNodes(); ++i) {
                for (FemNodeNeighbor nbr : getNodeNeighbors(e.myNodes[i])) {
                   int j = e.getLocalNodeIndex(nbr.myNode);
                   if (j != -1) {
-                     nbr.myDivBlk.scaledAdd(1, myNodalConstraints[j]);
+                     nbr.myDivBlk.scaledAdd(1, nodalConstraints[j]);
                   }
                }
             }
@@ -3822,7 +4680,7 @@ PointAttachable, ConnectableBody {
                      int bj = e.myNodes[j].getLocalSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
                         e.myNbrs[i][j].addDilationalStiffness(
-                           myRinv, constraints[i], constraints[j]);
+                           scratch.Rinv, constraints[i], constraints[j]);
                      }
                   }
                }
@@ -3831,10 +4689,42 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   /**
+    * Computes the stress and stiffness for a shell or membrane element,
+    * depending on its element class, using the temporary storage supplied by
+    * {@code scratch}. Provided that the materials are thread safe, this can
+    * be called concurrently for elements that share no nodes, using a
+    * different scratch object for each thread.
+    */
+   protected void computeShellElementStressAndStiffness (
+      ShellElement3d e, FemMaterial mat, ArrayList<FemMaterial> amats,
+      Matrix6d D, StressScratch scratch) {
+      if (e.getElementClass() == ElementClass.SHELL) {
+         computeShellStressAndStiffness (e, mat, amats, D, scratch);
+      }
+      else {
+         computeMembraneStressAndStiffness (e, mat, amats, D, scratch);
+      }
+   }
+
    protected void computeShellStressAndStiffness(
       ShellElement3d e, FemMaterial mat,
       ArrayList<FemMaterial> amats, Matrix6d D) {
 
+      StressScratch scratch = getSerialScratch();
+      computeShellStressAndStiffness (e, mat, amats, D, scratch);
+      mergeElementConditionInfo (scratch);
+   }
+
+   /**
+    * Computes the stress and stiffness for a shell element, using the
+    * temporary storage supplied by {@code scratch}.
+    */
+   protected void computeShellStressAndStiffness(
+      ShellElement3d e, FemMaterial mat,
+      ArrayList<FemMaterial> amats, Matrix6d D, StressScratch scratch) {
+
+      ensureStateObjects (e);
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
       IntegrationData3d[] idata = e.getIntegrationData();
       FemNode3d[] nodes = e.getNodes();
@@ -3916,15 +4806,7 @@ PointAttachable, ConnectableBody {
             
          dpnt.setFromIntegrationPoint (pt, dt, null, e, k%nump);
          double detJ = invJ.fastInvert (dpnt.getJ());
-         if (detJ < myMinDetJ) {
-            myMinDetJ = detJ;
-            myMinDetJElement = e;
-         }
-         // SKIPPED
-         if (detJ <= 0 && !invertible) {
-            e.setInverted(true);
-            myNumInverted++;
-         }
+         scratch.checkElementCondition (e, detJ, !invertible);
 
          double t = pt.getCoords().z;
          double dv = detJ * pt.getWeight();
@@ -4019,6 +4901,20 @@ PointAttachable, ConnectableBody {
       ShellElement3d e, FemMaterial mat,
       ArrayList<FemMaterial> amats, Matrix6d D) {
 
+      StressScratch scratch = getSerialScratch();
+      computeMembraneStressAndStiffness (e, mat, amats, D, scratch);
+      mergeElementConditionInfo (scratch);
+   }
+
+   /**
+    * Computes the stress and stiffness for a membrane element, using the
+    * temporary storage supplied by {@code scratch}.
+    */
+   protected void computeMembraneStressAndStiffness(
+      ShellElement3d e, FemMaterial mat,
+      ArrayList<FemMaterial> amats, Matrix6d D, StressScratch scratch) {
+
+      ensureStateObjects (e);
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
       IntegrationData3d[] idata = e.getIntegrationData();
       FemNode3d[] nodes = e.getNodes();
@@ -4100,15 +4996,7 @@ PointAttachable, ConnectableBody {
             
          dpnt.setFromIntegrationPoint (pt, dt, null, e, k);
          double detJ = invJ.fastInvert (dpnt.getJ());
-         if (detJ < myMinDetJ) {
-            myMinDetJ = detJ;
-            myMinDetJElement = e;
-         }
-         // SKIPPED
-         if (detJ <= 0 && !invertible) {
-            e.setInverted(true);
-            myNumInverted++;
-         }
+         scratch.checkElementCondition (e, detJ, !invertible);
 
          double dv = detJ*pt.getWeight()*e.getDefaultThickness();
          Vector3d[] dNs = pt.getGNs();
@@ -4285,17 +5173,35 @@ PointAttachable, ConnectableBody {
       }
       double sm = -s*myMassDamping;
       double sk = -s*myStiffnessDamping;
-      for (int i = 0; i < myNodes.size(); i++) {
-         FemNode3d node = myNodes.get(i);
-         if (node.getLocalSolveIndex() != -1) {
-            for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
-               nbr.addVelJacobian (M, node, sm, sk, myUseConsistentMass);
-            }
-            // used for soft nodal-based incompressibilty:
-            for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
-               nbr.addVelJacobian (M, node, sm, sk, false);
+      // each neighbor adds only to its own block, so nodes can be processed
+      // in parallel
+      forNodeRange ((lo, hi) -> {
+         for (int i = lo; i < hi; i++) {
+            FemNode3d node = myNodes.get(i);
+            if (node.getLocalSolveIndex() != -1) {
+               for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
+                  nbr.addVelJacobian (M, node, sm, sk, myUseConsistentMass);
+               }
+               // used for soft nodal-based incompressibilty:
+               for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
+                  nbr.addVelJacobian (M, node, sm, sk, false);
+               }
             }
          }
+      });
+   }
+
+   /**
+    * Executes a loop body over the node index range, in parallel if
+    * {@link #useParallelAssembly} is {@code true}.
+    */
+   protected void forNodeRange (ParallelLoop.RangeBody body) {
+      int nnodes = myNodes.size();
+      if (useParallelAssembly) {
+         ParallelLoop.forRange (nnodes, NODE_CHUNK_SIZE, body);
+      }
+      else {
+         body.run (0, nnodes);
       }
    }
 
@@ -4305,18 +5211,20 @@ PointAttachable, ConnectableBody {
       if (!myStressesValidP || !myStiffnessesValidP) {
          updateStressAndStiffness();
       }
-      for (int i = 0; i < myNodes.size(); i++) {
-         FemNode3d node = myNodes.get(i);
-         if (node.getLocalSolveIndex() != -1) {
-            for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
-               nbr.addPosJacobian (M, node, -s);
-            }
-            // used for soft nodal-based incompressibilty:
-            for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
-               nbr.addPosJacobian (M, node, -s);
+      forNodeRange ((lo, hi) -> {
+         for (int i = lo; i < hi; i++) {
+            FemNode3d node = myNodes.get(i);
+            if (node.getLocalSolveIndex() != -1) {
+               for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
+                  nbr.addPosJacobian (M, node, -s);
+               }
+               // used for soft nodal-based incompressibilty:
+               for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
+                  nbr.addPosJacobian (M, node, -s);
+               }
             }
          }
-      }
+      });
    }
 
    protected double checkMatrixStability(DenseMatrix D) {

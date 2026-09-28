@@ -50,6 +50,9 @@ public class ScalarNodalField extends ScalarFemField {
    // cached values
    protected ArrayList<double[]> myVolumetricValues;  
    protected ArrayList<double[]> myShellValues;  
+   // true if updateForConcurrentAccess() has filled the cache for all
+   // elements; cleared whenever the cache is cleared
+   protected boolean myCacheFilled = false;
 
    public Range getVisualizationRange() {
       return new EnumRange<Visualization>(
@@ -314,6 +317,9 @@ public class ScalarNodalField extends ScalarFemField {
     */
    @Override
    public void updateForConcurrentAccess() {
+      if (myCacheFilled) {
+         return;
+      }
       if (myVolumetricValues == null) {
          initializeCache();
       }
@@ -333,6 +339,7 @@ public class ScalarNodalField extends ScalarFemField {
             myShellValues.set (eidx, varray);
          }
       }
+      myCacheFilled = true;
    }
 
    protected double getCachedValue (int elemType, int elemIdx, int subIdx) {
@@ -437,6 +444,7 @@ public class ScalarNodalField extends ScalarFemField {
    public void clearCacheIfNecessary() {
       myVolumetricValues = null;
       myShellValues = null;
+      myCacheFilled = false;
    }
 
    /**

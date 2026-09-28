@@ -6,6 +6,7 @@
  */
 package maspack.matrix;
 
+import maspack.concurrency.ParallelLoop;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -925,12 +926,15 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    }
 
    public void setZero() {
-      for (int bi = 0; bi < myNumBlockRows; bi++) {
-         for (MatrixBlock blk = myRows[bi].myHead; blk != null; blk =
-            blk.next()) {
-            blk.setZero();
+      // rows are independent, so large matrices can be zeroed in parallel
+      ParallelLoop.forRange (myNumBlockRows, 1024, (lo, hi) -> {
+         for (int bi = lo; bi < hi; bi++) {
+            for (MatrixBlock blk = myRows[bi].myHead; blk != null; blk =
+               blk.next()) {
+               blk.setZero();
+            }
          }
-      }
+      });
    }
 
    public void scale (double s) {

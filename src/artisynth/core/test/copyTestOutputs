@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# Copies test output files with a given suffix (default .out) to files with a
+# different suffix (typically ,ref, in order to reset the reference files).
+#
+usage() {
+   echo "Usage: $0 [ <srcSuffix> ] <dstSuffix>"
+   exit 1
+}
+src="out"
+if [[ $# == 1 ]]; then
+    dst=$1
+elif [[ $# == 2 ]]; then
+    src=$1
+    dst=$2
+else
+    usage
+fi
+testname=(
+    "mechmodelTest"
+    "wraptest"
+    "contestAjl"
+    "contestReg"
+    "femtest"
+    "inverseTest"
+    "skinningTest"
+    "wraptest"
+)
+for name in "${testname[@]}"; do
+   echo cp -f $name.{$src,$dst}
+   cp -f $name.{$src,$dst}
+done

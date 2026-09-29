@@ -546,6 +546,105 @@ public class FemMaterialTest extends UnitTest {
       testStress (simpMuscle, tol);
       testTangent (genericMuscle, tol);
       testStress (genericMuscle, 2e-4);
+
+      testThreadSafety();
+      testEquals();
+   }
+
+   /**
+    * Checks the thread safety settings of the FEM materials. Thread safety is
+    * declared only for specific classes, so subclasses (which may add
+    * unsafe state) should not inherit it, and composite materials should be
+    * thread safe only if their components are.
+    */
+   public void testThreadSafety() {
+      FemMaterial[] safeMats = new FemMaterial[] {
+         new LinearMaterial(),
+         new AnisotropicLinearMaterial(),
+         new TransverseLinearMaterial(),
+         new NeoHookeanMaterial(),
+         new MooneyRivlinMaterial(),
+         new StVenantKirchoffMaterial(),
+         new IncompNeoHookeanMaterial(),
+         new CubicHyperelastic(),
+         new YeohMaterial(),
+         new OgdenMaterial(),
+         new FungMaterial(),
+         new FungOrthotropicMaterial(),
+         new ArrudaBoyceMaterial(),
+         new VerondaWestmannMaterial(),
+         new IncompressibleMaterial(),
+         new NullMaterial(),
+         new SimpleMuscle(),
+         new SimpleForceMuscle(),
+         new GenericMuscle(),
+         new BlemkerMuscle(),
+         new FullBlemkerMuscle(),
+         new InactiveMuscle(),
+         new ScaledFemMaterial (new NeoHookeanMaterial(), 0.5),
+         new ViscoelasticMaterial (
+            new NeoHookeanMaterial(), new QLVBehavior()),
+      };
+      for (FemMaterial mat : safeMats) {
+         checkEquals (
+            mat.getClass().getSimpleName()+".isThreadSafe()",
+            mat.isThreadSafe(), true);
+      }
+      // subclasses should not inherit thread safety
+      FemMaterial[] unsafeMats = new FemMaterial[] {
+         new NeoHookeanMaterial() {},
+         new LinearMaterial() {},
+         new GenericMuscle() {},
+         new ScaledFemMaterial (new NeoHookeanMaterial() {}, 0.5),
+         new ViscoelasticMaterial (
+            new NeoHookeanMaterial() {}, new QLVBehavior()),
+         new ViscoelasticMaterial (
+            new NeoHookeanMaterial(), new QLVBehavior() {}),
+      };
+      for (FemMaterial mat : unsafeMats) {
+         checkEquals (
+            "isThreadSafe() for subclass or composite "+
+            mat.getClass().getName(), mat.isThreadSafe(), false);
+      }
+   }
+
+   /**
+    * Checks equals() for linear materials whose parameters are not stored
+    * in the base class.
+    */
+   public void testEquals() {
+      TransverseLinearMaterial tl0 = new TransverseLinearMaterial();
+      TransverseLinearMaterial tl1 = new TransverseLinearMaterial();
+      checkEquals ("TransverseLinear equal", tl0.equals ((FemMaterial)tl1), true);
+      checkEquals (
+         "TransverseLinear clone equal",
+         tl0.equals ((FemMaterial)tl0.clone()), true);
+      tl1.setShearModulus (1234);
+      checkEquals (
+         "TransverseLinear different G", tl0.equals ((FemMaterial)tl1), false);
+      tl1 = new TransverseLinearMaterial();
+      tl1.setDirection (new Vector3d (1, 0, 0));
+      checkEquals (
+         "TransverseLinear different direction",
+         tl0.equals ((FemMaterial)tl1), false);
+      tl1 = new TransverseLinearMaterial();
+      tl1.setYoungsModulus (100, 200);
+      checkEquals (
+         "TransverseLinear different E", tl0.equals ((FemMaterial)tl1), false);
+      tl1 = new TransverseLinearMaterial();
+      tl1.setPoissonsRatio (0.1, 0.2);
+      checkEquals (
+         "TransverseLinear different nu", tl0.equals ((FemMaterial)tl1), false);
+
+      AnisotropicLinearMaterial al0 = new AnisotropicLinearMaterial();
+      AnisotropicLinearMaterial al1 = new AnisotropicLinearMaterial();
+      checkEquals ("AnisotropicLinear equal", al0.equals ((FemMaterial)al1), true);
+      Matrix6d C = new Matrix6d (al1.getStiffnessTensor());
+      C.m00 *= 2;
+      al1.setStiffnessTensor (C);
+      checkEquals (
+         "AnisotropicLinear different tensor",
+         al0.equals ((FemMaterial)al1), false);
    }
 
    public static void main (String[] args) {

@@ -143,7 +143,7 @@ PointAttachable, ConnectableBody {
 
    /**
     * Enables multi-threaded computation of element stresses and stiffnesses
-    * in {@link #updateStressAndStiffness}, along with multi-threaded node
+    * in {@link #updateStressAndStiffness()}, along with multi-threaded node
     * loops for clearing and transposing stiffness blocks and for assembling
     * them into the solve matrix (e.g., {@link #addPosJacobian} and {@link
     * #addVelJacobian}). The number of threads is controlled by {@link
@@ -174,8 +174,10 @@ PointAttachable, ConnectableBody {
     * changes. Before each parallel loop, the bound fields are prepared using
     * {@link FieldComponent#updateForConcurrentAccess}.
     *
-    * <p>The force-only computation performed by {@link #updateStress} is
-    * currently serial.
+    * <p>The same colored loop is used by {@link #updateStress}, which
+    * computes the stresses without the stiffness; since the work per element
+    * is then much smaller, the work estimate depends on whether the
+    * stiffness is computed.
     */
    public static boolean useParallelAssembly = true;
    // if non-null, accumulates timing (in nsec) for phases of
@@ -416,7 +418,7 @@ PointAttachable, ConnectableBody {
    protected static double ELEM_CHUNK_WORK = 2000;
    // Minimum total estimated work for the colored (parallel) element loop.
    // Below this, fixed per-color overheads outweigh any parallel speedup.
-   protected static double MIN_PARALLEL_ELEM_WORK = 200000;
+   protected static double MIN_PARALLEL_ELEM_WORK = 100000;
    // minimum number of elements for each chunk, computed from
    // ELEM_CHUNK_WORK and the average element work
    protected int myElemChunkSize = 1;
@@ -425,12 +427,17 @@ PointAttachable, ConnectableBody {
    // true if element stresses were computed in parallel on the last call to
    // updateStressAndStiffness()
    protected boolean myElementStressParallelP = false;
-   // cached result of checkElementStressInParallel(), together with the
-   // fields that must be prepared for concurrent access. Cleared by
-   // clearCachedMaterialData().
+   // cached results of checkElementMaterials(), including the fields that
+   // must be prepared for concurrent access and the estimated element work.
+   // Cleared by clearCachedMaterialData().
    protected boolean myParallelCheckValid = false;
-   private boolean myParallelCheckResult = false;
+   // true if all materials are thread safe
+   private boolean myMaterialsThreadSafe = false;
+   // fields bound to the materials
    private FieldComponent[] myParallelFields = null;
+   // estimated total element work with and without stiffness computation
+   private double myStiffnessWork = 0;
+   private double myStressWork = 0;
 
    // protected ArrayList<FemSurface> myEmbeddedSurfaces;
    protected MeshComponentList<FemMeshComp> myMeshList;
@@ -3224,53 +3231,32 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   /**
+    * Updates the stresses and internal forces for this model, without
+    * computing the stiffness. See {@link #updateStressAndStiffness(boolean)}.
+    */
    public void updateStress() {
-      // Note: unlike updateStressAndStiffness(), this is always done serially
-      // clear existing internal forces and maybe stiffnesses
-      timerStart();
-      for (FemNode3d n : myNodes) {
-         n.myInternalForce.setZero();
-         if (n.myBackNode != null) {
-            n.myBackNode.myInternalForce.setZero();
-         }
-         for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
-            nbr.zeroStiffness();
-         }
-         // used for soft nodal-based incompressibilty:
-         for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
-            nbr.zeroStiffness();
-         }
-         n.zeroStressStrain();
-      }
-      updateVolume();
-      IncompMethod softIncomp = getSoftIncompMethod();
-
-      if (myMaterial.isIncompressible() && softIncomp == IncompMethod.NODAL) {
-         updateNodalPressures((IncompressibleMaterialBase)myMaterial);
-      }
-
-      ArrayList<FemMaterial> amats = getAugmentingMaterials();
-
-      // compute new forces as well as stiffness matrix if warping is enabled
-      // myMinDetJ = Double.MAX_VALUE;
-      for (FemElement3d e : myElements) {
-         FemMaterial mat = getElementMaterial(e);
-         computeStressAndStiffness(
-            e, mat, amats,/* D= */null, softIncomp);
-      }
-      for (ShellElement3d e : myShellElements) {
-         FemMaterial mat = getElementMaterial(e);
-         if (e.getElementClass() == ElementClass.SHELL) {
-            computeShellStressAndStiffness(e, mat, amats, /*D=*/null);
-         }
-         else {
-            computeMembraneStressAndStiffness(e, mat, amats, /*D=*/null);
-         }
-      }
-      myStressesValidP = true;
+      updateStressAndStiffness (/*computeStiffness=*/false);
    }
 
+   /**
+    * Updates the stresses, internal forces and stiffness for this model. See
+    * {@link #updateStressAndStiffness(boolean)}.
+    */
    public void updateStressAndStiffness() {
+      updateStressAndStiffness (/*computeStiffness=*/true);
+   }
+
+   /**
+    * Updates the stresses and internal forces for this model, and optionally
+    * the stiffness. If {@code computeStiffness} is {@code false}, the
+    * material tangents and stiffness blocks are not computed, and the
+    * stiffness is not marked as valid, so that it will be computed if
+    * later required by {@link #addPosJacobian} or {@link #addVelJacobian}.
+    *
+    * @param computeStiffness if {@code true}, compute the stiffness as well
+    */
+   protected void updateStressAndStiffness (boolean computeStiffness) {
       if (profileStressAndStiffness) {
          timerStart();
       }
@@ -3285,7 +3271,7 @@ PointAttachable, ConnectableBody {
             if (n.myBackNode != null) {
                n.myBackNode.myInternalForce.setZero();
             }
-            if (!myStiffnessesValidP) {
+            if (computeStiffness && !myStiffnessesValidP) {
                for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
                   nbr.zeroStiffness();
                }
@@ -3309,14 +3295,18 @@ PointAttachable, ConnectableBody {
          }
          setNodalIncompConstraintsAllocated(true);
          updateNodalPressures((IncompressibleMaterialBase)myMaterial);
-         for (FemNode3d n : myNodes) {
-            for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
-               nbr.myDivBlk.setZero();
+         if (computeStiffness) {
+            for (FemNode3d n : myNodes) {
+               for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+                  nbr.myDivBlk.setZero();
+               }
             }
          }
       }
 
-      Matrix6d D = new Matrix6d();
+      // material tangent storage; null if the stiffness is not needed
+      Matrix6d D = (computeStiffness ? new Matrix6d() : null);
+      boolean checkStability = (computeStiffness && checkTangentStability);
       // compute new forces as well as stiffness matrix if warping is enabled
 
       clearElementConditionInfo();
@@ -3328,16 +3318,16 @@ PointAttachable, ConnectableBody {
 
       long t2 = (phaseTimes != null ? System.nanoTime() : 0);
       myElementStressParallelP =
-         (useParallelAssembly && !checkTangentStability &&
-          canComputeElementStressInParallel (amats));
+         (useParallelAssembly && !checkStability &&
+          canComputeElementStressInParallel (amats, computeStiffness));
       if (myElementStressParallelP) {
-         computeElementStressInParallel (amats, softIncomp);
+         computeElementStressInParallel (amats, softIncomp, computeStiffness);
       }
       else {
          for (FemElement3d e : myElements) {
             FemMaterial mat = getElementMaterial(e);
             computeStressAndStiffness(e, mat, amats, D, softIncomp);
-            if (checkTangentStability) {
+            if (checkStability) {
                double s = checkMatrixStability(D);
                if (s < mins) {
                   mins = s;
@@ -3356,7 +3346,7 @@ PointAttachable, ConnectableBody {
             else {
                computeMembraneStressAndStiffness(e, mat, amats, D);
             }
-            if (checkTangentStability) {
+            if (checkStability) {
                double s = checkMatrixStability(D);
                if (s < mins) {
                   mins = s;
@@ -3368,13 +3358,13 @@ PointAttachable, ConnectableBody {
       long t3 = (phaseTimes != null ? System.nanoTime() : 0);
 
       // incompressibility
-      if ((softIncomp == IncompMethod.NODAL) && 
+      if (computeStiffness && (softIncomp == IncompMethod.NODAL) && 
           myMaterial != null && myMaterial.isIncompressible()) {
          computeNodalIncompressibility(
             (IncompressibleMaterialBase)myMaterial, D);
       }
 
-      if (checkTangentStability && minE != null) {
+      if (checkStability && minE != null) {
          System.out.println("min s=" + mins + ", element " + minE.getNumber());
       }
 
@@ -3391,7 +3381,7 @@ PointAttachable, ConnectableBody {
       }
 
       long t4 = (phaseTimes != null ? System.nanoTime() : 0);
-      if (!myStiffnessesValidP && mySolveMatrixSymmetricP) {
+      if (computeStiffness && !myStiffnessesValidP && mySolveMatrixSymmetricP) {
          // Each transposed neighbor is set only by the node with the lower
          // solve index, so this can be done in parallel
          forNodeRange ((lo, hi) -> {
@@ -3432,7 +3422,9 @@ PointAttachable, ConnectableBody {
       else {
          myStrainEnergy = 0;
       }
-      myStiffnessesValidP = true;
+      if (computeStiffness) {
+         myStiffnessesValidP = true;
+      }
       myStressesValidP = true;
       if (profileStressAndStiffness) {
          timerStop("stressAndStiffness");
@@ -3489,21 +3481,44 @@ PointAttachable, ConnectableBody {
    }
 
    /**
-    * Estimates the relative amount of work needed to compute the stress and
-    * stiffness for an element. This consists of a fixed overhead, plus a term
-    * proportional to the number of node-node stiffness blocks times the
-    * number of integration points (or a small constant factor for linear
-    * materials, whose stiffness is precomputed and only needs rotating).
-    * Shell elements have four 3 x 3 stiffness blocks per node pair (since
-    * their nodes also have directors); membrane elements have one.
+    * Estimates the relative amount of work needed to compute the stress, and
+    * optionally the stiffness, for an element. The units are the same in
+    * both cases (roughly 0.01-0.02 usec each), so that the same thresholds
+    * can be used.
+    *
+    * <p>When the stiffness is computed, the work consists of a fixed
+    * overhead, plus a term proportional to the number of node-node stiffness
+    * blocks times the number of integration points (or a small constant
+    * factor for linear materials, whose stiffness is precomputed and only
+    * needs rotating). Shell elements have four 3 x 3 stiffness blocks per
+    * node pair (since their nodes also have directors); membrane elements
+    * have one.
+    *
+    * <p>When only the stress is computed, the work consists of a smaller
+    * fixed overhead, plus a term proportional to the number of nodes times
+    * the number of integration points (or a constant factor for linear
+    * materials, whose cost is dominated by computing the warping rotation
+    * and the nodal forces). Shell elements have twice the per-node cost,
+    * since forces are also computed for the directors.
     */
-   protected double estimateElementWork (FemElement3dBase e, FemMaterial mat) {
+   protected double estimateElementWork (
+      FemElement3dBase e, FemMaterial mat, boolean computeStiffness) {
       int nn = e.numNodes();
-      int factor = (mat.isLinear() ? 3 : e.numIntegrationPoints());
-      if (e.getElementClass() == ElementClass.SHELL) {
-         factor *= 4;
+      boolean shell = (e.getElementClass() == ElementClass.SHELL);
+      if (computeStiffness) {
+         int factor = (mat.isLinear() ? 3 : e.numIntegrationPoints());
+         if (shell) {
+            factor *= 4;
+         }
+         return 50 + nn*nn*factor;
       }
-      return 50 + nn*nn*factor;
+      else {
+         int factor = (mat.isLinear() ? 5 : e.numIntegrationPoints());
+         if (shell) {
+            factor *= 2;
+         }
+         return 20 + nn*factor;
+      }
    }
 
    /**
@@ -3530,45 +3545,75 @@ PointAttachable, ConnectableBody {
    }
 
    /**
-    * Determines whether the stresses and stiffnesses for the volumetric and
-    * shell elements can be computed using the colored (parallel) element
-    * loop, and if so, prepares any fields bound to the materials for
-    * concurrent access. The underlying check is cached, and redone only after {@link
+    * Determines whether the stresses (and optionally stiffnesses) for the
+    * volumetric and shell elements can be computed using the colored
+    * (parallel) element loop, and if so, prepares any fields bound to the
+    * materials for concurrent access and sets {@code myElemChunkSize}. This
+    * requires that all materials are thread safe, and that there is enough
+    * estimated work, both overall and per element color. The decision does
+    * not depend on the number of threads. The material check and work
+    * estimates are cached, and recomputed only after {@link
     * #clearCachedMaterialData} has been called, which occurs whenever a
     * material or the model structure changes.
+    *
+    * @param amats augmenting materials for all elements
+    * @param computeStiffness {@code true} if stiffnesses are to be computed
+    * along with the stresses
     */
    protected boolean canComputeElementStressInParallel (
-      ArrayList<FemMaterial> amats) {
+      ArrayList<FemMaterial> amats, boolean computeStiffness) {
       if (!myParallelCheckValid) {
          myParallelFields = null;
-         myParallelCheckResult = checkElementStressInParallel (amats);
+         myMaterialsThreadSafe = checkElementMaterials (amats);
          myParallelCheckValid = true;
       }
-      if (myParallelCheckResult) {
-         // prepare bound fields (e.g., fill caches) so that queries from
-         // multiple threads only read them. Needed on every call since
-         // field values may have changed.
-         for (FieldComponent field : myParallelFields) {
-            field.updateForConcurrentAccess();
-         }
+      if (!myMaterialsThreadSafe) {
+         return false;
       }
-      return myParallelCheckResult;
+      double work = (computeStiffness ? myStiffnessWork : myStressWork);
+      if (work < MIN_PARALLEL_ELEM_WORK) {
+         return false;
+      }
+      // Require at least two chunks per color on average, where the number
+      // of chunks is limited by both the number of blocks and the work.
+      // This does not depend on the number of threads, so that the
+      // accumulation order (and hence the result) is the same for any
+      // number of threads.
+      ElementColoring coloring = getElementColoring();
+      int ncolors = coloring.numColors();
+      double blocksPerColor = coloring.numBlocks/(double)ncolors;
+      double chunksPerColor =
+         Math.min (blocksPerColor, work/ncolors/ELEM_CHUNK_WORK);
+      if (chunksPerColor < 2) {
+         return false;
+      }
+      // chunk size is given in blocks
+      double blockWork = work/coloring.numBlocks;
+      myElemChunkSize =
+         Math.max (1, (int)Math.ceil (ELEM_CHUNK_WORK/blockWork));
+      // prepare bound fields (e.g., fill caches) so that queries from
+      // multiple threads only read them. Needed on every call since
+      // field values may have changed.
+      for (FieldComponent field : myParallelFields) {
+         field.updateForConcurrentAccess();
+      }
+      return true;
    }
 
    /**
-    * Determines whether the stresses and stiffnesses for the volumetric and
-    * shell elements can be computed using the colored (parallel) element
-    * loop. This requires that all materials are thread safe, and that there
-    * is enough estimated work, both overall and per element color. The decision
-    * does not depend on the number of threads. If the result is {@code true},
-    * then as side effects, static data associated with each element class is
+    * Checks whether all the materials used by the volumetric and shell
+    * elements are thread safe. As side effects, the estimated total element
+    * work with and without stiffness computation is stored in {@code
+    * myStiffnessWork} and {@code myStressWork}, and if the materials are
+    * thread safe, {@code myParallelFields} is set to the fields bound to the
+    * materials and static data associated with each element class is
     * initialized (so that it will not be lazily initialized from multiple
-    * threads), {@code myParallelFields} is set to the fields bound to the
-    * materials, and {@code myElemChunkSize} is set.
+    * threads).
     */
-   private boolean checkElementStressInParallel (
-      ArrayList<FemMaterial> amats) {
+   private boolean checkElementMaterials (ArrayList<FemMaterial> amats) {
 
+      myStiffnessWork = 0;
+      myStressWork = 0;
       int nelems = myElements.size() + myShellElements.size();
       if (nelems == 0) {
          return false;
@@ -3581,7 +3626,8 @@ PointAttachable, ConnectableBody {
             }
          }
       }
-      double work = 0;
+      double stiffnessWork = 0;
+      double stressWork = 0;
       int nvol = myElements.size();
       for (int k=0; k<nelems; k++) {
          FemElement3dBase e = getColoredElement (k, nvol);
@@ -3589,7 +3635,8 @@ PointAttachable, ConnectableBody {
          if (!isThreadSafe (mat, checked)) {
             return false;
          }
-         work += estimateElementWork (e, mat);
+         stiffnessWork += estimateElementWork (e, mat, true);
+         stressWork += estimateElementWork (e, mat, false);
          if (!sameElementKind (e, checked.lastClassElem)) {
             boolean found = false;
             for (FemElement3dBase ce : checked.classElems) {
@@ -3619,26 +3666,8 @@ PointAttachable, ConnectableBody {
             }
          }
       }
-      if (work < MIN_PARALLEL_ELEM_WORK) {
-         return false;
-      }
-      // Require at least two chunks per color on average, where the number
-      // of chunks is limited by both the number of blocks and the work.
-      // This does not depend on the number of threads, so that the
-      // accumulation order (and hence the result) is the same for any
-      // number of threads.
-      ElementColoring coloring = getElementColoring();
-      int ncolors = coloring.numColors();
-      double blocksPerColor = coloring.numBlocks/(double)ncolors;
-      double chunksPerColor =
-         Math.min (blocksPerColor, work/ncolors/ELEM_CHUNK_WORK);
-      if (chunksPerColor < 2) {
-         return false;
-      }
-      // chunk size is given in blocks
-      double blockWork = work/coloring.numBlocks;
-      myElemChunkSize =
-         Math.max (1, (int)Math.ceil (ELEM_CHUNK_WORK/blockWork));
+      myStiffnessWork = stiffnessWork;
+      myStressWork = stressWork;
       for (FemElement3dBase e : checked.classElems) {
          initializeLazyElementData (e);
       }
@@ -3754,7 +3783,8 @@ PointAttachable, ConnectableBody {
     * threads.
     */
    protected void computeElementStressInParallel (
-      ArrayList<FemMaterial> amats, IncompMethod softIncomp) {
+      ArrayList<FemMaterial> amats, IncompMethod softIncomp,
+      boolean computeStiffness) {
 
       ElementColoring coloring = getElementColoring();
       int nvol = coloring.numVolElems;
@@ -3764,7 +3794,7 @@ PointAttachable, ConnectableBody {
          ParallelLoop.forRange (
             coloring.numBlocks(c), myElemChunkSize, (lo, hi) -> {
             StressScratch scratch = new StressScratch();
-            Matrix6d D = new Matrix6d();
+            Matrix6d D = (computeStiffness ? new Matrix6d() : null);
             for (int k=offs[lo]; k<offs[hi]; k++) {
                int idx = elems[k];
                if (idx < nvol) {
@@ -4371,7 +4401,7 @@ PointAttachable, ConnectableBody {
             FemNode3d ni = nodes[i];
             int bi = ni.getLocalSolveIndex();
             if (bi != -1) {
-               if (!myStiffnessesValidP) {
+               if (D != null && !myStiffnessesValidP) {
                   for (int j = 0; j < nodes.length; j++) {
                      int bj = nodes[j].getLocalSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
@@ -4750,7 +4780,7 @@ PointAttachable, ConnectableBody {
             FemNode3d ni = nodes[i];
             int bi = ni.getSolveIndex();
             if (bi != -1) {
-               if (!myStiffnessesValidP) {
+               if (D != null && !myStiffnessesValidP) {
                   for (int j = 0; j < nodes.length; j++) {
                      int bj = nodes[j].getSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
@@ -4941,7 +4971,7 @@ PointAttachable, ConnectableBody {
             FemNode3d ni = nodes[i];
             int bi = ni.getSolveIndex();
             if (bi != -1) {
-               if (!myStiffnessesValidP) {
+               if (D != null && !myStiffnessesValidP) {
                   for (int j = 0; j < nodes.length; j++) {
                      int bj = nodes[j].getSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {

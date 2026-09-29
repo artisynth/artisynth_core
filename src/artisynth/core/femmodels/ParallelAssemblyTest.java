@@ -44,11 +44,29 @@ public class ParallelAssemblyTest extends UnitTest {
     */
    Result compute (
       MechModel mech, FemModel3d fem, boolean parallel, int nthreads) {
+      return compute (mech, fem, parallel, nthreads, /*stiffness=*/true);
+   }
+
+   /**
+    * Computes stresses and optionally stiffnesses, either serially, or in
+    * parallel using a specified number of threads. If {@code stiffness} is
+    * {@code false}, only the stresses are computed initially, and the
+    * stiffness is computed on demand when the solve matrix is assembled.
+    */
+   Result compute (
+      MechModel mech, FemModel3d fem, boolean parallel, int nthreads,
+      boolean stiffness) {
       FemModel3d.useParallelAssembly = parallel;
       ParallelLoop.setNumThreads (nthreads);
       fem.invalidateStressAndStiffness();
-      fem.updateStressAndStiffness();
+      if (stiffness) {
+         fem.updateStressAndStiffness();
+      }
+      else {
+         fem.updateStress();
+      }
       Result r = new Result();
+      r.parallel = fem.myElementStressParallelP;
       ArrayList<Double> fvals = new ArrayList<>();
       ArrayList<Double> svals = new ArrayList<>();
       for (FemNode3d n : fem.getNodes()) {
@@ -75,7 +93,6 @@ public class ParallelAssemblyTest extends UnitTest {
       fem.addVelJacobian (r.S, -0.01);
       fem.addPosJacobian (r.S, -0.0001);
       r.energy = fem.getStrainEnergy();
-      r.parallel = fem.myElementStressParallelP;
       long h = 17;
       for (int i=0; i<r.f.size(); i++) {
          h = 31*h + Double.doubleToLongBits (r.f.get(i));
@@ -397,6 +414,79 @@ public class ParallelAssemblyTest extends UnitTest {
          fem.setMaterial (new LinearMaterial (1e6, 0.33));
          mech = createMech (fem, /*nodalStress=*/false);
          checkSerialVsParallel (type+" linear", mech, fem, true);
+      }
+   }
+
+   /**
+    * Tests the stress-only computation performed by updateStress(): serial
+    * and parallel results should agree, the parallel results should not
+    * depend on the number of threads, the forces should match those
+    * computed along with the stiffness, and the stiffness should be computed
+    * correctly when later required for the solve matrix.
+    */
+   void testStressOnly() {
+      String[] types = { "hex", "quadtet", "sphere" };
+      FemMaterial[] mats = new FemMaterial[] {
+         new NeoHookeanMaterial (50000, 0.33),
+         new LinearMaterial (50000, 0.33),
+         new MooneyRivlinMaterial (10000, 2000, 0, 0, 0, 1e6),
+      };
+      ArrayList<FemModel3d> fems = new ArrayList<>();
+      ArrayList<String> names = new ArrayList<>();
+      for (String type : types) {
+         for (FemMaterial mat : mats) {
+            FemModel3d fem = createVolumetric (type);
+            fem.setMaterial (mat);
+            if (mat instanceof MooneyRivlinMaterial) {
+               fem.setSoftIncompMethod (IncompMethod.NODAL);
+            }
+            fems.add (fem);
+            names.add (type+" "+mat.getClass().getSimpleName());
+         }
+      }
+      FemModel3d fem = createShell ("mixed");
+      fem.setMaterial (new NeoHookeanMaterial (1e6, 0.33));
+      fems.add (fem);
+      names.add ("mixed NeoHookeanMaterial");
+
+      for (int i=0; i<fems.size(); i++) {
+         fem = fems.get(i);
+         String name = "stress only: "+names.get(i);
+         MechModel mech = createMech (fem, /*nodalStress=*/true);
+         // compute the full stress and stiffness, then deform the model so
+         // that stiffness left over from this computation is stale
+         compute (mech, fem, true, NUM_THREADS, true);
+         deform (fem, 0x5678);
+         Result rs = compute (mech, fem, false, NUM_THREADS, false);
+         Result rp = compute (mech, fem, true, NUM_THREADS, false);
+         Result r1 = compute (mech, fem, true, 1, false);
+         Result full = compute (mech, fem, true, NUM_THREADS, true);
+         checkEquals (name+": parallel used", rp.parallel, true);
+         double err = relDiff (rs.f, rp.f);
+         err = Math.max (err, relDiff (rs.sig, rp.sig));
+         if (rs.energy != 0) {
+            err = Math.max (
+               err, Math.abs (rs.energy-rp.energy)/Math.abs(rs.energy));
+         }
+         check (name+": NaN in result", !Double.isNaN (err));
+         if (err > TOL) {
+            throw new TestException (
+               name+": serial and parallel results differ by " + err);
+         }
+         check (name+": result depends on number of threads",
+                rp.hash == r1.hash);
+         // forces and stresses should match those computed with stiffness
+         err = Math.max (relDiff (full.f, rp.f), relDiff (full.sig, rp.sig));
+         if (err > TOL) {
+            throw new TestException (
+               name+": forces differ from full computation by " + err);
+         }
+         // stiffness computed on demand should match the full computation
+         err = relDiff (full.S, rp.S);
+         if (err > TOL) {
+            throw new TestException (
+               name+": on-demand stiffness differs by " + err);
+         }
       }
    }
 
@@ -762,6 +852,7 @@ public class ParallelAssemblyTest extends UnitTest {
          testMaterials();
          testAuxiliaryMaterials();
          testShellElements();
+         testStressOnly();
          testFields();
          testTransverseDirectionField();
          testStateObjectsAtInitialize();

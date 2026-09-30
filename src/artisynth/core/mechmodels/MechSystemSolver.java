@@ -26,6 +26,7 @@ import maspack.matrix.Matrix6x1;
 import maspack.matrix.Matrix6x2;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
+import maspack.matrix.NumericalException;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseBlockSignature;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -1870,7 +1871,17 @@ public class MechSystemSolver {
                if (profileFactorSolve) {
                   timerStart (factorSolveTimer);
                }
-               myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
+               try {
+                  myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
+               }
+               catch (NumericalException e) {
+                  if (crsWriter != null) {
+                     // may want to still look at the matrix, *esp* if there
+                     // was an exception
+                     doCrsOutput (crsWriter, velSize, bf, analyze);
+                  }
+                  throw e;
+               }
                kktSolveWarm (vel, myLam, myThe, bf);
                if (profileKKTSolveTime|profileImplicitFriction) {
                   timerStop ("    KKT solve: factor and solve", myKKTTimer);
@@ -1913,20 +1924,7 @@ public class MechSystemSolver {
     
          //System.out.println ("bg=" + myBg);
          if (crsWriter != null && !implicitFriction) {
-            String msg = 
-               "# KKTsolve M="+velSize+" G="+myGT.colSize()+
-               " N="+myNT.colSize()+(analyze ? " ANALYZE" : "");
-            System.out.println (msg);
-            try {
-               crsWriter.println (msg);
-               myKKTSolver.printLinearProblem (
-                  crsWriter, bf, myBg, "%g", crsOmitDiag);
-            }
-            catch (Exception e) {
-               e.printStackTrace(); 
-               setCrsWriter (null);
-               crsFileName = null;
-            }
+            doCrsOutput (crsWriter, velSize, bf, analyze);
          }
       }
 
@@ -1939,6 +1937,28 @@ public class MechSystemSolver {
       }
    }
    
+   /**
+    * Write the linear part of a KKT system solve to crsWriter if it
+    * is non-null.
+    */
+   private void doCrsOutput (
+      PrintWriter pw, int msize, VectorNd bf, boolean analyze) {
+      String msg = 
+         "# KKTsolve M="+msize+" G="+myGT.colSize()+
+         " N="+myNT.colSize()+(analyze ? " ANALYZE" : "");
+      System.out.println (msg);
+      try {
+         pw.println (msg);
+         myKKTSolver.printLinearProblem (
+            crsWriter, bf, myBg, "%g", crsOmitDiag);
+      }
+      catch (Exception e) {
+         e.printStackTrace(); 
+         setCrsWriter (null);
+         crsFileName = null;
+      }
+   }      
+
    protected void maybeAccumulateConstraintForces () {
       if (myUpdateForcesAtStepEnd) {
          int velSize = myActiveVelSize;
@@ -2104,20 +2124,7 @@ public class MechSystemSolver {
          //System.out.println ("S=\n" + S);
 
          if (crsWriter != null) {
-            String msg = 
-               "# KKTsolve M="+velSize+" G="+myGT.colSize()+
-               " N="+myNT.colSize()+(analyze ? " ANALYZE" : "");
-            System.out.println (msg);
-            try {
-               crsWriter.println (msg);
-               myStaticSolver.printLinearProblem (
-                  crsWriter, bf, myBg, "%g", crsOmitDiag);
-            }
-            catch (Exception e) {
-               e.printStackTrace(); 
-               setCrsWriter (null);
-               crsFileName = null;
-            }
+            doCrsOutput (crsWriter, velSize, bf, analyze);
          }
       }
 
@@ -4337,6 +4344,7 @@ public class MechSystemSolver {
    private void initMurtySolverIfNecessary() {
       if (myMurtySolver == null) {
          myMurtySolver = new MurtyMechSolver();
+         myMurtySolver.setSolverType (myMatrixSolver);
          myMurtySolver.setSolveWriter (crsWriter);
          myMurtySolver.setHybridSolves (myHybridSolveP);
       }

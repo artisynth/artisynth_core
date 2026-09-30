@@ -389,6 +389,42 @@ public abstract class DirectSolverBase implements DirectSolver {
    protected int myExplicitNumThreads = -1;
 
    /**
+    * Number of threads in effect when the matrix was analyzed, or {@code <= 0}
+    * if no matrix has been analyzed. The thread count is a property of the
+    * process, so anything else in the process can change it between this
+    * solver's phases: another solver being created (see {@link
+    * #initThreadState}), or another solver's analysis being throttled for a
+    * smaller matrix (see {@link #applyThreadThrottle}).
+    *
+    * <p>Some solvers require the factorization and solve phases to use the
+    * same number of threads as the analysis: MUMPS fails with error -58 when
+    * they differ and its multithreaded tree parallelism (ICNTL(48)) is
+    * active. Even where it is merely legal, a factorization that inherits
+    * another solver's throttled count runs with fewer threads than intended.
+    * The count is therefore re-asserted for each phase; see {@link
+    * #applyPhaseThreads}.
+    */
+   protected int myPhaseNumThreads = -1;
+
+   /**
+    * Restores the thread count that was in effect when the matrix was
+    * analyzed, if something has changed it since. Called at the start of each
+    * factor and solve phase.
+    *
+    * <p>A consequence is that {@link #setNumThreads} called between an
+    * analysis and a factorization does not affect that factorization; it
+    * applies from the next analysis. This matches the contract of {@link
+    * #setNumThreads}, which requires that the count not be changed between
+    * phases.
+    */
+   protected void applyPhaseThreads() {
+      if (myPhaseNumThreads > 0 &&
+          getNumThreadsNative() != myPhaseNumThreads) {
+         setNumThreadsNative (myPhaseNumThreads);
+      }
+   }
+
+   /**
     * Number of threads that the solver is assigned when it is created. This
     * is the number of threads that the solver would assign on its own, overridden
     * by {@link #myDefaultNumThreads} and, when known, capped by {@link
@@ -717,6 +753,8 @@ public abstract class DirectSolverBase implements DirectSolver {
       ensureInitialized();
       checkSetArgs (vals, rowOffs, colIdxs, size, numVals);
       applyThreadThrottle (numVals, type);
+      // later phases must use the same thread count as the analysis
+      myPhaseNumThreads = getNumThreadsNative();
       int rcode = setMatrixNative (vals, rowOffs, colIdxs, size, numVals, type);
       if (!isError (rcode)) {
          setState (ANALYZED);
@@ -800,6 +838,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void factor (double[] vals) {
+      applyPhaseThreads();
       if (myState == UNSET) {
          throw new IllegalStateException ("No matrix currently set");
       }
@@ -841,6 +880,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void solve (VectorNd x, VectorNd b) {
+      applyPhaseThreads();
       checkFactored();
       checkSolveArgs (x, b, 1);
       checkSolveResult (solveNative (x.getBuffer(), b.getBuffer(), 1));
@@ -850,6 +890,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void solve (double[] x, double[] b) {
+      applyPhaseThreads();
       checkFactored();
       checkSolveArgs (x, b, 1);
       checkSolveResult (solveNative (x, b, 1));
@@ -859,6 +900,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void solve (double[] X, double[] B, int nrhs) {
+      applyPhaseThreads();
       if (!hasMultipleRhsSolves()) {
          throw new UnsupportedOperationException (
             getSolverName()+" does not support multiple right hand sides");

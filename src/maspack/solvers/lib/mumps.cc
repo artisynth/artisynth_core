@@ -29,7 +29,27 @@
 
 // maximum number of times a factorization is retried with a larger
 // workspace after MUMPS reports that its internal workarrays are too small
-#define MAX_FACTOR_RETRIES 4
+#define MAX_FACTOR_RETRIES 6
+// largest ICNTL(14) (workspace increase, in percent) the retries will request
+#define MAX_WORKSPACE_INCREASE 20000
+
+// ICNTL(8) values used by the adaptive scaling policy: 77 lets MUMPS choose,
+// which for these systems usually means scaling computed during analysis,
+// while 8 computes it during each factorization
+#define SCALING_ANALYSIS 77
+#define SCALING_FACTOR   8
+
+// states of the adaptive strategy policy
+#define STRATEGY_TRIAL_PENDING 0
+#define STRATEGY_DECIDED       1
+
+// the alternative strategy is kept only if it reduces the number of entries in
+// the factors to this fraction or less of the incumbent's
+#define STRATEGY_MARGIN 0.9
+
+// the choice is redone if the matrix size or number of values has changed by
+// more than this fraction since it was made
+#define STRATEGY_RESIZE_FRACTION 0.25
 
 // OpenMP and MKL thread control. Declared explicitly so that this file does
 // not need to be compiled with -fopenmp.
@@ -51,6 +71,7 @@ Mumps::Mumps()
    myLastInfo1 = 0;
    myLastInfo2 = 0;
    myVerbose = (getenv ("MUMPS_JNI_VERBOSE") != NULL);
+   myStrategyTrace = (getenv ("MUMPS_STRATEGY_TRACE") != NULL);
 
    mySize = 0;
    myMaxSize = 0;
@@ -71,7 +92,16 @@ Mumps::Mumps()
    // change, which are documented in MumpsSolver.java.
    myReorderMethod = MUMPS_AUTO_REORDER;
    myApplyWeightedMatchings = -1;
-   myApplyScaling = -1;
+   myScaling = -1;              // adaptive; see adaptStrategy()
+   myPhaseNumThreads = -1;
+   myPreferredScaling = -1;
+   myStrategyDecided = 0;
+   myDecidedSize = 0;
+   myDecidedNumVals = 0;
+   myNumStrategyTrials = 0;
+   myNumStaleSwitches = 0;
+   myNumReanalyses = 0;
+   resetScalingPolicy();
    mySymOrderingStrategy = -1;
    myMaxRefinementSteps = 0;
    myWorkspaceIncrease = -1;
@@ -140,9 +170,9 @@ void Mumps::applySettings()
       // variant recommended for augmented/saddle point systems
       myId.ICNTL(6) = (myApplyWeightedMatchings > 0 ? 5 : 0);
    }
-   if (myApplyScaling >= 0) {
-      // 0 disables scaling; 77 lets MUMPS choose when scaling is enabled
-      myId.ICNTL(8) = (myApplyScaling > 0 ? 77 : 0);
+   int scaling = (myScaling >= 0 ? myScaling : myActiveScaling);
+   if (scaling >= 0) {
+      myId.ICNTL(8) = scaling;
    }
    if (mySymOrderingStrategy >= 0) {
       myId.ICNTL(12) = mySymOrderingStrategy;
@@ -310,7 +340,11 @@ int Mumps::setMatrix (
    myId.jcn = myJcn;
    myId.a = myVals;
 
+   // each analysis produces a fresh scaling, so the choice starts over
+   resetScalingPolicy();
    applySettings();
+   // remember the thread count, which later phases must match
+   myPhaseNumThreads = omp_get_max_threads();
    rcode = callMumps (JOB_ANALYZE);
    if (rcode < 0) {
       mySize = 0;
@@ -385,6 +419,222 @@ static int isWorkspaceError (int info1)
    }
 }
 
+/**
+ * Resets the adaptive strategy state for a new analysis, starting from the
+ * strategy remembered from earlier analyses of this instance.
+ */
+void Mumps::resetScalingPolicy()
+{
+   if (myPreferredScaling < 0) {
+      myPreferredScaling = SCALING_ANALYSIS;
+   }
+   myActiveScaling = myPreferredScaling;
+   myStrategyTried = 0;
+   // the strategy is chosen once per matrix, and again if the matrix has
+   // changed substantially in size, since that may change which is better
+   int redo = !myStrategyDecided;
+   if (myStrategyDecided && myDecidedSize > 0) {
+      double sizeChange =
+         fabs (mySize-myDecidedSize)/(double)myDecidedSize;
+      double valsChange =
+         fabs (myNumVals-myDecidedNumVals)/(double)myDecidedNumVals;
+      if (sizeChange > STRATEGY_RESIZE_FRACTION ||
+          valsChange > STRATEGY_RESIZE_FRACTION) {
+         redo = 1;
+      }
+   }
+   myStrategyState = (redo ? STRATEGY_TRIAL_PENDING : STRATEGY_DECIDED);
+}
+
+/**
+ * Returns the number of entries in the factors, as reported by INFOG(29),
+ * whose absolute value is in millions when negative.
+ */
+static long long numFactorEntries (int infog29)
+{
+   long long nnz = infog29;
+   return (nnz < 0 ? -nnz*1000000 : nnz);
+}
+
+/**
+ * Restores the number of threads used when the matrix was analyzed. MUMPS
+ * requires the factorization and solve phases to run with the same number of
+ * threads as the analysis, failing with error -58 (INFOG(2) holding the
+ * analysis count) when ICNTL(48) multithreaded tree parallelism is active,
+ * which it is by default. Since the OpenMP thread count is a process
+ * property, another solver in the same process can change it between our
+ * phases -- for instance when it is created, or when its own analysis is
+ * throttled for a smaller matrix -- so it is re-asserted here.
+ */
+void Mumps::applyPhaseThreads()
+{
+   if (myPhaseNumThreads > 0 && omp_get_max_threads() != myPhaseNumThreads) {
+      omp_set_num_threads (myPhaseNumThreads);
+      MKL_Set_Num_Threads (myPhaseNumThreads);
+   }
+}
+
+void Mumps::strategyTrace (const char* msg)
+{
+   if (myStrategyTrace) {
+      printf ("MUMPS strategy: %s (size=%d ICNTL(8)=%d ICNTL(12)=%d "
+              "delayed=%d null=%d nnzFactors=%d trials=%d staleSwitches=%d "
+              "reanalyses=%d)\n",
+              msg, mySize, myActiveScaling, myId.INFOG(24), myId.INFOG(13),
+              myId.INFOG(28), myId.INFOG(29), myNumStrategyTrials,
+              myNumStaleSwitches, myNumReanalyses);
+      fflush (stdout);
+   }
+}
+
+/**
+ * Performs one factorization, increasing the workspace and retrying if it
+ * turns out to be too small.
+ *
+ * Unlike Pardiso, MUMPS preallocates its workspace from the estimates made
+ * during the analyze phase, and numerical pivoting can cause this to be
+ * exceeded. The remedy is to increase ICNTL(14) and factor again. INFO(2)
+ * gives the number of entries missing (in millions if negative) and INFO(20)
+ * the estimated workspace size, so the increase can be sized directly rather
+ * than guessed.
+ */
+int Mumps::factorOnce()
+{
+   applyPhaseThreads();
+   applySettings();
+   int rcode = callMumps (JOB_FACTOR);
+   int ntries = 0;
+   while (isWorkspaceError (rcode) && ntries < MAX_FACTOR_RETRIES) {
+      int increase = myId.ICNTL(14);
+      if (increase <= 0) {
+         increase = 20;    // the MUMPS default
+      }
+      long long missing = myId.INFO(2);
+      long long estimate = myId.INFO(20);
+      if (missing < 0) {
+         missing = -missing*1000000;
+      }
+      if (estimate < 0) {
+         estimate = -estimate*1000000;
+      }
+      if (missing > 0 && estimate > 0) {
+         // add the missing fraction of the estimate, plus a margin
+         increase += (int)((100*missing)/estimate) + 20;
+      }
+      else {
+         increase *= 2;
+      }
+      if (increase > MAX_WORKSPACE_INCREASE) {
+         break;
+      }
+      if (myVerbose) {
+         printf ("MumpsJNI: factorization error %d; "
+                 "retrying with ICNTL(14)=%d\n", rcode, increase);
+      }
+      myId.ICNTL(14) = increase;
+      rcode = callMumps (JOB_FACTOR);
+      ntries++;
+   }
+   return rcode;
+}
+
+/**
+ * Re-runs the analysis with the indicated value of ICNTL(8), and factors
+ * again. The matrix structure and values are unchanged.
+ */
+int Mumps::reanalyzeAndFactor (int scaling)
+{
+   myActiveScaling = scaling;
+   myNumReanalyses++;
+   applyPhaseThreads();
+   applySettings();
+   int rcode = callMumps (JOB_ANALYZE);
+   if (rcode < 0) {
+      return rcode;
+   }
+   getAnalysisStatistics();
+   return factorOnce();
+}
+
+/**
+ * Chooses the analysis strategy for this instance, when the scaling has not
+ * been set explicitly (myScaling < 0).
+ *
+ * ICNTL(8) determines not only the scaling but, through MUMPS's automatic
+ * choices, the ordering strategy used for symmetric matrices:
+ *
+ * - ICNTL(8)=77 typically leads to a constrained ordering (ICNTL(12)=3) and a
+ *   scaling computed during the analysis. For some KKT systems this is much
+ *   the better choice, giving no delayed pivots at all. Its drawback is that
+ *   the scaling is computed once, and becomes stale when a single analysis is
+ *   followed by factorizations of changing values, as in a simulation: a stale
+ *   scaling can make a pivot appear to be null, and null pivot detection
+ *   (ICNTL(24)) then "fixes" it, silently corrupting the solution.
+ *
+ * - ICNTL(8)=8 leads to an ordering on the compressed graph (ICNTL(12)=2) and
+ *   a scaling computed during each factorization, so it never goes stale. For
+ *   other KKT systems this is the better choice, again by a wide margin.
+ *
+ * Since both depend on the analysis, the strategy is chosen by trying them:
+ * if the first factorization after an analysis delays more than
+ * 1/STRATEGY_DELAYED_DIVISOR of the pivots, the analysis is redone with the
+ * other strategy, and whichever delays fewer pivots is kept. The winner is
+ * remembered for later analyses of the same instance, so a simulation whose
+ * constraints keep changing pays for the trial only once. Null pivots found
+ * while using the analysis scaling mean it has gone stale, so the analysis is
+ * redone with factorization scaling, which is then kept.
+ */
+int Mumps::adaptStrategy (int rcode)
+{
+   if (myScaling >= 0 || rcode < 0) {
+      return rcode;     // set explicitly, or the factorization failed
+   }
+   int nullPivots = myId.INFOG(28);
+   int delayed = myId.INFOG(13);
+   int other = (myActiveScaling == SCALING_ANALYSIS ?
+                SCALING_FACTOR : SCALING_ANALYSIS);
+
+   if (myActiveScaling == SCALING_ANALYSIS && nullPivots > 0) {
+      // the analysis scaling has gone stale
+      myNumStaleSwitches++;
+      strategyTrace ("stale analysis scaling: switching");
+      myStrategyState = STRATEGY_DECIDED;
+      myPreferredScaling = SCALING_FACTOR;
+      myStrategyDecided = 1;
+      myDecidedSize = mySize;
+      myDecidedNumVals = myNumVals;
+      rcode = reanalyzeAndFactor (SCALING_FACTOR);
+      strategyTrace ("switched");
+      return rcode;
+   }
+   if (myStrategyState == STRATEGY_TRIAL_PENDING && !myStrategyTried) {
+      myStrategyState = STRATEGY_DECIDED;
+      int firstScaling = myActiveScaling;
+      long long firstEntries = numFactorEntries (myId.INFOG(29));
+      myStrategyTried = 1;
+      myNumStrategyTrials++;
+      strategyTrace ("trying alternative strategy");
+      int rc2 = reanalyzeAndFactor (other);
+      long long otherEntries = numFactorEntries (myId.INFOG(29));
+      if (rc2 < 0 || myId.INFOG(28) > 0 ||
+          otherEntries > STRATEGY_MARGIN*firstEntries) {
+         // not enough better to be worth switching
+         strategyTrace ("keeping original strategy");
+         myPreferredScaling = firstScaling;
+         rcode = reanalyzeAndFactor (firstScaling);
+      }
+      else {
+         myPreferredScaling = other;
+         rcode = rc2;
+      }
+      myStrategyDecided = 1;
+      myDecidedSize = mySize;
+      myDecidedNumVals = myNumVals;
+      strategyTrace ("strategy chosen");
+   }
+   return rcode;
+}
+
 int Mumps::factorMatrix (const double* vals)
 {
    int k;
@@ -397,27 +647,8 @@ int Mumps::factorMatrix (const double* vals)
          myVals[k] = vals[k];
       }
    }
-   applySettings();
-   int rcode = callMumps (JOB_FACTOR);
-
-   // Unlike Pardiso, MUMPS preallocates its workspace from the estimates
-   // made during the analyze phase, and numerical pivoting can cause this to
-   // be exceeded. The remedy is to increase ICNTL(14) and factor again.
-   int ntries = 0;
-   while (isWorkspaceError (rcode) && ntries < MAX_FACTOR_RETRIES) {
-      int increase = myId.ICNTL(14);
-      increase = (increase <= 0 ? 60 : 2*increase);
-      if (increase > 1000) {
-         break;
-      }
-      if (myVerbose) {
-         printf ("MumpsJNI: factorization error %d; "
-                 "retrying with ICNTL(14)=%d\n", rcode, increase);
-      }
-      myId.ICNTL(14) = increase;
-      rcode = callMumps (JOB_FACTOR);
-      ntries++;
-   }
+   int rcode = factorOnce();
+   rcode = adaptStrategy (rcode);
    if (rcode >= 0) {
       getFactorStatistics();
    }
@@ -433,6 +664,7 @@ int Mumps::solveMatrix (double *x, const double* b, int nrhs)
 {
    int i;
 
+   applyPhaseThreads();
    if (mySize == 0) {
       return -3;
    }
@@ -476,6 +708,7 @@ int Mumps::solveMatrix (double *x, const double* b, int nrhs)
  */
 int Mumps::precondSolve (double* z, const double* r)
 {
+   applyPhaseThreads();
    memcpy (z, r, mySize*sizeof(double));
    myId.nrhs = 1;
    myId.rhs = z;
@@ -641,27 +874,34 @@ double Mumps::getNullPivotThreshold()
    return myNullPivotThreshold;
 }
 
-int Mumps::setApplyScaling (int enable)
+/**
+ * Sets ICNTL(8), which selects the scaling MUMPS applies. A value < 0 selects
+ * the adaptive policy in adaptStrategy(); values of 7 and 8 compute the
+ * scaling during each factorization, while 77 lets MUMPS choose, which for
+ * these systems usually means computing it during the analysis.
+ */
+int Mumps::setScaling (int value)
 {
-   myApplyScaling = enable;
+   myScaling = value;
    applySettings();
    return 0;
 }
 
 /**
- * Returns whether scaling is enabled. If MUMPS chose automatically, the
- * effective value is read back from INFOG(33).
+ * Returns the requested value of ICNTL(8), or, when the scaling is being
+ * chosen adaptively, the value MUMPS actually used (INFOG(33)) once a phase
+ * has been run.
  */
-int Mumps::getApplyScaling()
+int Mumps::getScaling()
 {
-   if (myApplyScaling >= 0) {
-      return (myApplyScaling > 0);
+   if (myScaling >= 0) {
+      return myScaling;
    }
-   else if (myInstanceActive && myId.INFOG(33) != 0) {
-      return (myId.INFOG(33) != 77 ? 1 : 0);
+   else if (myInstanceActive) {
+      return myId.INFOG(33);
    }
    else {
-      return 0;
+      return -1;
    }
 }
 
@@ -756,6 +996,21 @@ int Mumps::getNumPosEigenvalues()
 int Mumps::getNumTinyPivots()
 {
    return myNumTinyPivots;
+}
+
+int Mumps::getNumStrategyTrials()
+{
+   return myNumStrategyTrials;
+}
+
+int Mumps::getNumStaleSwitches()
+{
+   return myNumStaleSwitches;
+}
+
+int Mumps::getNumReanalyses()
+{
+   return myNumReanalyses;
 }
 
 int Mumps::getNumNullPivots()

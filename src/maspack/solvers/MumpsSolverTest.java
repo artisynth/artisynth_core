@@ -95,6 +95,145 @@ public class MumpsSolverTest extends DirectSolverTestBase {
     * Tests the statistics which MUMPS reports for a larger factorization,
     * including the reorder method actually used.
     */
+   /**
+    * Tests the scaling setting (MUMPS parameter ICNTL(8)), and that repeated
+    * factorizations following a single analyze remain accurate as the matrix
+    * values change, which is how the solver is used by a simulation.
+    *
+    * <p>MUMPS may compute its scaling during the analysis phase, in which case
+    * it is reused by later factorizations and becomes stale as the values
+    * change. Pivots can then appear to be null, and with null pivot detection
+    * enabled such a pivot is "fixed", silently corrupting the solution. This
+    * is why the default scaling is 7, which rescales for each factorization.
+    */
+   public void testScaling() {
+      MumpsSolver solver = new MumpsSolver();
+      boolean showPivots = MumpsSolver.getShowPerturbedPivots();
+      MumpsSolver.setShowPerturbedPivots (false);
+
+      // -1 selects the adaptive policy
+      checkEquals ("default getScaling()", solver.getScaling(), -1);
+      for (int value : new int[] { 0, 1, 7, 8, 77 }) {
+         solver.setScaling (value);
+         checkEquals ("getScaling()", solver.getScaling(), value);
+      }
+      solver.setScaling (-1);
+      solver.dispose();
+
+      // saddle point system [ M G'; G 0 ], with M symmetric positive definite
+      // and O(1), and the constraint entries much smaller, as for the
+      // incompressibility constraints of an FEM model
+      int sizeM = 60;
+      int sizeG = 12;
+      int size = sizeM + sizeG;
+      int[] rowOffs = new int[size+1];
+      int[] colIdxs = new int[(2*sizeM-1) + sizeM*sizeG + sizeG];
+      int k = 0;
+      for (int i=0; i<sizeM; i++) {
+         rowOffs[i] = k+1;
+         colIdxs[k++] = i+1;                      // diagonal
+         if (i < sizeM-1) {
+            colIdxs[k++] = i+2;                   // off diagonal
+         }
+         for (int j=0; j<sizeG; j++) {
+            colIdxs[k++] = sizeM+j+1;             // constraint block
+         }
+      }
+      for (int j=0; j<sizeG; j++) {
+         rowOffs[sizeM+j] = k+1;                  // zero diagonal for R
+         colIdxs[k++] = sizeM+j+1;
+      }
+      rowOffs[size] = k+1;
+      int numVals = k;
+
+      double[] vals = new double[numVals];
+      double[] b = new double[size];
+      double[] x = new double[size];
+      for (int i=0; i<size; i++) {
+         b[i] = 1.0 + 0.1*(i%7);
+      }
+      // scalings which should all give accurate solves: the adaptive default
+      // (-1), the fixed factorization scalings, and 77, for which MUMPS may
+      // scale during analysis
+      for (int scaling : new int[] { -1, 0, 1, 7, 8, 77 }) {
+         solver = new MumpsSolver();
+         solver.setScaling (scaling);
+         for (int step=0; step<8; step++) {
+            RandomGenerator.setSeed (0x1234);
+            int p = 0;
+            double drift = 1 + 0.05*step;
+            for (int i=0; i<sizeM; i++) {
+               vals[p++] = (4.0 + RandomGenerator.nextDouble (0, 1))*drift;
+               if (i < sizeM-1) {
+                  vals[p++] = -1.0 - 0.1*RandomGenerator.nextDouble (0, 1);
+               }
+               for (int j=0; j<sizeG; j++) {
+                  vals[p++] =
+                     1e-3*RandomGenerator.nextDouble (-1, 1)*drift;
+               }
+            }
+            for (int j=0; j<sizeG; j++) {
+               vals[p++] = 0;
+            }
+            if (step == 0) {
+               solver.analyze (vals, colIdxs, rowOffs, size, Matrix.SYMMETRIC);
+            }
+            solver.factor (vals);
+            solver.solve (x, b);
+            checkEquals (
+               "num perturbed pivots, scaling "+scaling+" step "+step,
+               solver.getNumPerturbedPivots(), 0);
+            checkResidual (
+               rowOffs, colIdxs, vals, size, x, b,
+               /*symmetric=*/true, 1e-8);
+         }
+         solver.dispose();
+      }
+      MumpsSolver.setShowPerturbedPivots (showPivots);
+   }
+
+   /**
+    * Tests that the factorization and solve phases use the same number of
+    * threads as the analysis, which MUMPS requires when ICNTL(48)
+    * multithreaded tree parallelism is active (its default), failing with
+    * error -58 otherwise.
+    *
+    * <p>The OpenMP thread count is a property of the process, so another
+    * solver in the same process can change it between our phases: when it is
+    * created, or when its own analysis is throttled for a smaller matrix (see
+    * {@code maxThreadsNnz}). The solver therefore re-asserts the thread count
+    * for each phase.
+    */
+   public void testThreadConsistency() {
+      MumpsSolver solver = new MumpsSolver();
+      int nthreads = Math.min (4, solver.getNumThreads());
+      if (nthreads < 2) {
+         // nothing to test if the process has only one thread available
+         solver.dispose();
+         return;
+      }
+      solver.setNumThreads (nthreads);
+      double[] x = new double[5];
+      solver.analyze (symVals, symColIdxs, symRowOffs, 5, Matrix.SYMMETRIC);
+      solver.factor (symVals);
+      solver.solve (x, symB);
+
+      // another solver changes the process wide thread count
+      MumpsSolver other = new MumpsSolver();
+      other.setNumThreads (1);
+
+      // this solver's later phases must still work
+      solver.factor (symVals);
+      solver.solve (x, symB);
+      checkSolution (x, symXchk);
+      checkEquals (
+         "thread count restored for the phase", solver.getNumThreads(),
+         nthreads);
+
+      other.dispose();
+      solver.dispose();
+   }
+
    public void testStatistics() throws IOException {
       MumpsSolver solver = new MumpsSolver();
 
@@ -164,12 +303,6 @@ public class MumpsSolverTest extends DirectSolverTestBase {
          "getNullPivotThreshold()", solver.getNullPivotThreshold(), 1e-10, 0);
       solver.setNullPivotThreshold (0.0);
 
-      solver.setApplyScaling (1);
-      check ("getApplyScaling()", solver.getApplyScaling());
-      solver.setApplyScaling (0);
-      check ("getApplyScaling()", !solver.getApplyScaling());
-      solver.setApplyScaling (-1);
-
       solver.setApplyWeightedMatchings (1);
       check ("getApplyWeightedMatchings()", solver.getApplyWeightedMatchings());
       solver.setApplyWeightedMatchings (0);
@@ -205,6 +338,8 @@ public class MumpsSolverTest extends DirectSolverTestBase {
    }
 
    public void test() throws IOException {
+      testThreadConsistency();
+      testScaling();
       testBasics();
       testNullPivotDetection();
       testStatistics();

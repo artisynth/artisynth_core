@@ -5,8 +5,8 @@
 #
 ROOT_DIR = ..\..\..\..
 LIB_TARGET_DIR = $(ROOT_DIR)\lib\Windows64
-# Pardiso compiled with MKL 2026.1
-PARDISO_MKL_TARGET = PardisoJNI.2026.1.dll
+# Pardiso compiled with MKL 20206.1.1
+PARDISO_MKL_TARGET = PardisoJNI.20206.1.1.dll
 CC_COMP = cl # Visual Studio C/C++ compiler
 CC_FLAGS = /O2 /MD /DWINDOWS_COMPILER
 # location of current Java JDK:

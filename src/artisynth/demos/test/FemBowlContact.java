@@ -9,6 +9,7 @@ import artisynth.demos.tutorial.ElasticFoundationContact;
 import artisynth.core.materials.LinearElasticContact;
 import artisynth.core.mechmodels.CollisionBehavior;
 import artisynth.core.femmodels.*;
+import artisynth.core.femmodels.FemModel.*;
 import artisynth.core.materials.*;
 import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
@@ -145,7 +146,8 @@ public class FemBowlContact extends RootModel {
 
       addControlPanel (panel);
 
-      cm.setBilateralVertexContact (false);
+      cm.setBilateralVertexContact (true);
+      ballFem.setIncompressible (IncompMethod.OFF);
 
       addBreakPoint (1.0);
    }

@@ -212,16 +212,16 @@ Java_maspack_solvers_MumpsSolver_doGetNullPivotThreshold (
    return ((Mumps*)handle)->getNullPivotThreshold();
 }
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doSetApplyScaling (
-   JNIEnv *env, jobject obj, jlong handle, jint apply)
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doSetScaling (
+   JNIEnv *env, jobject obj, jlong handle, jint value)
 {
-   return ((Mumps*)handle)->setApplyScaling (apply);
+   return ((Mumps*)handle)->setScaling (value);
 }
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetApplyScaling (
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetScaling (
    JNIEnv *env, jobject obj, jlong handle)
 {
-   return ((Mumps*)handle)->getApplyScaling();
+   return ((Mumps*)handle)->getScaling();
 }
 
 JNIEXPORT jint JNICALL

@@ -38,6 +38,7 @@ public class BigSlab extends RootModel {
       boolean writeData = false; // write solve data to file
       boolean murtySolve = false; // use the MurtySolver
       boolean quad = false; // use quadratic elements
+      boolean incompressible = false; // enable FEM incompressibility
       boolean unknownArgs = false;
 
       for (int i=0; i<args.length; i++) {
@@ -70,6 +71,10 @@ public class BigSlab extends RootModel {
             }
             case "-quad": {
                quad = true;
+               break;
+            }
+            case "-incompressible": {
+               incompressible = true;
                break;
             }
             default: {
@@ -115,6 +120,9 @@ public class BigSlab extends RootModel {
          if (Math.abs(p.x-(-wx/2)) < 1e-8) {
             n.setDynamic (false);
          }
+      }
+      if (incompressible) {
+         fem.setIncompressible (FemModel.IncompMethod.AUTO);
       }
       mech.addModel (fem);
 

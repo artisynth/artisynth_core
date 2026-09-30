@@ -450,10 +450,10 @@ public class MumpsSolver extends DirectSolverBase {
    private native int doSetNullPivotDetection (long handle, int enable);
 
    private native double doGetNullPivotThreshold (long handle);
+   private native int doSetScaling (long handle, int value);
+   private native int doGetScaling (long handle);
    private native int doSetNullPivotThreshold (long handle, double thresh);
 
-   private native int doGetApplyScaling (long handle);
-   private native int doSetApplyScaling (long handle, int apply);
 
    private native int doGetApplyWeightedMatchings (long handle);
    private native int doSetApplyWeightedMatchings (long handle, int apply);
@@ -925,38 +925,42 @@ public class MumpsSolver extends DirectSolverBase {
    }
 
    /**
-    * Sets whether or not MUMPS should apply matrix scaling to its
-    * factorizations (MUMPS parameter ICNTL(8)). Scaling is controlled by
-    * <code>enable</code> as follows: {@code enable > 0} enables scaling,
-    * {@code enable = 0} disables scaling, and {@code enable < 0} causes MUMPS
-    * to choose automatically (the default). The scaling actually applied can
-    * be queried using {@link #getApplyScaling}, which reads it back from
-    * MUMPS after the analyze and factor phases.
+    * Sets the scaling which MUMPS applies to the matrix, as the value of the
+    * MUMPS parameter ICNTL(8). The values relevant to the symmetric systems
+    * used by ArtiSynth are 0 (none), 1, 7 and 8 (computed during each
+    * factorization), and 77 (automatic, which for these systems usually means
+    * computed during the analysis).
     *
-    * @param enable enables/disables matrix scaling
-    * @see #getApplyScaling
+    * <p>The default is {@code -1}, which lets the solver choose between
+    * analysis and factorization scaling for each matrix, since neither suits
+    * all of them and the choice also affects the ordering MUMPS selects.
+    * Setting any other value pins ICNTL(8) and disables that choice. The
+    * policy is described where it is implemented, in {@code
+    * Mumps::adaptStrategy()}.
+    *
+    * @param value value for ICNTL(8)
+    * @see #getScaling
     */
-   public synchronized void setApplyScaling (int enable) {
+   public synchronized void setScaling (int value) {
       if (myHandle == 0) {
          initialize();
       }
-      if (enable > 0) {
-         enable = 1;
-      }
-      doSetApplyScaling (myHandle, enable);
+      doSetScaling (myHandle, value);
    }
 
    /**
-    * Returns whether or not matrix scaling is enabled.
+    * Returns the scaling which MUMPS applies to the matrix, as described for
+    * {@link #setScaling}. If MUMPS was left to choose, the value it actually
+    * used is returned once a solve phase has been run.
     *
-    * @return true if matrix scaling is enabled
-    * @see #setApplyScaling
+    * @return value of ICNTL(8)
+    * @see #setScaling
     */
-   public synchronized boolean getApplyScaling () {
+   public synchronized int getScaling () {
       if (myHandle == 0) {
          initialize();
       }
-      return (doGetApplyScaling (myHandle) != 0);
+      return doGetScaling (myHandle);
    }
 
    /**
@@ -1199,7 +1203,7 @@ public class MumpsSolver extends DirectSolverBase {
     * factorization time; a number exceeding 10 percent of the matrix size
     * indicates numerical problems, which may be alleviated by adjusting
     * {@link #setApplyWeightedMatchings setApplyWeightedMatchings()}, {@link
-    * #setApplyScaling setApplyScaling()}, or {@link #setSymOrderingStrategy
+    * #setScaling setScaling()}, or {@link #setSymOrderingStrategy
     * setSymOrderingStrategy()}.
     *
     * @return number of delayed pivots
@@ -1453,8 +1457,7 @@ public class MumpsSolver extends DirectSolverBase {
    };
 
    private static final ThreadLimit[] LINUX_THREAD_LIMITS = {
-      new ThreadLimit (65536, 1),
-      new ThreadLimit (2097152, 7),
+      new ThreadLimit (64306, 1),
    };
 
    // macOS: no measurements exist for this platform yet -- this is a guess

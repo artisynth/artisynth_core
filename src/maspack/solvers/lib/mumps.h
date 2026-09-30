@@ -57,6 +57,7 @@ class Mumps : public HybridSolver {
 	int myLastInfo2;         // INFOG(2) from the most recent call
 
 	int myVerbose;           // enables MUMPS diagnostic output
+	int myStrategyTrace;     // enables adaptive strategy trace output
 
 	// matrix in assembled coordinate format. MUMPS retains these pointers
 	// across the analyze, factor and solve phases.
@@ -95,7 +96,27 @@ class Mumps : public HybridSolver {
 	// the MUMPS default should be used.
 	int myReorderMethod;         // ICNTL(7)
 	int myApplyWeightedMatchings;// ICNTL(6)
-	int myApplyScaling;          // ICNTL(8)
+	int myScaling;               // ICNTL(8), < 0 for adaptive
+
+	// adaptive strategy state, used when myScaling < 0; see adaptStrategy()
+	int myActiveScaling;         // ICNTL(8) value in effect
+	int myPreferredScaling;      // strategy remembered across analyses
+	int myStrategyState;         // STRATEGY_ state defined in mumps.cc
+	int myStrategyTried;         // alternative tried since the last analysis
+	int myStrategyDecided;       // a strategy has been chosen for this matrix
+	int myDecidedSize;           // matrix size when the choice was made
+	int myDecidedNumVals;        // number of values when the choice was made
+	// diagnostics
+	int myNumStrategyTrials;
+	int myNumStaleSwitches;
+	int myNumReanalyses;
+
+	// number of threads in effect when the matrix was analyzed. MUMPS
+	// requires the factorization and solve phases to use the same number of
+	// threads as the analysis (error -58 when ICNTL(48) is active), but the
+	// OpenMP thread count is process wide, so another solver can change it
+	// between our phases. It is therefore re-asserted for each phase.
+	int myPhaseNumThreads;
 	int mySymOrderingStrategy;   // ICNTL(12)
 	int myMaxRefinementSteps;    // ICNTL(10)
 	int myWorkspaceIncrease;     // ICNTL(14)
@@ -105,6 +126,12 @@ class Mumps : public HybridSolver {
 	double myStaticPivotTolerance; // CNTL(4)
 
 	void applySettings();
+	void resetScalingPolicy();
+	int factorOnce();
+	int adaptStrategy (int rcode);
+	int reanalyzeAndFactor (int scaling);
+	void strategyTrace (const char* msg);
+	void applyPhaseThreads();
 	int callMumps (int job);
 	int initInstance (int sym);
 	void terminateInstance();
@@ -149,8 +176,8 @@ class Mumps : public HybridSolver {
 	int setNullPivotThreshold (double thresh);
 	double getNullPivotThreshold();
 
-	int setApplyScaling (int enable);
-	int getApplyScaling();
+	int setScaling (int value);
+	int getScaling();
 
 	int setApplyWeightedMatchings (int enable);
 	int getApplyWeightedMatchings();
@@ -168,6 +195,10 @@ class Mumps : public HybridSolver {
 	int getNumNegEigenvalues();
 	int getNumPosEigenvalues();
 	int getNumTinyPivots();
+	int getNumStrategyTrials();
+	int getNumStaleSwitches();
+	int getNumReanalyses();
+
 	int getNumNullPivots();
 	int getNumDelayedPivots();
 	int getFirstNullPivot();

@@ -140,5 +140,10 @@ check: $(LIB_TARGET_DIR)\$(MUMPS_TARGET)
 	@echo be present in $(LIB_TARGET_DIR), built against the SAME oneAPI
 	@echo version as PardisoJNI.
 
+# "clean.mumps" matches the Linux Makefile.mumps convention (see
+# CGS_SOLVES.md / MUMPS_COMPILATION.md); "clean" is a plain alias so
+# `nmake /F NMakefile.mumps clean` also works, mirroring NMakefile's target.
+clean: clean.mumps
+
 clean.mumps:
 	del /q mumps.obj MumpsJNI.obj hybridSolve.obj maspack_solvers_MumpsSolver.h 2>NUL

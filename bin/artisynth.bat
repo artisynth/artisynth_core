@@ -8,6 +8,12 @@ set SILENT=no
 set JAVA_OPTS=-Xms200M -Xmx6G -Xmn100M
 set BATCHFILE=%~f0
 
+rem MumpsJNI links the Intel Fortran runtime (libifcoremd.dll), which
+rem installs its own Ctrl-C console handler and aborts the whole process
+rem with "forrtl: error (200)" instead of letting the JVM shut down
+rem normally. This disables that handler so Ctrl-C is left to the JVM.
+set FOR_DISABLE_CONSOLE_CTRL_HANDLER=1
+
 set COUNT=0
 set modelArgsFound=false
 

@@ -5,8 +5,8 @@
 #
 ROOT_DIR = ..\..\..\..
 LIB_TARGET_DIR = $(ROOT_DIR)\lib\Windows64
-# Pardiso compiled with MKL 20206.1.1
-PARDISO_MKL_TARGET = PardisoJNI.20206.1.1.dll
+# Pardiso compiled with MKL 2026.1.1
+PARDISO_MKL_TARGET = PardisoJNI.2026.1.1.dll
 CC_COMP = cl # Visual Studio C/C++ compiler
 CC_FLAGS = /O2 /MD /DWINDOWS_COMPILER
 # location of current Java JDK:
@@ -66,3 +66,9 @@ pardisoMklTest.obj: pardisoMklTest.cc
 pardisoMklTest.exe: pardisoMkl.obj hybridSolve.obj pardisoMklTest.obj pardisoMkl.h
 	$(CC_COMP) $(CC_FLAGS) pardisoMklTest.obj \
 		pardisoMkl.obj hybridSolve.obj $(PARDISO_LIBS_64) $(LIBMP)
+
+# NOTE: hybridSolve.obj is shared with NMakefile.mumps's build (see its
+# header comment) -- cleaning it here is fine, the next build of either
+# DLL regenerates it.
+clean:
+	del /q PardisoMklJNI.obj pardisoMkl.obj hybridSolve.obj maspack_solvers_PardisoSolver.h pardisoMklTest.obj 2>NUL

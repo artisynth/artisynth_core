@@ -92,6 +92,13 @@ OSNAME=`uname -s`
 # in $ARTISYNTH_HOME/lib
 if [[ "$OSNAME" == *"CYGWIN"* || "$OSNAME" == *"MINGW"* ]]; then
    # Windows based system
+
+   # MumpsJNI links the Intel Fortran runtime (libifcoremd.dll), which
+   # installs its own Ctrl-C console handler and aborts the whole process
+   # with "forrtl: error (200)" instead of letting the JVM shut down
+   # normally. This disables that handler so Ctrl-C is left to the JVM.
+   export FOR_DISABLE_CONSOLE_CTRL_HANDLER=1
+
    ATW=`cygpath -w "$AT"`
    export ARTISYNTH_HOME=$ATW
    HOMEW=`cygpath -w "$HOME"`

@@ -129,6 +129,9 @@ import artisynth.core.util.ScanToken;
 public class CollisionManager extends RenderableCompositeBase
    implements ScalableUnits, Constrainer, HasNumericState {
 
+   public boolean profileCollisionTimes = true;
+   FunctionTimer myTimer = new FunctionTimer();
+   
    // Current assumptions:
    //
    // 1) Collidable hierarchies are no more than one deep
@@ -3005,6 +3008,9 @@ public class CollisionManager extends RenderableCompositeBase
    
    public double updateConstraints (double t, int flags) {
       
+      if (t == 0) {
+         myTimer.reset();
+      }
       // this method will only be called from the top level
       if ((flags & MechSystem.UPDATE_CONTACTS) != 0) {
          // right now just leave the same contacts in place ...
@@ -3012,7 +3018,16 @@ public class CollisionManager extends RenderableCompositeBase
       }
 
       myHandlers.clear();
+      myTimer.start();
       double maxpen = updateConstraints (myHandlers, t, flags);
+      myTimer.stop();
+      if (profileCollisionTimes) {
+         double timeUsec = myTimer.getTimeUsec();
+         double avgTimeUsec = myTimer.getAverageTimeUsec();
+         System.out.printf (
+            "collision detection: %7.3f, avg=%7.3f (msec)\n", 
+            timeUsec/1000, avgTimeUsec/1000);
+      }
       return myHandlers.size() == 0 ? -1 : maxpen;
    }
    

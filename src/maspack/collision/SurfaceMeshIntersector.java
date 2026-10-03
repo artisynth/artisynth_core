@@ -3348,7 +3348,7 @@ public class SurfaceMeshIntersector {
 
       Face myFace;
       IntersectionContour contour; // current contour
-      double outsideArea; // computted outside area for this face
+      double outsideArea; // computed outside area for this face
       
       HalfEdge myHe0;
       EdgeInfo myEdgeInfo0;
@@ -3394,6 +3394,10 @@ public class SurfaceMeshIntersector {
          setPlane (nrm);
       }
 
+      void clearOutsideArea() {
+         outsideArea = 0;
+      }
+      
       double addOutsideArea (Point3d p1, Point3d p2, boolean clockwise) {
          double a = computeArea (myEdgeInfo0.myTail, p1, p2);
          if (!clockwise) {
@@ -3861,7 +3865,7 @@ public class SurfaceMeshIntersector {
             fcalc.setContour (c);
             if (!visitedFaces[face.getIndex()]) {
                visitedFaces[face.getIndex()] = true;
-               fcalc.outsideArea = 0;
+               fcalc.clearOutsideArea();
             }           
             for (int i=0; i<c.size(); i++) {
                IntersectionPoint pa = c.get(i);
@@ -3904,7 +3908,7 @@ public class SurfaceMeshIntersector {
                      }
                      if (!visitedFaces[face.getIndex()]) {
                         visitedFaces[face.getIndex()] = true;
-                        fcalc.outsideArea = 0;
+                        fcalc.clearOutsideArea();
                      }
                      headInsideFace = clockwise;
                   }
@@ -4002,20 +4006,21 @@ public class SurfaceMeshIntersector {
       }
       double regionArea = 0;
 
+      double atol = (removeZeroAreaFaces ? myAreaTol : 0);
       for (int i=0; i<visitedFaces.length; i++) {
       //for (FaceCalculator fcalc : faceCalcMap.values()) {
          if (visitedFaces[i]) {
             Face face = mesh0.getFace(i);
-            double insideArea = face.computeArea();
+            double faceArea = face.computeArea();
+            double insideArea = faceArea;
             FaceCalculator fcalc = faceCalcs[i]; 
             if (fcalc != null) {
-               insideArea = face.computeArea() - fcalc.outsideArea;
-               fcalc.outsideArea = 0;
+               insideArea -= fcalc.outsideArea;
+               fcalc.clearOutsideArea();
             }
             regionArea += insideArea;
-            double atol = (removeZeroAreaFaces ? myAreaTol : 0);
             if (insideArea >= atol) {
-               region.myFaces.add (face);            
+               region.myFaces.add (face);
             }
          }
       }

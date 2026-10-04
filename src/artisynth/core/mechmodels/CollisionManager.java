@@ -129,7 +129,7 @@ import artisynth.core.util.ScanToken;
 public class CollisionManager extends RenderableCompositeBase
    implements ScalableUnits, Constrainer, HasNumericState {
 
-   public boolean profileCollisionTimes = true;
+   public boolean profileCollisionTimes = false;
    FunctionTimer myTimer = new FunctionTimer();
    
    // Current assumptions:

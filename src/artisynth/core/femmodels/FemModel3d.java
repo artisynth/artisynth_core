@@ -6256,6 +6256,7 @@ PointAttachable, ConnectableBody {
                gi.dist = 0; // values will be accumulated below
                gi.compliance = myIncompCompliance;
                gi.damping = damping;
+               gi.stepDamping = 0;
                gi.force = 0;
             }
 
@@ -6307,6 +6308,7 @@ PointAttachable, ConnectableBody {
                      gi.dist = e.myVolumes[k] - e.myRestVolumes[k];
                      gi.compliance = myIncompCompliance;
                      gi.damping = damping;
+                     gi.stepDamping = 0;
                      gi.force = 0;
                   }
                }

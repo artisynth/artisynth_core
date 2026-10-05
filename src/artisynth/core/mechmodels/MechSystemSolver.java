@@ -1439,13 +1439,15 @@ public class MechSystemSolver {
          for (int i=0; i<myGsize; i++) {
             ConstraintInfo gi = myGInfo[i];
             if (myComplianceSupported && gi.compliance > 0) {
+               // compute effective damping d from 'damping' and 'stepDamping'
+               double d = Math.max(gi.damping, h*gi.stepDamping/gi.compliance);
                if (gi.force != 0) {
-                  double alpha = 1/(0.5*h/gi.compliance + gi.damping);
+                  double alpha = 1/(0.5*h/gi.compliance + d);
                   Rbuf[i] = alpha/h;
                   gbuf[i] -= alpha*gi.force;
                }
                else {
-                  double s = 1/(0.5*h+gi.damping*gi.compliance);
+                  double s = 1/(0.5*h+d*gi.compliance);
                   Rbuf[i] = s*gi.compliance/h;
                   gbuf[i] -= s*gi.dist;
                }
@@ -1468,13 +1470,15 @@ public class MechSystemSolver {
          for (int i=0; i<myNsize; i++) {
             ConstraintInfo ni = myNInfo[i];
             if (myComplianceSupported && ni.compliance > 0) {
+               // compute effective damping d from 'damping' and 'stepDamping'
+               double d = Math.max(ni.damping, h*ni.stepDamping/ni.compliance);
                if (ni.force != 0) {
-                  double alpha = 1/(0.5*h/ni.compliance + ni.damping);
+                  double alpha = 1/(0.5*h/ni.compliance + d);
                   Rbuf[i] = alpha/h;
                   nbuf[i] -= alpha*ni.force;
                }
                else {
-                  double s = 1/(0.5*h+ni.damping*ni.compliance);
+                  double s = 1/(0.5*h+d*ni.compliance);
                   Rbuf[i] = s*ni.compliance/h;
                   nbuf[i] -= s*ni.dist;
                }

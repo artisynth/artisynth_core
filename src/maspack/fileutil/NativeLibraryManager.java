@@ -91,6 +91,7 @@ public class NativeLibraryManager {
       Windows64,
       Windows,    // any version of Windows
       MacOS64,
+      MacOSArm64, // 64 bit Arm architectue
       MacOS,      // any version of MacOS
       Generic;    // any system type
 
@@ -104,7 +105,7 @@ public class NativeLibraryManager {
             case Linux:
                return new SystemType[] {Linux32, Linux64};
             case MacOS:
-               return new SystemType[] {MacOS64};
+               return new SystemType[] {MacOS64, MacOSArm64};
             case Windows:
                return new SystemType[] {Windows32, Windows64};
             default:
@@ -339,7 +340,8 @@ public class NativeLibraryManager {
             return -1;
          }
          switch (sysType) {
-            case MacOS64: {
+            case MacOS64:
+            case MacOSArm64: {
                if (!fileName.startsWith ("lib"+myBasename)) {
                   return -1;
                }
@@ -382,7 +384,8 @@ public class NativeLibraryManager {
       public String getFileName (SystemType sysType) {
          StringBuilder builder = new StringBuilder();
          switch (sysType) {
-            case MacOS64: {
+            case MacOS64:
+            case MacOSArm64: {
                builder.append ("lib");
                builder.append (myBasename);
                builder.append (myVersionStr);
@@ -487,7 +490,12 @@ public class NativeLibraryManager {
       }
       else if (osname.equals ("Darwin") ||
                osname.startsWith ("Mac")) {
-         return SystemType.MacOS64;
+         if (osarch.equals ("aarch64")) {
+            return SystemType.MacOSArm64;
+         }
+         else {
+            return SystemType.MacOS64;
+         }
       }
       else {
          return SystemType.Unknown;
@@ -976,6 +984,9 @@ public class NativeLibraryManager {
          }
          case MacOS64: {
             return "MacOS64";
+         }
+         case MacOSArm64: {
+            return "MacOSArm64";
             //return "Darwin-x86_64";
          }
          default: {

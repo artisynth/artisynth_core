@@ -36,10 +36,9 @@ import com.jogamp.opengl.GL2ES3;
 import com.jogamp.opengl.GLArrayData;
 import com.jogamp.opengl.GLException;
 import com.jogamp.opengl.GLUniformData;
-import com.jogamp.opengl.fixedfunc.GLMatrixFunc;
 
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.util.GLArrayDataServer;
-import com.jogamp.opengl.util.PMVMatrix;
 import com.jogamp.opengl.util.glsl.ShaderCode;
 import com.jogamp.opengl.util.glsl.ShaderProgram;
 
@@ -48,8 +47,27 @@ public class GLSLTextureRaster  {
     private final int textureUnit;
 
     private ShaderProgram sp;
-    private PMVMatrix pmvMatrix;
+    // Projection and modelview matrices (column-major, 16 floats each) for
+    // the mgl_PMVMatrix uniform. These are only ever the fixed matrices
+    // below, so they are set directly rather than through JOGL's PMVMatrix,
+    // whose API for obtaining this buffer changed incompatibly in JOGL 2.5
+    // (glGetPMvMatrixf() was removed); this keeps the class working with
+    // JOGL 2.4 and later.
+    private FloatBuffer pmvMatrixBuf;
     private GLUniformData pmvMatrixUniform;
+
+    private static final float[] IDENTITY_MATRIX = {
+       1f, 0f, 0f, 0f,
+       0f, 1f, 0f, 0f,
+       0f, 0f, 1f, 0f,
+       0f, 0f, 0f, 1f };
+
+    // glOrthof(-1, 1, -1, 1, 0, 10)
+    private static final float[] ORTHO_MATRIX = {
+       1f, 0f, 0f,    0f,
+       0f, 1f, 0f,    0f,
+       0f, 0f, -0.2f, 0f,
+       0f, 0f, -1f,   1f };
     private GLUniformData activeTexUniform;
     private GLArrayDataServer interleavedVBO;
     private int VAO = -1;
@@ -83,22 +101,11 @@ public class GLSLTextureRaster  {
         }
         sp.useProgram(gl, true);
 
-        // setup mgl_PMVMatrix
-        pmvMatrix = new PMVMatrix();
-        pmvMatrix.glMatrixMode(GLMatrixFunc.GL_PROJECTION);
-        pmvMatrix.glLoadIdentity();
-        pmvMatrix.glMatrixMode(GLMatrixFunc.GL_MODELVIEW);
-        pmvMatrix.glLoadIdentity();
-        
-        // Use this for JOGL 2.4:
-        FloatBuffer fbuf = pmvMatrix.glGetPMvMatrixf(); // JOGL 2.4
-        // Use this for JOGL 2.5:
-//        FloatBuffer fbuf = FloatBuffer.allocate(32);
-//        pmvMatrix.getPMat().get(fbuf);
-//        pmvMatrix.getMvMat().get(fbuf);
-//        fbuf.rewind();
-        
-        pmvMatrixUniform = new GLUniformData("mgl_PMVMatrix", 4, 4, fbuf);
+        // setup mgl_PMVMatrix: identity projection and modelview
+        pmvMatrixBuf = Buffers.newDirectFloatBuffer(32);
+        setPMvMatrix(IDENTITY_MATRIX);
+
+        pmvMatrixUniform = new GLUniformData("mgl_PMVMatrix", 4, 4, pmvMatrixBuf);
         if( pmvMatrixUniform.setLocation(gl, sp.program()) < 0 ) {
             throw new GLException("Couldn't locate "+pmvMatrixUniform+" in shader: "+sp);
         }
@@ -139,14 +146,22 @@ public class GLSLTextureRaster  {
         sp.useProgram(gl, false);
     }
 
+    /**
+     * Sets the mgl_PMVMatrix buffer to the given projection matrix and an
+     * identity modelview matrix. The buffer is updated in place, so that
+     * pmvMatrixUniform, which refers to it, sees the new values.
+     */
+    private void setPMvMatrix(final float[] projection) {
+        pmvMatrixBuf.clear();
+        pmvMatrixBuf.put(projection);
+        pmvMatrixBuf.put(IDENTITY_MATRIX);
+        pmvMatrixBuf.rewind();
+    }
+
     public void reshape(final GL2ES2 gl, final int x, final int y, final int width, final int height) {
         if(null != sp) {
-            pmvMatrix.glMatrixMode(GLMatrixFunc.GL_PROJECTION);
-            pmvMatrix.glLoadIdentity();
-            pmvMatrix.glOrthof(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 10.0f);
-
-            pmvMatrix.glMatrixMode(GLMatrixFunc.GL_MODELVIEW);
-            pmvMatrix.glLoadIdentity();
+            // projection glOrthof(-1, 1, -1, 1, 0, 10), identity modelview
+            setPMvMatrix(ORTHO_MATRIX);
 
             sp.useProgram(gl, true);
             gl.glUniform(pmvMatrixUniform);
@@ -158,7 +173,7 @@ public class GLSLTextureRaster  {
         if(null != pmvMatrixUniform) {
             pmvMatrixUniform = null;
         }
-        pmvMatrix=null;
+        pmvMatrixBuf=null;
         if(null != interleavedVBO) {
             interleavedVBO.destroy(gl);
             interleavedVBO=null;

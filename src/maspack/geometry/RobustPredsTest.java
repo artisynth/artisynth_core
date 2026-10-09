@@ -443,13 +443,147 @@ public class RobustPredsTest extends UnitTest {
       testVertexTangent();
    }
 
+   /**
+    * Returns the exact sign of ((p1-p0) x (p2-p0)) . (p3-p0), computed
+    * with BigDecimal, which represents every double exactly.
+    */
+   private static int exactOrientSign (
+      double[] p0, double[] p1, double[] p2, double[] p3) {
+      java.math.BigDecimal[] a = new java.math.BigDecimal[3];
+      java.math.BigDecimal[] b = new java.math.BigDecimal[3];
+      java.math.BigDecimal[] c = new java.math.BigDecimal[3];
+      for (int i=0; i<3; i++) {
+         java.math.BigDecimal o = new java.math.BigDecimal (p0[i]);
+         a[i] = new java.math.BigDecimal (p1[i]).subtract (o);
+         b[i] = new java.math.BigDecimal (p2[i]).subtract (o);
+         c[i] = new java.math.BigDecimal (p3[i]).subtract (o);
+      }
+      java.math.BigDecimal det =
+         c[0].multiply (a[1].multiply(b[2]).subtract (a[2].multiply(b[1])))
+         .add (
+         c[1].multiply (a[2].multiply(b[0]).subtract (a[0].multiply(b[2]))))
+         .add (
+         c[2].multiply (a[0].multiply(b[1]).subtract (a[1].multiply(b[0]))));
+      return det.signum();
+   }
+
+   /**
+    * Same determinant, evaluated naively in double precision.
+    */
+   private static int naiveOrientSign (
+      double[] p0, double[] p1, double[] p2, double[] p3) {
+      double ax = p1[0]-p0[0], ay = p1[1]-p0[1], az = p1[2]-p0[2];
+      double bx = p2[0]-p0[0], by = p2[1]-p0[1], bz = p2[2]-p0[2];
+      double cx = p3[0]-p0[0], cy = p3[1]-p0[1], cz = p3[2]-p0[2];
+      double det =
+         cx*(ay*bz-az*by) + cy*(az*bx-ax*bz) + cz*(ax*by-ay*bx);
+      return det > 0 ? 1 : (det < 0 ? -1 : 0);
+   }
+
+   /**
+    * Tests the native orient3d on nearly degenerate inputs, where the
+    * predicate must fall through to Shewchuk's exact arithmetic: points that
+    * lie on a triangle's plane up to double rounding, perturbed by a few
+    * units in the last place. Each result is checked against the exact sign
+    * of the orientation determinant (cases where that is exactly zero are
+    * skipped, since the outcome is then decided by the Simulation of
+    * Simplicity tie-break).
+    *
+    * <p>This is sensitive to how the native library was compiled: if the
+    * compiler fuses multiplies and adds into FMA instructions (which clang
+    * does by default on arm64), the error-free transformations the exact
+    * arithmetic relies on are no longer exact, and wrong signs result. The
+    * library must therefore be built with -ffp-contract=off.
+    */
+   void nearDegenerateOrient3dTest() {
+      java.util.Random rand = new java.util.Random (0x5eed);
+      int numTriangles = 200;
+      int maxUlps = 3;
+      int numCases = 0;
+      int numExactZero = 0;
+      int numMismatches = 0;
+      int numNaiveWrong = 0;
+      String firstMismatch = null;
+
+      double[] p0 = new double[3];
+      double[] p1 = new double[3];
+      double[] p2 = new double[3];
+      double[] q = new double[3];
+      double[] p3 = new double[3];
+      for (int t=0; t<numTriangles; t++) {
+         // vary the scale and offset, so that coordinates have many
+         // different exponents
+         double scale = Math.pow (10, rand.nextInt (7) - 3);
+         double offset = scale*(rand.nextDouble()*20 - 10);
+         for (int i=0; i<3; i++) {
+            p0[i] = offset + scale*(2*rand.nextDouble() - 1);
+            p1[i] = offset + scale*(2*rand.nextDouble() - 1);
+            p2[i] = offset + scale*(2*rand.nextDouble() - 1);
+         }
+         // point on the plane of (p0, p1, p2), up to double rounding
+         double s = rand.nextDouble();
+         double r = rand.nextDouble();
+         for (int i=0; i<3; i++) {
+            q[i] = p0[i] + s*(p1[i]-p0[i]) + r*(p2[i]-p0[i]);
+         }
+         for (int dx=-maxUlps; dx<=maxUlps; dx++) {
+            for (int dy=-maxUlps; dy<=maxUlps; dy++) {
+               for (int dz=-maxUlps; dz<=maxUlps; dz++) {
+                  p3[0] = q[0] + dx*Math.ulp (q[0]);
+                  p3[1] = q[1] + dy*Math.ulp (q[1]);
+                  p3[2] = q[2] + dz*Math.ulp (q[2]);
+                  int exact = exactOrientSign (p0, p1, p2, p3);
+                  numCases++;
+                  if (exact == 0) {
+                     numExactZero++;
+                     continue;
+                  }
+                  if (naiveOrientSign (p0, p1, p2, p3) != exact) {
+                     numNaiveWrong++;
+                  }
+                  // 1 means p3 is below the plane, i.e. a negative determinant
+                  int result = RobustPreds.jniOrient3d (
+                     0, p0[0], p0[1], p0[2], 1, p1[0], p1[1], p1[2],
+                     2, p2[0], p2[1], p2[2], 3, p3[0], p3[1], p3[2]);
+                  if (result != (exact < 0 ? 1 : 0)) {
+                     if (firstMismatch == null) {
+                        firstMismatch = String.format (
+                           "p0=(%a,%a,%a) p1=(%a,%a,%a) p2=(%a,%a,%a) " +
+                           "p3=(%a,%a,%a): exact sign %d, orient3d %d",
+                           p0[0], p0[1], p0[2], p1[0], p1[1], p1[2],
+                           p2[0], p2[1], p2[2], p3[0], p3[1], p3[2],
+                           exact, result);
+                     }
+                     numMismatches++;
+                  }
+               }
+            }
+         }
+      }
+      if (verbose) {
+         System.out.println (
+            "near-degenerate orient3d: " + numCases + " cases, " +
+            numExactZero + " exactly coplanar (skipped), " +
+            numNaiveWrong + " wrong in naive double arithmetic, " +
+            numMismatches + " wrong in orient3d");
+      }
+      if (numMismatches > 0) {
+         throw new TestException (
+            "orient3d gave the wrong sign for " + numMismatches + " of " +
+            (numCases-numExactZero) + " nearly degenerate cases " +
+            "(native library built with FMA contraction?). First: " +
+            firstMismatch);
+      }
+   }
+
    public void test() {
       // load in the native library
-      RobustPreds.initialize(); 
+      RobustPreds.initialize();
       degeneracyTests();
       specialTest();
       directJniTests();
       segmentTriangleTest();
+      nearDegenerateOrient3dTest();
    }
 
    public static void main (String[] args) {

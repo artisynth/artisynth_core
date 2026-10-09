@@ -139,10 +139,15 @@ else ifeq ($(SYSTEM),Darwin)
 	# arithmetic is always IEEE double, which is what the predicates
 	# assume, so no precision control is needed (or possible).
 	#
-	# -ffp-contract=off: on arm64, clang by default fuses a*b+c into a
-	# fused multiply-add, which skips the intermediate rounding that
-	# Shewchuk's exact arithmetic (Two_Product, Two_Sum, ...) relies on.
-	# (Baseline x86-64 has no FMA instruction, so this never arose there.)
+	# -ffp-contract=off: no fused multiply-adds (FMA), which arm64 has and
+	# baseline x86-64 does not. Shewchuk's exact arithmetic assumes every
+	# operation is rounded separately. Contraction across statements
+	# (-ffp-contract=fast, GCC's default in GNU C mode) breaks it: 387 wrong
+	# signs in RobustPredsTest's near-degenerate orient3d test, and failures
+	# in SurfaceMeshIntersectorTest. Clang's default (=on, within single
+	# expressions) happened not to, since the error-free transformations
+	# are split across statements, but turning contraction off removes the
+	# dependence on that.
 	NATIVE_DIR = MacOSArm64
 	C_COMP = clang
 	CC_COMP = clang++

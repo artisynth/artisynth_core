@@ -129,10 +129,11 @@ elif [[ "$OSNAME" == *"Linux"* || "$OSNAME" == *"Darwin"* ]] ; then
       if ! uname -m | grep -q 64 ; then
          MEM_LIMIT="-Xmx2G"
       fi
-   else 
-      # Mac system
-      export DYLD_LIBRARY_PATH=$AT/lib/MacOS64
    fi
+   # Note: DYLD_LIBRARY_PATH is not set on the Mac. The native libraries are
+   # loaded by absolute path, and their non-system dependencies (libiomp5
+   # for Pardiso) are pre-loaded by the solvers. macOS also strips DYLD_*
+   # variables when java is run via /usr/bin/java.
 else     
     echo Unknown operating system: $OSNAME
 fi

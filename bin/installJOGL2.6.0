@@ -1,0 +1,47 @@
+#!/bin/bash
+# script to switch JOGL from 2.4.0 to 2.6.0
+#
+# JOGL 2.6.0 is needed for Apple Silicon (MacOSArm64): its MacOS native
+# libraries are universal (x86_64 + arm64), whereas those of 2.4.0 are
+# x86_64 only. It provides no 32 bit Windows natives, so the Windows32
+# JOGL entries are removed from lib/LIBRARIES.
+#
+# ArtiSynth's source compiles against both versions, but the compiled
+# classes do NOT carry over: classes compiled against 2.4.0 fail under
+# 2.6.0 with NoSuchMethodError (some JOGL method signatures changed). This
+# script therefore recompiles ArtiSynth after installing the new
+# libraries. Other projects compiled against ArtiSynth that use JOGL
+# directly must be recompiled as well.
+#
+# First, set ARTISYNTH_HOME:
+D=`dirname $0`/..
+export ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
+#
+cd $ARTISYNTH_HOME/lib
+#
+# change 2.4.0 to 2.6.0 in lib/LIBRARIES, and remove the Windows32 JOGL
+# entries, for which 2.6.0 has no native libraries
+#
+sed -e '/^Windows32 .*2\.4\.0.*natives-windows-i586\.jar/d' \
+    -e 's/2\.4\.0/2.6.0/' LIBRARIES > LIBRARIES_tmp_
+mv LIBRARIES_tmp_ LIBRARIES
+#
+# remove all 2.4.0 jar files
+#
+rm -f *2.4.0*.jar
+cd $ARTISYNTH_HOME
+#
+# change 2.4.0 to 2.6.0 in .classpath (for Eclipse)
+#
+sed 's/2\.4\.0/2.6.0/' .classpath > .classpath_tmp_
+mv .classpath_tmp_ .classpath
+#
+# run updateArtisynthLibs to get the new libraries
+#
+bin/updateArtisynthLibs
+#
+# recompile ArtiSynth against the new libraries (see note above)
+#
+echo "Recompiling ArtiSynth for JOGL 2.6.0 ..."
+cd $ARTISYNTH_HOME && bin/compile
+echo "Done. Recompile any other projects that use JOGL directly."

@@ -59,9 +59,45 @@
 extern "C" {
    int omp_get_max_threads (void);
    void omp_set_num_threads (int num);
+#ifndef NO_MKL
    int MKL_Get_Max_Threads (void);
    void MKL_Set_Num_Threads (int num);
+#endif
+#ifdef LIBOMP
+   void kmp_set_blocktime (int msec);
+#endif
 }
+
+#ifdef NO_MKL
+// Without MKL (macOS arm64, where BLAS comes from Accelerate) there is no
+// separate BLAS thread count to set: Accelerate threads internally and has
+// no thread control.
+static void MKL_Set_Num_Threads (int num) {}
+#endif
+
+#ifdef LIBOMP
+/**
+ * With LLVM's libomp, idle OpenMP threads by default go to sleep after
+ * KMP_BLOCKTIME ms, which libomp sets to 0 on hybrid (performance +
+ * efficiency core) CPUs such as Apple Silicon. MUMPS runs many short
+ * parallel regions, so its threads then sleep and are re-woken constantly:
+ * on an M5 Pro this made factorizations with 4-15 threads slower than with
+ * one. A blocktime of 1 ms fixes that (a 1.7x speedup at 4-8 threads)
+ * without the CPU cost of longer spinning. The blocktime is a property of
+ * the calling thread, so it is set before every MUMPS call; an explicit
+ * KMP_BLOCKTIME setting in the environment is left alone.
+ */
+static void applyBlocktime()
+{
+   static int useEnvironment = -1;
+   if (useEnvironment < 0) {
+      useEnvironment = (getenv ("KMP_BLOCKTIME") != NULL);
+   }
+   if (!useEnvironment) {
+      kmp_set_blocktime (1);
+   }
+}
+#endif
 
 Mumps::Mumps()
 {
@@ -199,6 +235,9 @@ void Mumps::applySettings()
  */
 int Mumps::callMumps (int job)
 {
+#ifdef LIBOMP
+   applyBlocktime();
+#endif
    myId.job = job;
    dmumps_c (&myId);
    myLastInfo1 = myId.INFOG(1);

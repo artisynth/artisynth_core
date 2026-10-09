@@ -27,7 +27,9 @@
 #include <stdio.h>
 #endif
 
+#ifndef NO_MKL
 #include "mkl_spblas.h"
+#endif
 #include "hybridSolve.h"
 
 /* --------------------------------------------------------------------
@@ -200,10 +202,12 @@ void HybridSolver::setIterativeStructure (
 
 void HybridSolver::clearIterativeStructure()
 {
+#ifndef NO_MKL
    if (myCsrHandle != NULL) {
       mkl_sparse_destroy ((sparse_matrix_t)myCsrHandle);
       myCsrHandle = NULL;
    }
+#endif
    myIterSize = 0;
    myIterNumVals = 0;
    myIterRowOffs = NULL;
@@ -236,6 +240,52 @@ int HybridSolver::ensureWork (long long size)
    }
    return 0;
 }
+
+#ifdef NO_MKL
+
+/**
+ * Computes y = A x for the current values, directly from the CRS arrays
+ * (one-based indices; only the upper triangle is stored when the matrix is
+ * symmetric). Used where there is no MKL (macOS arm64). The product is a
+ * small part of an iterative solve, next to the preconditioner solves, so a
+ * plain serial loop is adequate.
+ */
+int HybridSolver::matVec (double* y, const double* x)
+{
+   double t0 = wallTime();
+   int n = myIterSize;
+   const int* rowOffs = myIterRowOffs;
+   const int* colIdxs = myIterColIdxs;
+   const double* vals = myIterCurVals;
+   if (!myIterSymmetric) {
+      for (int i=0; i<n; i++) {
+         double sum = 0;
+         for (int k=rowOffs[i]-1; k<rowOffs[i+1]-1; k++) {
+            sum += vals[k]*x[colIdxs[k]-1];
+         }
+         y[i] = sum;
+      }
+   }
+   else {
+      memset (y, 0, n*sizeof(double));
+      for (int i=0; i<n; i++) {
+         double xi = x[i];
+         double sum = 0;
+         for (int k=rowOffs[i]-1; k<rowOffs[i+1]-1; k++) {
+            int j = colIdxs[k]-1;
+            sum += vals[k]*x[j];
+            if (j != i) {
+               y[j] += vals[k]*xi;
+            }
+         }
+         y[i] += sum;
+      }
+   }
+   myIterMatVecTime += wallTime()-t0;
+   return 0;
+}
+
+#else
 
 /**
  * Computes y = A x for the current values. The MKL handle wraps the CRS
@@ -275,6 +325,8 @@ int HybridSolver::matVec (double* y, const double* x)
    myIterMatVecTime += wallTime()-t0;
    return (status == SPARSE_STATUS_SUCCESS ? 0 : -1);
 }
+
+#endif // NO_MKL
 
 /**
  * Computes r = b - A x and returns its norm, or -1 if the product failed.

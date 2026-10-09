@@ -113,8 +113,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       Integrator.ConstrainedBackwardEuler;
    protected Integrator myIntegrator = DEFAULT_INTEGRATOR;
 
+   // Pardiso where available, otherwise MUMPS (e.g., on Arm-based MacOS)
    protected static SparseSolverId DEFAULT_MATRIX_SOLVER =
-      SparseSolverId.Pardiso;
+      SparseSolverId.getDefaultDirectSolver();
    // define a separate default matrix solver that can be overridden
    protected static SparseSolverId myDefaultMatrixSolver =
       DEFAULT_MATRIX_SOLVER;

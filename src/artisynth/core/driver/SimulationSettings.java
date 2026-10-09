@@ -46,7 +46,8 @@ public class SimulationSettings extends SettingsBase {
       DEFAULT_SHOW_ILL_CONDITIONED_SOLVES;
 
    // to be incorporated later
-   public static SparseSolverId DEFAULT_MATRIX_SOLVER = SparseSolverId.Pardiso;
+   public static SparseSolverId DEFAULT_MATRIX_SOLVER =
+      SparseSolverId.getDefaultDirectSolver();
 
    static {
       myProps.add (

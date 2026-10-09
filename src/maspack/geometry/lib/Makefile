@@ -130,6 +130,37 @@ else ifeq ($(SYSTEM),Windows)
 	CLASS_ROOT_DIR := "$(subst /,\,$(CLASS_ROOT_DIR))"
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static -static-libgcc
 else ifeq ($(SYSTEM),Darwin)
+    ifeq ($(shell uname -m),arm64)
+	# Apple Silicon (arm64). Built with Apple clang for macOS 13 and later.
+	#
+	# No SHEWCHUK_DEF: DARWIN and LINUX select code which sets the x87
+	# FPU precision control word, so that intermediate results are
+	# rounded to double precision. arm64 has no x87; its floating point
+	# arithmetic is always IEEE double, which is what the predicates
+	# assume, so no precision control is needed (or possible).
+	#
+	# -ffp-contract=off: on arm64, clang by default fuses a*b+c into a
+	# fused multiply-add, which skips the intermediate rounding that
+	# Shewchuk's exact arithmetic (Two_Product, Two_Sum, ...) relies on.
+	# (Baseline x86-64 has no FMA instruction, so this never arose there.)
+	NATIVE_DIR = MacOSArm64
+	C_COMP = clang
+	CC_COMP = clang++
+	MACOS_ARCH_FLAGS = -arch arm64 -mmacosx-version-min=13.0
+	C_FLAGS = -O2 -std=c99 -I.
+	X_FLAGS = -fPIC -ffp-contract=off $(MACOS_ARCH_FLAGS)
+	ifndef JAVA_HOME
+	   JAVA_HOME = $(shell /usr/libexec/java_home -v 21)
+	endif
+	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -I$(TETGEN_DIR)
+	SHEWCHUK_DEF =
+	TETGEN_TARGET = libTetgenJNI.$(TETGEN_VERSION).dylib
+	ROBUST_TARGET = libRobustPreds.1.1.dylib
+	ROBUST_TARGET_OLD = libRobustPreds.0.0.dylib
+	LIB_FLAGS = -dynamiclib -Wl,-install_name,@rpath/$(notdir $@)
+	# javah no longer exists in current JDKs; use javac -h instead
+	USE_JAVAC_H = yes
+    else
         # XXX assume that all MacOS systems are 64 bit. That's because
         # we only have 64 bit pardiso for MacOS, and Java has a 64 bit
         # configuration, regardless of whether we are booting the 32
@@ -143,6 +174,7 @@ else ifeq ($(SYSTEM),Darwin)
 	ROBUST_TARGET = libRobustPreds.1.1.dylib
 	ROBUST_TARGET_OLD = libRobustPreds.0.0.dylib
 	LIB_FLAGS = -bundle -framework JavaVM
+    endif
 endif
 
 LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
@@ -154,11 +186,21 @@ JNI_H_FILES = \
 	maspack_geometry_TetgenTessellator.h \
 	maspack_geometry_RobustPreds.h
 
+ifeq ($(USE_JAVAC_H),yes)
+maspack_geometry_TetgenTessellator.h: ../TetgenTessellator.java
+	javac -h . -d $(ROOT_DIR)/classes -cp "$(ROOT_DIR)/classes" \
+	   ../TetgenTessellator.java
+
+maspack_geometry_RobustPreds.h: ../RobustPreds.java
+	javac -h . -d $(ROOT_DIR)/classes -cp "$(ROOT_DIR)/classes" \
+	   ../RobustPreds.java
+else
 maspack_geometry_TetgenTessellator.h: $(CLASS_DIR)/TetgenTessellator.class
 	$(JAVAH) $(JAVAHFLAGS) -classpath $(CLASS_ROOT_DIR) maspack.geometry.TetgenTessellator
 
 maspack_geometry_RobustPreds.h: $(CLASS_DIR)/RobustPreds.class
 	$(JAVAH) $(JAVAHFLAGS) -classpath .:$(CLASS_ROOT_DIR) maspack.geometry.RobustPreds
+endif
 
 # these are the predicates used by Tetgen
 # use -O0 to make sure optimbgization is disabled for predicates.o

@@ -82,7 +82,8 @@ public class RigidBodySolver {
    private int[] myDTMap;
 
    private MechSystem mySys;
-   private SparseSolverId myMatrixSolver = SparseSolverId.Pardiso;
+   private SparseSolverId myMatrixSolver =
+      SparseSolverId.getDefaultDirectSolver();
 
    public RigidBodySolver (MechSystem sys) {
       if (sys instanceof MechSystemBase) {

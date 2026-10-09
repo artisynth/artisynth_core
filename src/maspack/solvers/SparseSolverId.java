@@ -74,15 +74,74 @@ public enum SparseSolverId {
       }
    }
 
+   // availability of Pardiso and MUMPS, determined once when first needed,
+   // since each PardisoSolver/MumpsSolver.isAvailable() call creates a
+   // test solver
+   private static Boolean myPardisoAvailable = null;
+   private static Boolean myMumpsAvailable = null;
+   private static SparseSolverId myDefaultDirectSolver = null;
+   private static boolean myPardisoFallbackWarned = false;
+
+   private static synchronized boolean pardisoAvailable() {
+      if (myPardisoAvailable == null) {
+         myPardisoAvailable = PardisoSolver.isAvailable();
+      }
+      return myPardisoAvailable;
+   }
+
+   private static synchronized boolean mumpsAvailable() {
+      if (myMumpsAvailable == null) {
+         myMumpsAvailable = MumpsSolver.isAvailable();
+      }
+      return myMumpsAvailable;
+   }
+
+   /**
+    * Returns the default direct solver for the current platform. This is
+    * Pardiso if it is available, and otherwise MUMPS, if that is
+    * available. Pardiso is not available on platforms without Intel MKL,
+    * such as Arm-based MacOS. If neither is available, Pardiso is
+    * returned, so that attempts to use it produce the usual error.
+    *
+    * @return default direct solver
+    */
+   public static synchronized SparseSolverId getDefaultDirectSolver() {
+      if (myDefaultDirectSolver == null) {
+         if (pardisoAvailable()) {
+            myDefaultDirectSolver = Pardiso;
+         }
+         else if (mumpsAvailable()) {
+            myDefaultDirectSolver = Mumps;
+         }
+         else {
+            myDefaultDirectSolver = Pardiso;
+         }
+      }
+      return myDefaultDirectSolver;
+   }
+
    /**
     * Creates and returns the solver for this type, if it represents a direct
-    * solver. Otherwise, returns {@code null}.
-    * 
+    * solver. Otherwise, returns {@code null}. If Pardiso is requested but is
+    * not available on this platform, and MUMPS is, then a MUMPS solver is
+    * returned instead, with a warning printed the first time this happens.
+    *
     * @return new direct solver for this type, or {@code null}
     */
    public DirectSolver createDirectSolver() {
       switch (this) {
          case Pardiso: {
+            if (!pardisoAvailable() && mumpsAvailable()) {
+               synchronized (SparseSolverId.class) {
+                  if (!myPardisoFallbackWarned) {
+                     System.out.println (
+                        "Warning: Pardiso is not available on this " +
+                        "platform; using MUMPS instead");
+                     myPardisoFallbackWarned = true;
+                  }
+               }
+               return new MumpsSolver();
+            }
             return new PardisoSolver();
          }
          case Mumps: {

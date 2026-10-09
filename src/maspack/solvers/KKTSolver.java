@@ -17,7 +17,8 @@ import java.util.Arrays;
 
 public class KKTSolver {
 
-   private SparseSolverId mySolverType = SparseSolverId.Pardiso;
+   private SparseSolverId mySolverType =
+      SparseSolverId.getDefaultDirectSolver();
    private boolean myUseMurty = false;
    private boolean myProfileFactorSolve = false;
 
@@ -124,7 +125,7 @@ public class KKTSolver {
    }
 
    public KKTSolver() {
-      this (SparseSolverId.Pardiso);
+      this (SparseSolverId.getDefaultDirectSolver());
    }
 
    /**

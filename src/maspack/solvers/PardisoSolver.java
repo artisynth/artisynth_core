@@ -394,6 +394,14 @@ public class PardisoSolver extends DirectSolverBase {
                NativeLibraryManager.load ("iomp5");
                break;
             }
+            case MacOSArm64: {
+               // Pardiso is part of Intel MKL, which does not exist for Arm
+               // MacOS, so there is no library to load. Return directly,
+               // rather than have the load attempt a futile download from
+               // the server.
+               myInitStatus = ERR_CANT_LOAD_LIBRARIES;
+               return;
+            }
          }
          NativeLibraryManager.load (nativeLibrary);
          myInitStatus = INIT_LIBRARIES_LOADED;

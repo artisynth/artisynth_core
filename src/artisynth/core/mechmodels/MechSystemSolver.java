@@ -417,7 +417,8 @@ public class MechSystemSolver {
    VectorNi myKKTLcpState = new VectorNi();
    public static boolean verifyKKTWarmState = false;
 
-   private SparseSolverId myMatrixSolver = SparseSolverId.Pardiso;
+   private SparseSolverId myMatrixSolver =
+      SparseSolverId.getDefaultDirectSolver();
    Integrator myIntegrator = Integrator.SymplecticEuler;
    boolean myComplianceSupported = true; // true for default integrator
    double myTol = 0.01;

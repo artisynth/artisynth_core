@@ -19,6 +19,7 @@ public class KKTSolver {
 
    private SparseSolverId mySolverType =
       SparseSolverId.getDefaultDirectSolver();
+   private static boolean myIncompatibleSolverWarned = false;
    private boolean myUseMurty = false;
    private boolean myProfileFactorSolve = false;
 
@@ -139,6 +140,7 @@ public class KKTSolver {
       int numVals = 0;
 
       myTypeM = typeM;
+      ensureSolverSupportsType (typeM);
       if ((typeM & Matrix.SYMMETRIC) != 0) {
          myPartitionM = Partition.UpperTriangular;
       }
@@ -231,6 +233,40 @@ public class KKTSolver {
       myMDiagonalP = (M instanceof VectorNd);
       myHybridPolicy.invalidateFactor();
       myState = State.ANALYZED;
+   }
+
+   /**
+    * Replaces the matrix solver with the default direct solver if the
+    * current one does not support the matrix type. This happens with the
+    * Accelerate solver on macOS versions earlier than 15.5, which cannot
+    * factor unsymmetric matrices.
+    */
+   private void ensureSolverSupportsType (int typeM) {
+      if (mySolverType.isCompatible (typeM)) {
+         return;
+      }
+      SparseSolverId fallback = null;
+      for (SparseSolverId id : SparseSolverId.getAvailableDirectSolvers()) {
+         if (id != mySolverType && id.isDirect() && id.isCompatible(typeM)) {
+            fallback = id;
+         }
+      }
+      if (fallback == null) {
+         throw new InternalErrorException (
+            "No direct solver found that can handle matrix type " + typeM);
+      }
+      synchronized (KKTSolver.class) {
+         if (!myIncompatibleSolverWarned) {
+            System.out.println (
+               "Warning: solver " + mySolverType + " does not support " +
+               "unsymmetric matrices on this platform; using " +
+               fallback + " instead");
+            myIncompatibleSolverWarned = true;
+         }
+      }
+      myMatrixSolver.dispose();
+      myMatrixSolver = fallback.createDirectSolver();
+      mySolverType = fallback;
    }
 
    private void getCRSRowOffsets (Object M, int sizeM, SparseBlockMatrix GT) {

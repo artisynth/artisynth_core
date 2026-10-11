@@ -1657,10 +1657,14 @@ public abstract class MechSystemBase extends RenderableModelBase
       return myDefaultMatrixSolver;
    }
 
-   public void setMatrixSolver (SparseSolverId method) {
-      myMatrixSolver = method;
+   public void setMatrixSolver (SparseSolverId solverId) {
+      myMatrixSolver = solverId;
+      if (!SparseSolverId.isDirectSolverAvailable(solverId)) {
+         throw new IllegalArgumentException (
+            "Solver '"+solverId+"' not available on this platform");
+      }
       if (mySolver != null) {
-         mySolver.setMatrixSolver (method);
+         mySolver.setMatrixSolver (solverId);
          myMatrixSolver = mySolver.getMatrixSolver();
       }
    }
@@ -1671,9 +1675,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public Range getMatrixSolverRange() {
       return new EnumRange<SparseSolverId>(
-         SparseSolverId.class, new SparseSolverId[] {
-            SparseSolverId.Pardiso,
-            SparseSolverId.Mumps });
+         SparseSolverId.class, SparseSolverId.getAvailableDirectSolvers());
    }
 
    public void setIntegrator (Integrator integrator) {

@@ -52,8 +52,7 @@ Shared by `KKTSolver` and `MurtyMechSolver`; tested by `HybridSolvePolicyTest`.
   GMRES). Native = Pardiso's own `iparm[3]` CG/CGS: tolerance rounded to
   10^−L, Pardiso's own stopping test, 150-iteration limit, no stats.
   `getLastIterativeTimes()` returns ms {total, precond, matvec}.
-  `setIParam/getIParam/clearIParams` exist for the harnesses only (see
-  `ThreadCountSweep.md`).
+  `setIParam/getIParam/clearIParams` exist for the harnesses only.
 - `MumpsSolver`: GMRES/CGS only; also `getLastIterativeTimes()`.
 
 ## Native implementation (`src/maspack/solvers/lib/`)

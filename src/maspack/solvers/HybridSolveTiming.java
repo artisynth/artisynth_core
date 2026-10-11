@@ -26,9 +26,8 @@ import maspack.solvers.FemMatrixGenerator.ElemType;
  * where {@code r[k]} is uniformly distributed in [-1,1]. The time of each
  * iterative solve is compared with that of a direct factor and solve.
  *
- * <p>Test matrices are the slab cases of {@link ThreadCountSweep}: {@code
- * slab}, an {@code n x n x n/4} hex grid, and {@code slabC}, the same with
- * constraints added at a ratio of 0.1.
+ * <p>Test matrices are: {@code slab}, an {@code n x n x n/4} hex grid, and
+ * {@code slabC}, the same with constraints added at a ratio of 0.1.
  *
  * <p>Usage:
  * <pre>

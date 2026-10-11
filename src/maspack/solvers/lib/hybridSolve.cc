@@ -75,11 +75,33 @@ static int queryPhysicalCoreCount()
 #elif defined(DARWIN)
 
 // macOS: hw.physicalcpu is exactly this (as opposed to hw.logicalcpu,
-// which includes hyperthreads) -- no parsing needed.
+// which includes hyperthreads) -- no parsing needed. Except that on
+// Arm-based Macs with both performance and efficiency cores
+// (hw.nperflevels > 1), only the performance cores (perflevel0) are
+// counted. This is tuned for MUMPS, whose dense kernels use Accelerate's
+// BLAS: that runs on the chip's shared matrix units, so extra threads
+// mostly compete for them, and the efficiency cores slow factorization
+// down. Measured on an M5 Pro (5 performance + 10 efficiency cores), a
+// fixed 5 threads is within 9% of the best thread count across matrix
+// sizes, while 15 is up to 74% slower. This is not true of solvers in
+// general: Pardiso (x86_64 MKL, under Rosetta) on the same machine is
+// fastest with all 15 cores. Revisit this for any native arm64 solver
+// whose threading scales better.
 static int queryPhysicalCoreCount()
 {
    int count;
    size_t size = sizeof(count);
+   int numLevels;
+   size_t levelsSize = sizeof(numLevels);
+   if (sysctlbyname (
+          "hw.nperflevels", &numLevels, &levelsSize, NULL, 0) == 0 &&
+       numLevels > 1 &&
+       sysctlbyname (
+          "hw.perflevel0.physicalcpu", &count, &size, NULL, 0) == 0 &&
+       count > 0) {
+      return count;
+   }
+   size = sizeof(count);
    if (sysctlbyname ("hw.physicalcpu", &count, &size, NULL, 0) != 0) {
       return -1;
    }

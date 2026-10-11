@@ -21,6 +21,9 @@
 // count to this (not the logical count), for good reason: hyperthreads
 // provide little to no benefit for compute-bound work like sparse
 // factorization -- see maspack.solvers.DirectSolverBase.maxThreadsNnz.
+// On Arm-based Macs with efficiency cores, only the performance cores are
+// counted, since MUMPS with Accelerate's BLAS is slowed down by the
+// efficiency cores; other solvers may differ (see hybridSolve.cc).
 // Free function, not a HybridSolver method, since
 // it's a machine property rather than a per-solver one; queried once and
 // cached (see hybridSolve.cc), so cheap to call from every solver's

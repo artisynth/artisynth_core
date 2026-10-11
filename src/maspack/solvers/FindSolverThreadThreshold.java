@@ -224,16 +224,32 @@ public class FindSolverThreadThreshold {
 
    public void run() {
       if (myMaxThreads <= 0) {
-         myMaxThreads = Runtime.getRuntime().availableProcessors();
-         System.out.println (
-            "note: no -maxThreads given; using " + myMaxThreads +
-            " logical processors (Runtime.availableProcessors()). If this\n" +
-            "machine has hyperthreading, pass its PHYSICAL core count with\n" +
-            "-maxThreads instead: hyperthreads typically add little or no\n" +
-            "extra factorization throughput, so including them risks\n" +
-            "crediting \"threading\" for a benefit that actually plateaued\n" +
-            "well below -maxThreads, and so under-reporting the true\n" +
-            "threshold.\n");
+         // default to the solver's own core count, which is what unthrottled
+         // solves use: physical cores, and on Arm-based Macs with
+         // efficiency cores, performance cores only for MUMPS
+         DirectSolver solver = mySolverId.createDirectSolver();
+         if (solver instanceof DirectSolverBase) {
+            myMaxThreads = ((DirectSolverBase)solver).getPhysicalCoreCount();
+         }
+         solver.dispose();
+         if (myMaxThreads > 0) {
+            System.out.println (
+               "note: no -maxThreads given; using the solver's physical " +
+               "core count, " + myMaxThreads + "\n");
+         }
+         else {
+            myMaxThreads = Runtime.getRuntime().availableProcessors();
+            System.out.println (
+               "note: no -maxThreads given and the solver's physical core\n" +
+               "count is unknown; using " + myMaxThreads +
+               " logical processors (Runtime.availableProcessors()).\n" +
+               "If this machine has hyperthreading, pass its PHYSICAL core\n" +
+               "count with -maxThreads instead: hyperthreads typically add\n" +
+               "little or no extra factorization throughput, so including\n" +
+               "them risks crediting \"threading\" for a benefit that\n" +
+               "actually plateaued well below -maxThreads, and so\n" +
+               "under-reporting the true threshold.\n");
+         }
       }
       System.out.println (
          "solver=" + mySolverId + " maxThreads=" + myMaxThreads +
@@ -315,8 +331,8 @@ public class FindSolverThreadThreshold {
       System.out.println (
          "Usage: java maspack.solvers.FindSolverThreadThreshold\n" +
          "  -solver Mumps|Pardiso\n" +
-         "  [-maxThreads n]  (default: Runtime.availableProcessors(), which\n" +
-         "              counts logical, not physical, cores)\n" +
+         "  [-maxThreads n]  (default: the solver's physical core count,\n" +
+         "              or Runtime.availableProcessors() if unknown)\n" +
          "  [-res n,n,...]  (ascending candidate grid resolutions to search\n" +
          "              over; default is " + Arrays.toString (DEFAULT_RES) + ")\n" +
          "  [-verbose]  (print the per-trial costs behind each resolution's\n" +

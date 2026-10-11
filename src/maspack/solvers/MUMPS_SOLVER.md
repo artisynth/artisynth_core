@@ -1,10 +1,33 @@
-# MUMPS controls for ArtiSynth saddle point systems
+# The MUMPS solver
 
-How `MumpsSolver`/`mumps.cc` set the MUMPS controls for the systems ArtiSynth
-solves, why, where this departs from the MUMPS 5.9.1 user guide, and the
-adaptive strategy that settles the one control which cannot be fixed in
-advance. Written after diagnosing two MUMPS-only failures (see "The two
-failures" below), 2026-09-28/29.
+`maspack.solvers.MumpsSolver` is a `DirectSolver` based on MUMPS 5.9.1. It
+is built MPI-free but OpenMP-threaded, with the native side in
+`lib/MumpsJNI.cc`, `lib/mumps.cc` and `lib/hybridSolve.cc`. It is the
+alternative to Pardiso on Linux and Windows. On Arm-based Macs, which have
+no Pardiso, it is the alternative to the Accelerate solver
+(`ACCELERATE_SOLVER.md`). Select it with `SparseSolverId.Mumps` or
+`artisynth -matrixSolver Mumps`.
+
+Building the native library is described in:
+
+| Platform | Document |
+|---|---|
+| Linux | `lib/MUMPS_COMPILATION.md` |
+| Windows | `lib/MUMPS_COMPILATION_WINDOWS.md` |
+| macOS (Apple Silicon) | `lib/MUMPS_COMPILATION_MACOS.md` |
+
+This document covers how the solver behaves:
+
+- how `MumpsSolver` and `mumps.cc` set the MUMPS controls for the systems
+  ArtiSynth solves, and why;
+- where this departs from the MUMPS 5.9.1 user guide;
+- the adaptive strategy that settles the one control which cannot be fixed
+  in advance;
+- how thread counts are chosen.
+
+The controls were worked out on 2026-09-28/29, after diagnosing MUMPS-only
+failures on two matrices: the jaw-tongue correction and the incompressible
+slab (see "Why ICNTL(8) cannot be fixed in advance").
 
 ## The matrix class and how it is used
 
@@ -47,7 +70,7 @@ ICNTL and CNTL. A negative cached value means "leave MUMPS alone".
 | ICNTL(14) workspace | left at default, raised on retry | 20-35% | retries are sized from INFO(2); see below |
 | ICNTL(23) max memory | left alone unless set | 0 | exposed for callers with memory limits |
 | ICNTL(24) null pivots | **1** (detect) | 0 | differs: gives Pardiso-like behaviour on singular matrices |
-| ICNTL(48) tree parallelism | left on (1) | 1 | requires every phase to use the analysis's thread count; see "Thread counts" |
+| ICNTL(48) tree parallelism | left on (1) | 1 | requires every phase to use the analysis's thread count; see "Threads" |
 | CNTL(3) null threshold | 0.0 (automatic) | 0.0 | |
 | CNTL(4) static pivoting | -1.0 (off) | -1.0 | perturbs pivots and loses accuracy (1e-12 residuals observed); real pivoting preferred |
 
@@ -106,55 +129,6 @@ ICNTL and CNTL. A negative cached value means "leave MUMPS alone".
   scaling, and turned a recoverable condition into a crash.
 - **ICNTL(8) is chosen adaptively** instead of left at 77. This is the
   substantive deviation, described next.
-
-## Thread counts must be consistent across a solver's phases
-
-MUMPS 5.9 enables multithreaded tree parallelism by default (ICNTL(48)=1), and
-then **requires the factorization and solve phases to run with the same number
-of threads as the analysis**, failing with error -58 (INFOG(2) reporting the
-analysis count) otherwise. The OpenMP thread count is a property of the
-process, not of a solver, so in ArtiSynth two things routinely break that
-requirement:
-
-- creating another solver instance, whose constructor calls
-  `DirectSolverBase.initThreadState()`;
-- another solver's analysis being throttled: `applyThreadThrottle` runs in
-  `setMatrix` before the native analysis and, per
-  `MumpsSolver.maxThreadsNnz`, caps Linux matrices with nnz <= 64306 to one
-  thread. The sparse position-correction matrix is below that threshold while
-  the velocity matrix is not, so the correction solver's analysis dropped the
-  process-wide count to 1 every step.
-
-This produced the third failure: `artisynth.demos.opensim.Arm26FemElbow` and
-`Arm26FemHumerus` died with "MUMPS error -58 (INFOG(2)=8)" on their second
-velocity solve, only at 8 threads, while MurtyMechSolver was unaffected
-(it uses a single solver instance, so nothing changes the count between its
-phases).
-
-`Mumps` now records the thread count in effect at analysis
-(`myPhaseNumThreads`) and re-asserts it, for OpenMP and MKL, at the start of
-every factorization, solve and preconditioner solve (`applyPhaseThreads()`).
-Each instance's phases are therefore self-consistent no matter what else in
-the process changes the count, and the per-nnz throttling still works, since
-each instance keeps the count it analyzed with.
-
-Two consequences:
-
-- `setNumThreads()` called between an analysis and a factorization no longer
-  takes effect for that factorization; it applies from the next analysis. This
-  matches the documented contract, which already said the count should not be
-  changed between phases.
-- It also fixes accidental under-threading, which was the more expensive bug:
-  the correction solver's 1-thread throttle used to leak into the velocity
-  solver's factorizations. FemBowlContact per-step cost fell from 48.2 to
-  42.9-43.8 ms with incompressibility, and 27.6 to 26.6 ms without (MUMPS, 8
-  threads).
-
-Decided (2026-09-29): the per-nnz throttling stays as it is, so different
-solvers may use different thread counts while each solver's own phases remain
-consistent. Per-phase consistency removes the correctness problem on its own,
-and the throttle exists because MUMPS is slower with 8 threads on small
-matrices.
 
 ## Why ICNTL(8) cannot be fixed in advance
 
@@ -223,3 +197,155 @@ Diagnostics: setting `MUMPS_STRATEGY_TRACE` prints every decision with
 ICNTL(8)/ICNTL(12), delayed and null pivots, factor nonzeros, and running
 counts of trials, stale switches and re-analyses. These prints are temporary
 and can be removed.
+
+## Threads
+
+### Thread counts must be consistent across a solver's phases
+
+MUMPS 5.9 enables multithreaded tree parallelism by default (ICNTL(48)=1), and
+then **requires the factorization and solve phases to run with the same number
+of threads as the analysis**, failing with error -58 (INFOG(2) reporting the
+analysis count) otherwise. The OpenMP thread count is a property of the
+process, not of a solver, so in ArtiSynth two things routinely break that
+requirement:
+
+- creating another solver instance, whose constructor calls
+  `DirectSolverBase.initThreadState()`;
+- another solver's analysis being throttled: `applyThreadThrottle` runs in
+  `setMatrix` before the native analysis and, per
+  `MumpsSolver.maxThreadsNnz`, caps Linux matrices with nnz <= 64306 to one
+  thread. The sparse position-correction matrix is below that threshold while
+  the velocity matrix is not, so the correction solver's analysis dropped the
+  process-wide count to 1 every step.
+
+This produced the third failure: `artisynth.demos.opensim.Arm26FemElbow` and
+`Arm26FemHumerus` died with "MUMPS error -58 (INFOG(2)=8)" on their second
+velocity solve, only at 8 threads, while MurtyMechSolver was unaffected
+(it uses a single solver instance, so nothing changes the count between its
+phases).
+
+`Mumps` now records the thread count in effect at analysis
+(`myPhaseNumThreads`) and re-asserts it, for OpenMP and MKL, at the start of
+every factorization, solve and preconditioner solve (`applyPhaseThreads()`).
+Each instance's phases are therefore self-consistent no matter what else in
+the process changes the count, and the per-nnz throttling still works, since
+each instance keeps the count it analyzed with.
+
+Two consequences:
+
+- `setNumThreads()` called between an analysis and a factorization no longer
+  takes effect for that factorization; it applies from the next analysis. This
+  matches the documented contract, which already said the count should not be
+  changed between phases.
+- It also fixes accidental under-threading, which was the more expensive bug:
+  the correction solver's 1-thread throttle used to leak into the velocity
+  solver's factorizations. FemBowlContact per-step cost fell from 48.2 to
+  42.9-43.8 ms with incompressibility, and 27.6 to 26.6 ms without (MUMPS, 8
+  threads).
+
+Decided (2026-09-29): the per-nnz throttling stays as it is, so different
+solvers may use different thread counts while each solver's own phases remain
+consistent. Per-phase consistency removes the correctness problem on its own,
+and the throttle exists because MUMPS is slower with 8 threads on small
+matrices.
+
+### Default thread count
+
+A new solver's nominal thread count (`DirectSolverBase.initThreadState()`)
+is set as follows:
+
+1. `DirectSolverBase.setDefaultNumThreads()`, if positive.
+2. Otherwise, the OpenMP default: `OMP_NUM_THREADS` if it is set, or else
+   the number of logical cores.
+3. In either case, capped at `getPhysicalCoreCount()` when that is known.
+
+**`OMP_NUM_THREADS` is set to 1 on some systems**, for binary
+repeatability, and that silently makes MUMPS single-threaded. Override
+it, or call `setDefaultNumThreads()`, when timing or running threaded.
+
+For comparison across platforms, factorization of a 216k-unknown 3D
+Laplacian:
+
+| Platform | 1 thread | 8 threads |
+|---|---|---|
+| Linux, MKL (i7-11800H) | 7.15 s | 2.78 s |
+| macOS, Accelerate (M5 Pro) | 1.70 s | 0.99 s |
+
+### Thread throttling
+
+`MumpsSolver.maxThreadsNnz()` limits the thread count by matrix size,
+using a per-platform table of (nnz upper bound, maximum threads) entries.
+Above the last entry, the solver uses its nominal thread count. The nnz
+is that of the full matrix: for symmetric matrices, which are passed to
+MUMPS as an upper triangle, it is doubled before the lookup.
+
+| Platform | Single thread up to nnz | Measured on |
+|---|---|---|
+| Linux | 64306 | |
+| Windows | 146100 | |
+| macOS (Apple Silicon) | 146100 | M5 Pro, with 5 threads (2026-10-10, three runs agreed) |
+
+Windows' per-factorization thread-team overhead is roughly an order of
+magnitude higher than Linux's, so small matrices stay single-threaded up
+to a larger size there. The tables are measured with
+`maspack.solvers.FindSolverThreadThreshold -solver Mumps`. By default it
+compares a single thread against the solver's `getPhysicalCoreCount()`
+(the `-maxThreads` option overrides this).
+
+### Apple Silicon
+
+Two things differ on Arm-based Macs, both because of how MUMPS uses
+Accelerate's BLAS and libomp there.
+
+**OpenMP blocktime.** On macOS, MUMPS is linked against LLVM's libomp,
+since with gfortran's libgomp it got *slower* with more threads. On hybrid
+(P+E core) CPUs, libomp defaults to `KMP_BLOCKTIME=0`
+(`openmp/runtime/src/kmp.h`), so idle threads sleep after each of MUMPS'
+many short parallel regions. That caused about 500k involuntary context
+switches per factorization, against 252 at one thread. `mumps.cc`
+(compiled with `-DLIBOMP`) therefore calls `kmp_set_blocktime(1)` before
+each MUMPS call, unless `KMP_BLOCKTIME` is set in the environment.
+
+Factorization of a 216k-unknown 7-point Laplacian (METIS ordering), in
+seconds:
+
+| OpenMP runtime / setting | 1 thread | 4 threads | 8 threads | 15 threads |
+|---|---|---|---|---|
+| libgomp | 1.71 | 2.25 | 2.64 | 2.57 |
+| libomp, default (`KMP_BLOCKTIME=0`) | 1.70 | 1.85 | 2.12 | 2.03 |
+| **libomp, `KMP_BLOCKTIME=1`** | 1.70 | **1.04** | **0.99** | 1.03 |
+| libomp, `KMP_BLOCKTIME=200` | 1.73 | 1.06 | 1.01 | 1.58 |
+
+Longer blocktimes don't help and burn CPU. Turning off tree parallelism
+(`ICNTL(48)=0`) was worse in every case.
+
+**Performance cores only.** Accelerate's DGEMM runs on the chip's shared
+AMX/SME matrix units. A single thread already gets 200-470 GFLOP/s, so
+extra MUMPS threads mostly compete for those units, and scaling saturates
+at about 4-8 threads. On the M5 Pro (5 performance + 10 efficiency cores),
+the efficiency cores slow factorization down.
+
+`hybridGetPhysicalCoreCount()` (hybridSolve.cc), and hence
+`MumpsSolver.getPhysicalCoreCount()`, therefore returns the
+performance-core count (`hw.perflevel0.physicalcpu`) when
+`hw.nperflevels > 1`. Intel Macs, Linux and Windows are unchanged.
+
+ThreadCountSweep compared this with other counts on the gridC models
+(nnz 0.37M-9.3M):
+
+- A fixed 5 threads was 4% (mean) and 8.7% (max) slower than the best
+  count for each size.
+- 15 threads was 28% (mean) and 74% (max) slower.
+- 8 threads was best above about 1.5M nnz, by 5-10%.
+
+The cap is tuned for MUMPS with Accelerate's BLAS, and is not true of
+solvers in general. Pardiso under Rosetta is fastest with all 15 cores.
+Revisit the cap for any native arm64 solver that threads well.
+
+## Licensing
+
+MUMPS and SCOTCH are licensed under CeCILL-C. It carries a
+source-availability obligation, which static linking does not remove.
+METIS is Apache-2.0. MKL (Linux and Windows) is redistributable under
+Intel's license. Accelerate (macOS) is a system framework and is not
+shipped.

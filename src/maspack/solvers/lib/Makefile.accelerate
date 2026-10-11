@@ -25,6 +25,9 @@ TARGET = libAccelerateJNI.$(ACCELERATE_JNI_VERSION).dylib
 
 # macOS 13 is needed for SparseGetInertia. The object files have an "acc_"
 # prefix so as not to collide with those of Makefile.mumps.
+# Only the JNI entry points are exported, as for Makefile.mumps; this keeps
+# hybridSolve.cc's C++ symbols private and lets -dead_strip remove unused
+# code.
 CXX = clang++
 CXXFLAGS = -arch arm64 -mmacosx-version-min=13.0 -O2 -fPIC -Wall \
 	-DDARWIN -DNO_MKL \
@@ -39,15 +42,16 @@ maspack_solvers_AccelerateSolver.h: ../AccelerateSolver.java
 	   ../AccelerateSolver.java
 
 acc_accelerateJNI.o: accelerateJNI.cc hybridSolve.h hybridSolveJNI.h \
-	   maspack_solvers_AccelerateSolver.h
+	   maspack_solvers_AccelerateSolver.h Makefile.accelerate
 	$(CXX) $(CXXFLAGS) -c -o $@ accelerateJNI.cc
 
-acc_hybridSolve.o: hybridSolve.cc hybridSolve.h
+acc_hybridSolve.o: hybridSolve.cc hybridSolve.h Makefile.accelerate
 	$(CXX) $(CXXFLAGS) -c -o $@ hybridSolve.cc
 
-$(LIB_TARGET_DIR)/$(TARGET): $(OBJS)
+$(LIB_TARGET_DIR)/$(TARGET): $(OBJS) Makefile.accelerate
 	mkdir -p $(LIB_TARGET_DIR)
 	$(CXX) $(CXXFLAGS) -dynamiclib -install_name @rpath/$(TARGET) \
+	   -Wl,-exported_symbol,'_Java_*' -Wl,-dead_strip \
 	   -o $@ $(OBJS) -framework Accelerate
 
 clean:

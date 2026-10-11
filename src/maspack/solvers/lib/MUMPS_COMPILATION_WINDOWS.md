@@ -118,8 +118,5 @@ instantiating both solvers in one JVM, solving the same matrix, and
 comparing results — this is what actually catches the dynamic-loading
 issue above, since `check` alone can't (it doesn't execute the DLL).
 
-## Licensing (unchanged by the port)
-
-MUMPS and SCOTCH: CeCILL-C (source-availability obligation, not removed by
-static linking). METIS: Apache-2.0. MKL: redistributable under Intel's
-license.
+Licensing, and how the solver itself behaves, are covered in
+`../MUMPS_SOLVER.md`.

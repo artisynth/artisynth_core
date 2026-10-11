@@ -38,14 +38,12 @@ Configuration decisions (all verified on Linux):
 | OpenMP runtime| `libiomp5` — **shared, one per process, deliberately shared with Pardiso** |
 | Linkage       | Everything static except the OpenMP + language runtimes |
 
-Measured on Linux: 216k-unknown 3D Laplacian, 7.15 s @ 1 thread -> 2.78 s @ 8
-threads. All 7 `ICNTL(7)` orderings work from inside the library, which exports
+All 7 `ICNTL(7)` orderings work from inside the library, which exports
 only its `Java_maspack_solvers_MumpsSolver_*` entry points;
 `libPardisoJNI.so.2025.3` exports 18,387 symbols.
 
-Target application: symmetric indefinite KKT systems `[M G^T; G R]`, `SYM=2`.
-Recommended ordering: **METIS** (`ICNTL(7)=5`) with default `ICNTL(12)`;
-`ICNTL(13)=1` if exact inertia is wanted in `INFOG(12)`.
+How the solver sets the MUMPS controls, and its thread behaviour, are
+described in `../MUMPS_SOLVER.md`.
 
 --------------------------------------------------------------------------
 ## (a) Build
@@ -123,10 +121,3 @@ objects and `.mod` files, `include/mumps_int_def.h` (generated), and cleans
 
 `clean.mumps` removes only the JNI objects and the generated version script,
 not the installed `libMumpsJNI.so.*` in `lib/Linux64/`.
-
---------------------------------------------------------------------------
-## Environment gotcha
-
-For binary repeatability reasons, the environment variable
-OMP_NUM_THREADS is set to 1 on some systems, which silently defeats
-the threaded build. Override it when timing or running.

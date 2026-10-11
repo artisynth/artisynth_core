@@ -195,16 +195,16 @@ maspack_solvers_MumpsSolver.h: ../MumpsSolver.java
 	   ../MumpsSolver.java
 
 # hybrid (preconditioned iterative) solves, shared with the Pardiso JNI library
-hybridSolve.o: hybridSolve.cc hybridSolve.h
+hybridSolve.o: hybridSolve.cc hybridSolve.h Makefile.mumps
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o hybridSolve.o hybridSolve.cc
 
-mumps.o: mumps.cc mumps.h hybridSolve.h
+mumps.o: mumps.cc mumps.h hybridSolve.h Makefile.mumps
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o mumps.o mumps.cc
 
-MumpsJNI.o: MumpsJNI.cc mumps.h hybridSolve.h hybridSolveJNI.h maspack_solvers_MumpsSolver.h
+MumpsJNI.o: MumpsJNI.cc mumps.h hybridSolve.h hybridSolveJNI.h maspack_solvers_MumpsSolver.h Makefile.mumps
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o MumpsJNI.o MumpsJNI.cc
 
-$(LIB_TARGET_DIR)/$(MUMPS_TARGET): $(MUMPS_OBJS) $(EXPORTS_FILE)
+$(LIB_TARGET_DIR)/$(MUMPS_TARGET): $(MUMPS_OBJS) $(EXPORTS_FILE) Makefile.mumps
 	mkdir -p $(LIB_TARGET_DIR)
 	$(CC_COMP) $(LIB_FLAGS) $(CC_FLAGS) -o $@ \
 	$(MUMPS_OBJS) $(LDS_MUMPS_JNI)

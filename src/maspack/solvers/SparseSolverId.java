@@ -194,7 +194,7 @@ public enum SparseSolverId {
             }
             else {
                myAvailableDirects.add (SparseSolverId.Pardiso);
-               myAvailableDirects.add (SparseSolverId.Mumps);
+               //myAvailableDirects.add (SparseSolverId.Mumps);
             }
          }
          else {

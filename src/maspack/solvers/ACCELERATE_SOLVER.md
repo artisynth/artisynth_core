@@ -6,7 +6,7 @@ available only on Apple Silicon, under an arm64 JVM, where there is no
 Pardiso (Pardiso needs MKL, which is x86 only). It is the default direct
 solver there, with MUMPS as the alternative.
 
-Building the native library (`libAccelerateJNI.1.0.dylib`) is described
+Building the native library (`libAccelerateJNI.1.0.0.dylib`) is described
 in `lib/ACCELERATE_COMPILATION.md`.
 
 ## Selecting it

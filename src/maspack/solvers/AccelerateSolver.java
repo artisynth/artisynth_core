@@ -40,7 +40,7 @@ public class AccelerateSolver extends DirectSolverBase {
    private static final int ERR_CANT_LOAD_LIBRARIES = -1000;
    private static int myInitStatus = INIT_UNKNOWN;
 
-   static String nativeLibrary = "AccelerateJNI.1.0";
+   static String nativeLibrary = "AccelerateJNI.1.0.0";
 
    // native return codes, besides Accelerate's SparseStatus values (0, -1 to
    // -4), which are returned unchanged

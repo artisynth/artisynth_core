@@ -8,7 +8,7 @@
 
 ROOT_DIR = ../../../..
 
-ACCELERATE_JNI_VERSION = 1.0
+ACCELERATE_JNI_VERSION = 1.0.0
 
 ifneq ($(shell uname -s)-$(shell uname -m),Darwin-arm64)
    $(error Makefile.accelerate supports macOS on arm64 only)

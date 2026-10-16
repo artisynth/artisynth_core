@@ -3,7 +3,7 @@
 This is the counterpart of `MUMPS_COMPILATION_MACOS.md` for
 `maspack.solvers.AccelerateSolver`, which is described in
 `../ACCELERATE_SOLVER.md`. It produces
-`lib/MacOSArm64/libAccelerateJNI.1.0.dylib`, which is loaded by an arm64
+`lib/MacOSArm64/libAccelerateJNI.1.0.0.dylib`, which is loaded by an arm64
 JVM (`NativeLibraryManager` system type `MacOSArm64`).
 
 Verified 2026-10-10 on an M5 Pro, macOS 26.6, Xcode Command Line Tools
@@ -81,7 +81,7 @@ should build with no warnings.
 There is no `check` target. Run the equivalent commands from
 `artisynth_core`:
 
-    L=lib/MacOSArm64/libAccelerateJNI.1.0.dylib
+    L=lib/MacOSArm64/libAccelerateJNI.1.0.0.dylib
     lipo -archs $L                                   # arm64
     otool -l $L | grep -A3 LC_BUILD_VERSION | grep minos   # 13.0
     otool -L $L          # Accelerate, libc++, libSystem only

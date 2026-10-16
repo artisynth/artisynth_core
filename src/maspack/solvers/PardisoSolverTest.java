@@ -472,14 +472,23 @@ public class PardisoSolverTest extends DirectSolverTestBase
    }
 
    /**
-    * Iterative solves are checked for Pardiso's own method ("NATIVE") and for
-    * GMRES and CGS performed by the native wrapper.
+    * Iterative solves are checked for Pardiso's own method ("NATIVE") and,
+    * if the native library supports them, for GMRES and CGS performed by the
+    * native wrapper.
     */
    protected Object[] getIterativeMethods() {
-      return new Object[] {
-         "NATIVE",
-         DirectSolver.IterativeMethod.GMRES,
-         DirectSolver.IterativeMethod.CGS };
+      PardisoSolver solver = new PardisoSolver();
+      boolean hasWrapperSolves = solver.hasWrapperIterativeSolves();
+      solver.dispose();
+      if (hasWrapperSolves) {
+         return new Object[] {
+            "NATIVE",
+            DirectSolver.IterativeMethod.GMRES,
+            DirectSolver.IterativeMethod.CGS };
+      }
+      else {
+         return new Object[] { "NATIVE" };
+      }
    }
 
    protected void setIterativeMethod (DirectSolver solver, Object method) {

@@ -119,6 +119,9 @@ public class PardisoSolver extends DirectSolverBase {
    static String nativeLibrary = supportsMultipleRhs ?
       "PardisoJNI.2021.1.1" : "PardisoJNI.2021.1";         
       //"PardisoJNI.2026.1" : "PardisoJNI.2021.1";         
+   // MacOS64 has its own library, since MKL for macOS ended with 2023.2.
+   // 2021.1.1.1 is MKL 2021.1.1 with the native wrapper's GMRES/CGS solves.
+   static String macOS64NativeLibrary = "PardisoJNI.2021.1.1.1";
 
    /**
     * Describes the reorder methods that can be used during the analyze phase
@@ -378,6 +381,7 @@ public class PardisoSolver extends DirectSolverBase {
     */
    private static void doLoadLibraries() {
       try {
+         String libName = nativeLibrary;
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
@@ -394,6 +398,7 @@ public class PardisoSolver extends DirectSolverBase {
                // Advance loading of iomp5 now appears to work on the Mac. This
                // helps solve issues with libPardisoJNI not finding it.
                NativeLibraryManager.load ("iomp5");
+               libName = macOS64NativeLibrary;
                break;
             }
             case MacOSArm64: {
@@ -405,7 +410,7 @@ public class PardisoSolver extends DirectSolverBase {
                return;
             }
          }
-         NativeLibraryManager.load (nativeLibrary);
+         NativeLibraryManager.load (libName);
          myInitStatus = INIT_LIBRARIES_LOADED;
       }
       catch (Exception e) {

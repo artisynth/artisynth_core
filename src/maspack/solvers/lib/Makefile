@@ -151,25 +151,39 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	PARDISO_MKL_TARGET = PardisoJNI.$(PARDISO_VERSION).dll
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias
 else ifeq ($(SYSTEM),Darwin)
+        # MacOS64 (x86_64) only: MKL does not exist for Arm, and its last
+        # macOS release was 2023.2. On an Arm-based Mac this cross-compiles,
+        # and the result can be tested under Rosetta with an x86_64 JVM.
 	ifndef MKL_HOME
-	   MKL_HOME = /opt/intel/oneapi/mkl/2021.1.1
+	   MKL_HOME = $(HOME)/packages/oneapi/mkl/2021.1.1
         endif
         ifndef MKL_THREAD_LIB
-	   MKL_THREAD_LIB = /opt/intel/oneapi/compiler/2021.1.1/mac/compiler/lib
+	   MKL_THREAD_LIB = $(HOME)/packages/oneapi/compiler/2021.1.1/mac/compiler/lib
         endif
 	ifndef JAVA_HOME
-	   JAVA_HOME = /Library/Java/JavaVirtualMachines/jdk1.8.0_271.jdk/Contents/Home
+	   JAVA_HOME = $(shell /usr/libexec/java_home)
         endif
+	MACOS_MIN_VERSION = 11.0
+	# MKL 2021.1.1, plus the native wrapper's GMRES/CGS solves
+	PARDISO_VERSION = 2021.1.1.1
 	NATIVE_DIR = MacOS64
+	# objects go in their own directory, since Makefile.mumps and
+	# Makefile.accelerate build an arm64 hybridSolve.o here
+	OBJ_DIR = macos_x86_64/
+	CC_COMP = clang++
+	C_COMP = clang
 	MKL=$(MKL_HOME)/lib
-	LDS_PARDISO_MKL = -L$(MKL) -L$(MKL_THREAD_LIB) \
+	LDS_PARDISO_MKL = -L$(MKL_THREAD_LIB) \
 		$(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
-		$(MKL)/libmkl_core.a -liomp5 -lpthread     
+		$(MKL)/libmkl_core.a -liomp5 -lpthread
 	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -I$(MKL_HOME)/include -I.
-	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
-	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o hybridSolve.o
+	CC_FLAGS = -arch x86_64 -mmacosx-version-min=$(MACOS_MIN_VERSION) \
+		-O2 -fno-strict-aliasing -fPIC -DDARWIN
+	PARDISO_MKL_OBJS = $(addprefix $(OBJ_DIR), \
+		PardisoMklJNI.o pardisoMkl.o hybridSolve.o)
 	PARDISO_MKL_TARGET = libPardisoJNI.$(PARDISO_VERSION).dylib
-	LIB_FLAGS = -bundle -framework JavaNativeFoundation 
+	# export only the JNI entry points, not MKL's thousands of symbols
+	LIB_FLAGS = -bundle -Wl,-exported_symbol,'_Java_*' -Wl,-dead_strip
 endif
 
 LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
@@ -186,7 +200,8 @@ JNI_H_FILES = maspack_solvers_PardisoSolver.h
 # C++-mangled symbol name -- no extern "C" declaration was in scope for it
 # -- and only failed at runtime with UnsatisfiedLinkError).
 maspack_solvers_PardisoSolver.h: ../PardisoSolver.java
-	$(JAVAH) $(JAVAHFLAGS) maspack.solvers.PardisoSolver
+	javac -h . -d $(ROOT_DIR)/classes -cp "$(ROOT_DIR)/classes" \
+	   ../PardisoSolver.java
 
 # Used only on Linux systems. Allows us to use a version of memcpy
 # that does not depend on glibc 2.14
@@ -197,14 +212,17 @@ testUtils.o: testUtils.h testUtils.cc
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o testUtils.o testUtils.cc
 
 # hybrid (preconditioned iterative) solves, shared with the MUMPS JNI library
-hybridSolve.o: hybridSolve.cc hybridSolve.h
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o hybridSolve.o hybridSolve.cc
+$(OBJ_DIR)hybridSolve.o: hybridSolve.cc hybridSolve.h Makefile
+	@mkdir -p $(dir $@)
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o $@ hybridSolve.cc
 
-pardisoMkl.o: pardisoMkl.cc pardisoMkl.h hybridSolve.h
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o pardisoMkl.o pardisoMkl.cc
+$(OBJ_DIR)pardisoMkl.o: pardisoMkl.cc pardisoMkl.h hybridSolve.h Makefile
+	@mkdir -p $(dir $@)
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o $@ pardisoMkl.cc
 
-PardisoMklJNI.o: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h hybridSolve.h hybridSolveJNI.h
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o PardisoMklJNI.o PardisoMklJNI.cc
+$(OBJ_DIR)PardisoMklJNI.o: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h hybridSolve.h hybridSolveJNI.h Makefile
+	@mkdir -p $(dir $@)
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o $@ PardisoMklJNI.cc
 
 pardisoMklTest.o: pardisoMklTest.cc 
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o pardisoMklTest.o pardisoMklTest.cc
@@ -217,7 +235,7 @@ pardisoMklTest: pardisoMkl.o hybridSolve.o pardisoMklTest.o pardisoMkl.h
 	$(CC_COMP) $(CC_FLAGS) -o pardisoMklTest pardisoMklTest.o pardisoMkl.o hybridSolve.o \
 		-L$(LIB_TARGET_DIR) $(LDS_PARDISO_MKL)
 
-$(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET): $(PARDISO_MKL_OBJS) 
+$(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET): $(PARDISO_MKL_OBJS) Makefile
 	$(CC_COMP)  $(LIB_FLAGS) $(CC_FLAGS) -o $@ \
 	$(PARDISO_MKL_OBJS) $(LDS_PARDISO_MKL) 
 ifeq ($(SYSTEM),Darwin)
@@ -242,7 +260,7 @@ pardisoTestExample: pardisoTestExample.c
 depend:	$(JNI_H_FILES)
 
 clean::
-	rm -rf pardisoTest pardiso*Example *.obj
+	rm -rf pardisoTest pardiso*Example *.obj macos_x86_64
 
 ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 # on Cygwin, we don't build the libs; we use the Intel compiler and nmake

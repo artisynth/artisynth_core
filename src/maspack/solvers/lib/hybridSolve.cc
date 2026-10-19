@@ -86,11 +86,14 @@ static int queryPhysicalCoreCount()
 // sizes, while 15 is up to 74% slower. This is not true of solvers in
 // general: Pardiso (x86_64 MKL, under Rosetta) on the same machine is
 // fastest with all 15 cores. Revisit this for any native arm64 solver
-// whose threading scales better.
+// whose threading scales better. The cap is therefore compiled into arm64
+// builds only, so that x86_64 builds (Pardiso, on Intel Macs or under
+// Rosetta) count all physical cores.
 static int queryPhysicalCoreCount()
 {
    int count;
    size_t size = sizeof(count);
+#ifdef __aarch64__
    int numLevels;
    size_t levelsSize = sizeof(numLevels);
    if (sysctlbyname (
@@ -102,6 +105,7 @@ static int queryPhysicalCoreCount()
       return count;
    }
    size = sizeof(count);
+#endif
    if (sysctlbyname ("hw.physicalcpu", &count, &size, NULL, 0) != 0) {
       return -1;
    }

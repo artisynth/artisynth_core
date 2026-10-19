@@ -328,7 +328,9 @@ the efficiency cores slow factorization down.
 `hybridGetPhysicalCoreCount()` (hybridSolve.cc), and hence
 `MumpsSolver.getPhysicalCoreCount()`, therefore returns the
 performance-core count (`hw.perflevel0.physicalcpu`) when
-`hw.nperflevels > 1`. Intel Macs, Linux and Windows are unchanged.
+`hw.nperflevels > 1`. Intel Macs, Linux and Windows are unchanged. The cap
+is compiled into arm64 builds only, so x86_64 Pardiso running under Rosetta
+counts all cores.
 
 ThreadCountSweep compared this with other counts on the gridC models
 (nnz 0.37M-9.3M):

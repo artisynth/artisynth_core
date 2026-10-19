@@ -10,6 +10,8 @@ refer here:
   and 2.
 - `../../geometry/lib/Makefile` (RobustPreds, TetgenJNI) also needs
   only sections 1 and 2.
+- `PARDISO_COMPILATION_MACOS.md` (libPardisoJNI, x86_64 `lib/MacOS64`)
+  needs only section 1, plus Intel's MKL.
 
 Verified 2026-10-10 on an M5 Pro, macOS 26.6, Xcode Command Line Tools
 (Apple clang 21, SDK 27.0) and Homebrew at `/opt/homebrew`. The deployment

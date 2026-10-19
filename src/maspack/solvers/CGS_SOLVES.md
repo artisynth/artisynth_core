@@ -89,7 +89,10 @@ Shared by `KKTSolver` and `MurtyMechSolver`; tested by `HybridSolvePolicyTest`.
 ## Native libraries / platforms
 
 - Only Linux is rebuilt: `libPardisoJNI.so.2026.1.1`, `libMumpsJNI.so.5.9.1`
-  (MKL 2026.1). Windows/Mac aren't rebuilt; `NMakefile` is untested.
+  (MKL 2026.1). MacOS64 is rebuilt as `libPardisoJNI.2021.1.1.1.dylib` (MKL
+  2021.1.1, cross-compiled on an Arm Mac and tested under Rosetta), loaded via
+  `PardisoSolver.macOS64NativeLibrary`. Windows isn't rebuilt; `NMakefile` is
+  untested.
 - Older libraries lack the hybrid entry points, which then raise
   `UnsatisfiedLinkError`. Pardiso falls back permanently to its native
   solve; MUMPS disables iterative solves. `setIParam` etc. are not guarded.

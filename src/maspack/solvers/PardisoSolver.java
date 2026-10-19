@@ -145,6 +145,8 @@ public class PardisoSolver extends DirectSolverBase {
    private boolean myLastSolveWasHybrid = false;
    // cleared if the native library does not support GMRES or CGS solves
    private static boolean myHybridSolvesSupported = true;
+   // true once myHybridSolvesSupported has been determined
+   private static boolean myHybridSolvesChecked = false;
 
    private static final int ERR_INCONSISTENT_INPUT = -1;
 
@@ -430,6 +432,17 @@ public class PardisoSolver extends DirectSolverBase {
       // create the handle here because earlier JNI implementations of
       // setNumThreads required this internally:
       myHandle = doInit();
+      if (!myHybridSolvesChecked) {
+         // native libraries before PardisoJNI 2026.1.1 lack the GMRES and CGS
+         // solves; check this once, using a query that has no side effects
+         try {
+            doGetLastIterativeSolves (myHandle);
+         }
+         catch (UnsatisfiedLinkError e) {
+            myHybridSolvesSupported = false;
+         }
+         myHybridSolvesChecked = true;
+      }
       initThreadState();
    }
 
@@ -1196,6 +1209,19 @@ public class PardisoSolver extends DirectSolverBase {
       else {
          return true;
       }
+   }
+
+   /**
+    * Queries whether the native library supports the iterative methods set by
+    * {@link #setIterativeMethod} (GMRES and CGS), which are performed by the
+    * native wrapper. These were added with PardisoJNI 2026.1.1. If they are
+    * not supported, {@link #iterativeSolve} uses Pardiso's own iterative
+    * solve instead (see {@link #setUseNativeIterativeSolve}).
+    *
+    * @return <code>true</code> if GMRES and CGS iterative solves are supported
+    */
+   public boolean hasWrapperIterativeSolves() {
+      return myHybridSolvesSupported;
    }
 
    /**

@@ -341,6 +341,14 @@ public abstract class DirectSolverBase implements DirectSolver {
     * that as "undetermined" and skip whatever they would otherwise have
     * capped by it, rather than treating {@code -1} as a literal core count.
     *
+    * <p>On Arm-based Macs with both performance and efficiency cores, the
+    * native code shared by the MUMPS and Accelerate solvers counts only the
+    * performance cores. This is tuned for MUMPS, whose use of Accelerate's
+    * BLAS (which runs on the chip's shared matrix units) gains little from
+    * extra threads and is slowed down by the efficiency cores. It is not
+    * true of solvers in general: Pardiso, under Rosetta, is fastest with
+    * all cores.
+    *
     * <p>Queried once and cached for the life of the process: this is not
     * meticulously synchronized against concurrent first calls from
     * different solver instances, but the query is cheap, side-effect-free

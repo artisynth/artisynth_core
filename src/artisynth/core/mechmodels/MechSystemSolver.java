@@ -71,7 +71,8 @@ public class MechSystemSolver {
 
    public boolean profileKKTSolveTime = false;
    public boolean profileMurtySolveTime = false;
-   public boolean profileFactorSolve = false;
+   static boolean DEFAULT_PROFILE_FACTOR_SOLVE = false;
+   boolean profileFactorSolve = DEFAULT_PROFILE_FACTOR_SOLVE;
    public boolean profileWholeSolve = false;
    public boolean profileConstrainedBE = false;
    public boolean profileImplicitFriction = false;
@@ -386,6 +387,20 @@ public class MechSystemSolver {
    }
    
    /**
+    * Sets initial setting for the 'profileFactorSolve' attribute.
+    */
+   public static void setDefaultProfileFactorSolve (boolean enable) {
+      DEFAULT_PROFILE_FACTOR_SOLVE = enable;
+   }
+
+   /**
+    * Queries the initial setting for the 'profileFactorSolve' attribute.
+    */
+   public static boolean getDefaultProfileFactorSolve () {
+      return DEFAULT_PROFILE_FACTOR_SOLVE;
+   }
+
+   /**
     * Enable/disables profiling of factor/solve times for implicit
     * integrators that use the KKTFactorAndSolve method.
     */
@@ -657,16 +672,10 @@ public class MechSystemSolver {
 
    public void setMatrixSolver (SparseSolverId solver) {
       if (solver != myMatrixSolver) {
-         switch (solver) {
-            case Pardiso: 
-            case Mumps:
-            case Umfpack: {
-               break;
-            }
-            default: {
-               System.out.println ("Matrix solver "+solver+" not supported");
-               return;
-            }
+         if (!SparseSolverId.isDirectSolverAvailable(solver)) {
+            System.out.println (
+               "WARNING: matrix solver "+solver+" not supported");
+            return;
          }
          mySolveMatrix = null;
          myMatrixSolver = solver;

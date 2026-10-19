@@ -1,0 +1,58 @@
+# TEST VERSION: builds libAccelerateJNI.<version>.dylib, the native side of
+# maspack.solvers.AccelerateSolver, which uses the sparse LDL^T solver in
+# Apple's Accelerate framework. macOS on arm64 only. Depends only on the
+# Accelerate framework and libSystem. Iterative (hybrid) solves are provided
+# by hybridSolve.cc, compiled with -DNO_MKL.
+#
+#   make -f Makefile.accelerate
+
+ROOT_DIR = ../../../..
+
+ACCELERATE_JNI_VERSION = 1.0.0
+
+ifneq ($(shell uname -s)-$(shell uname -m),Darwin-arm64)
+   $(error Makefile.accelerate supports macOS on arm64 only)
+endif
+
+# only the (architecture independent) JNI headers are used, so any JDK will do
+ifndef JAVA_HOME
+   JAVA_HOME = $(shell /usr/libexec/java_home -v 21)
+endif
+
+NATIVE_DIR = MacOSArm64
+LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
+TARGET = libAccelerateJNI.$(ACCELERATE_JNI_VERSION).dylib
+
+# macOS 13 is needed for SparseGetInertia. The object files have an "acc_"
+# prefix so as not to collide with those of Makefile.mumps.
+# Only the JNI entry points are exported, as for Makefile.mumps; this keeps
+# hybridSolve.cc's C++ symbols private and lets -dead_strip remove unused
+# code.
+CXX = clang++
+CXXFLAGS = -arch arm64 -mmacosx-version-min=13.0 -O2 -fPIC -Wall \
+	-DDARWIN -DNO_MKL \
+	-I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -I.
+
+OBJS = acc_accelerateJNI.o acc_hybridSolve.o
+
+default: $(LIB_TARGET_DIR)/$(TARGET)
+
+maspack_solvers_AccelerateSolver.h: ../AccelerateSolver.java
+	javac -h . -d $(ROOT_DIR)/classes -cp "$(ROOT_DIR)/classes" \
+	   ../AccelerateSolver.java
+
+acc_accelerateJNI.o: accelerateJNI.cc hybridSolve.h hybridSolveJNI.h \
+	   maspack_solvers_AccelerateSolver.h Makefile.accelerate
+	$(CXX) $(CXXFLAGS) -c -o $@ accelerateJNI.cc
+
+acc_hybridSolve.o: hybridSolve.cc hybridSolve.h Makefile.accelerate
+	$(CXX) $(CXXFLAGS) -c -o $@ hybridSolve.cc
+
+$(LIB_TARGET_DIR)/$(TARGET): $(OBJS) Makefile.accelerate
+	mkdir -p $(LIB_TARGET_DIR)
+	$(CXX) $(CXXFLAGS) -dynamiclib -install_name @rpath/$(TARGET) \
+	   -Wl,-exported_symbol,'_Java_*' -Wl,-dead_strip \
+	   -o $@ $(OBJS) -framework Accelerate
+
+clean:
+	rm -f $(OBJS) maspack_solvers_AccelerateSolver.h

@@ -1,5 +1,6 @@
 package maspack.solvers;
 
+import java.util.ArrayList;
 import maspack.matrix.Matrix;
 
 /**
@@ -24,12 +25,21 @@ public enum SparseSolverId {
    Umfpack (true, Matrix.INDEFINITE),
 
    /**
+    * Sparse LDL^T and LU solver from Apple's Accelerate framework (Arm-based
+    * MacOS only). Unsymmetric matrices require macOS 15.5 or later; on earlier
+    * systems, only symmetric matrices are supported.
+    */
+   Accelerate (true, Matrix.SYMMETRIC),
+
+   /**
     * Conjugate gradient
     */
    ConjugateGradient (false, Matrix.SPD);
 
    private boolean myIsDirect = false;
    private int myMatrixType = 0;
+
+   private static ArrayList<SparseSolverId> myAvailableDirects;
 
    SparseSolverId (boolean isDirect, int matrixType) {
       myIsDirect = isDirect;
@@ -46,6 +56,10 @@ public enum SparseSolverId {
    }
 
    public int getMatrixType() {
+      if (this == Accelerate && AccelerateSolver.isLUAvailable()) {
+         // unsymmetric matrices need Accelerate's LU (macOS 15.5 or later)
+         return Matrix.INDEFINITE;
+      }
       return myMatrixType;
    }
 
@@ -55,9 +69,8 @@ public enum SparseSolverId {
     * @param matrixType matrix type to check
     * @return {@code true} if the matrix type is compatible
     */
-
    public boolean isCompatible (int matrixType) {
-      switch (myMatrixType) {
+      switch (getMatrixType()) {
          case Matrix.INDEFINITE: {
             return true;
          }
@@ -79,7 +92,6 @@ public enum SparseSolverId {
    // test solver
    private static Boolean myPardisoAvailable = null;
    private static Boolean myMumpsAvailable = null;
-   private static SparseSolverId myDefaultDirectSolver = null;
    private static boolean myPardisoFallbackWarned = false;
 
    private static synchronized boolean pardisoAvailable() {
@@ -98,26 +110,12 @@ public enum SparseSolverId {
 
    /**
     * Returns the default direct solver for the current platform. This is
-    * Pardiso if it is available, and otherwise MUMPS, if that is
-    * available. Pardiso is not available on platforms without Intel MKL,
-    * such as Arm-based MacOS. If neither is available, Pardiso is
-    * returned, so that attempts to use it produce the usual error.
+    * the first solver in the list returned by {@link #getAvailableDirectSolvers}.
     *
     * @return default direct solver
     */
    public static synchronized SparseSolverId getDefaultDirectSolver() {
-      if (myDefaultDirectSolver == null) {
-         if (pardisoAvailable()) {
-            myDefaultDirectSolver = Pardiso;
-         }
-         else if (mumpsAvailable()) {
-            myDefaultDirectSolver = Mumps;
-         }
-         else {
-            myDefaultDirectSolver = Pardiso;
-         }
-      }
-      return myDefaultDirectSolver;
+      return getAvailableDirectSolvers()[0];
    }
 
    /**
@@ -150,6 +148,9 @@ public enum SparseSolverId {
          case Umfpack: {
             return new UmfpackSolver();
          }
+         case Accelerate: {
+            return new AccelerateSolver();
+         }
          default: {
             return null;
          }
@@ -172,6 +173,61 @@ public enum SparseSolverId {
          }
       }
    }
-   
 
+   /**
+    * Returns all the available direct solvers that should be available for the
+    * current platform. (Note that it is still possible a given solver might
+    * not actually be available because of trouble accessingor loading the
+    * native libraries.)
+    */
+   public static SparseSolverId[] getAvailableDirectSolvers() {
+      if (myAvailableDirects == null) {
+         myAvailableDirects = new ArrayList<>();
+         String osname = System.getProperty ("os.name");
+         String osarch = System.getProperty ("os.arch");
+
+         if (osname.equals ("Darwin") ||
+             osname.startsWith ("Mac")) {
+            if (osarch.equals ("aarch64")) {
+               myAvailableDirects.add (SparseSolverId.Accelerate);
+               myAvailableDirects.add (SparseSolverId.Mumps);
+            }
+            else {
+               myAvailableDirects.add (SparseSolverId.Pardiso);
+               //myAvailableDirects.add (SparseSolverId.Mumps);
+            }
+         }
+         else {
+            myAvailableDirects.add (SparseSolverId.Pardiso);
+            myAvailableDirects.add (SparseSolverId.Mumps);
+         }
+      }
+      return myAvailableDirects.toArray (new SparseSolverId[0]);
+   }
+
+   /**
+    * Finds a direct solver id by name (ignoring case) for the current
+    * platform. Returns {@code null} if the solver is not available.
+    */
+   public static SparseSolverId findAvailableDirectSolver (String name) {
+      for (SparseSolverId id : getAvailableDirectSolvers()) {
+         if (id.name().equals(name) && id.isDirect()) {
+            return id;
+         }
+      }
+      return null;
+   }   
+
+   /**
+    * Queries whether a specified direct solver should be available for the
+    * current platform.
+    */
+   public static boolean isDirectSolverAvailable (SparseSolverId solverId) {
+      for (SparseSolverId id : getAvailableDirectSolvers()) {
+         if (id == solverId && id.isDirect()) {
+            return true;
+         }
+      }
+      return false;
+   }   
 }

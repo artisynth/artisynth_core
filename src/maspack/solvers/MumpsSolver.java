@@ -1460,12 +1460,14 @@ public class MumpsSolver extends DirectSolverBase {
       new ThreadLimit (64306, 1),
    };
 
-   // macOS: no measurements exist for this platform yet -- this is a guess
-   // by analogy to Linux, not Windows, since MUMPS on macOS is built with
-   // the same gfortran+iomp5 toolchain as Linux (see Makefile's MacOS64
-   // case), not the MSVC/ifx toolchain responsible for Windows' outsized
-   // thread-team overhead. Replace once real measurements are available.
-   private static final ThreadLimit[] MACOS_THREAD_LIMITS = LINUX_THREAD_LIMITS;
+   // macOS: measured on an Arm-based Mac (Apple M5 Pro, 5 performance + 10
+   // efficiency cores) with FindSolverThreadThreshold at its default
+   // maxThreads, which is 5 since only the performance cores are counted
+   // there (see getPhysicalCoreCount() and hybridSolve.cc); three runs
+   // agreed.
+   private static final ThreadLimit[] MACOS_THREAD_LIMITS = {
+      new ThreadLimit (146100, 1),
+   };
 
    private static final boolean ourIsWindows =
       System.getProperty ("os.name").toLowerCase().startsWith ("windows");

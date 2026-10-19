@@ -159,9 +159,19 @@ public class ReaderTokenizerTest {
    private Record[] testResults3 =
       new Record[] { new Record ("__FOO", WORD, 1), new Record ("", EOL, 2),
                     new Record ("BAD", WORD, 3), new Record ("", EOL, 4),
-                     // EOL is now skipped - see ReaderTokenizer line 1820
+                     // EOL is skipped for lines containing only comments
                      //new Record ("", EOL, 5),
                     new Record ("", EOF, 5), };
+
+   // '#' comments following tokens should not consume the EOL
+   private String testString6 =
+      "aa bb # stuff\n# more stuff\n  # indented stuff\ncc # stuff\ndd\n";
+
+   private Record[] testResults6 =
+      new Record[] { new Record ("aa", WORD, 1), new Record ("bb", WORD, 1),
+                    new Record ("", EOL, 2), new Record ("cc", WORD, 4),
+                    new Record ("", EOL, 5), new Record ("dd", WORD, 5),
+                    new Record ("", EOL, 6), new Record ("", EOF, 6), };
 
 //   private String testString4 = "777E 0xdeadL 1e-8msec 0.8H 0.8 ";
 //
@@ -225,6 +235,9 @@ public class ReaderTokenizerTest {
       rtok.wordChar ('_');
       rtok.setReader (new StringReader (testString3));
       runTest (testResults3, rtok);
+
+      rtok.setReader (new StringReader (testString6));
+      runTest (testResults6, rtok);
 
       rtok.parseNumbers (false);
       int dsave = rtok.getCharSetting ('-');

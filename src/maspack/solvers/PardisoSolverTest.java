@@ -567,6 +567,12 @@ public class PardisoSolverTest extends DirectSolverTestBase
             System.exit(1); 
          }
       }
+
+      if (!SparseSolverId.isDirectSolverAvailable (SparseSolverId.Pardiso)) {
+         System.out.println (
+            "Pardiso not available on this platform; test skipped");
+         return;
+      }
       
       //tester.symmetricTest1();
       //tester.symmetricTest2();

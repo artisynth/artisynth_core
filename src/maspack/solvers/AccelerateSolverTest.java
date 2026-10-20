@@ -165,8 +165,9 @@ public class AccelerateSolverTest extends DirectSolverTestBase {
             tester.printUsageAndExit ("[-verbose]");
          }
       }
-      if (!AccelerateSolver.isAvailable()) {
-         System.out.println ("Accelerate solver not available; test skipped");
+      if (!SparseSolverId.isDirectSolverAvailable (SparseSolverId.Accelerate)) {
+         System.out.println (
+            "Accelerate solver not available on this platform; test skipped");
          return;
       }
       tester.runtest();

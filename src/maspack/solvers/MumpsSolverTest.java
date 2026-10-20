@@ -358,9 +358,9 @@ public class MumpsSolverTest extends DirectSolverTestBase {
             tester.printUsageAndExit ("[-verbose]");
          }
       }
-      if (!MumpsSolver.isAvailable()) {
-         // the MUMPS native library is not built for all platforms
-         System.out.println ("MUMPS not available; test skipped");
+      if (!SparseSolverId.isDirectSolverAvailable (SparseSolverId.Mumps)) {
+         System.out.println (
+            "Mumps not available on this platform; test skipped");
          return;
       }
       tester.runtest();

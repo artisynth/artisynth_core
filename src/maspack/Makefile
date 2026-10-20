@@ -13,7 +13,8 @@ JAVA_SUBDIRS = \
 	render \
 	solvers \
 	spatialmotion \
-	util
+	util \
+	image
 
 default: build
 

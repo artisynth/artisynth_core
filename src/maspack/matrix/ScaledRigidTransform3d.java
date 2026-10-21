@@ -184,7 +184,7 @@ Clonable {
    public ScaledRigidTransform3d (
       double px, double py, double pz, double roll, double pitch, double yaw) {
       this.R = new RotationMatrix3d ();
-      this.R.setRpy (roll, pitch, yaw);
+      this.R.setZyxAngles (roll, pitch, yaw);
       this.p = new Vector3d (px, py, pz);     
       s = 1;
       A = new Matrix3d();

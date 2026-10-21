@@ -1,8 +1,7 @@
 #!/bin/bash
-USAGE="Usage: $0 [-ahome <dir>] [-systemType <systype>] [-leaveUnused]"
+USAGE="Usage: $0 [-ahome <dir>] [-systemType <systype>]"
 ARGS="-updateLibs"
 # clear ARTISYNTH_HOME by default so that we figure this out from out location
-LEAVE_UNUSED=
 ARTISYNTH_HOME=
 while [ "$1" ]; do
    if [ $1 == "-ahome" ] ; then
@@ -21,17 +20,12 @@ while [ "$1" ]; do
           ARGS="$ARGS -systemType $2"
           shift
       fi
-   elif [ $1 == "-leaveUnused" ] ; then
-      LEAVE_UNUSED=true
    else 
       echo "$USAGE"
       exit 1
    fi
    shift
 done
-if [ -z "$LEAVE_UNUSED" ] ; then
-    ARGS="$ARGS -moveUnused"
-fi
 if [ -z "$ARTISYNTH_HOME" ] ; then
     # try to figure out ARTISYNTH_HOME
     D=`dirname $0`/..

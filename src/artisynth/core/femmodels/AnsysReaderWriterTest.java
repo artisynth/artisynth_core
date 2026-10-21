@@ -89,8 +89,9 @@ public class AnsysReaderWriterTest extends UnitTest {
    
    protected static void checkStrings (String msg, String str, String chk) {
 
-      String[] strs = str.split ("\n");
-      String[] chks = chk.split ("\n");
+      // PrintWriter.println writes \r\n on Windows
+      String[] strs = str.split ("\r?\n");
+      String[] chks = chk.split ("\r?\n");
 
       if (strs.length != chks.length) {
          throw new TestException (msg + ": got "+strs.length+" lines, expecting "+chks.length);

@@ -156,8 +156,9 @@ public class AbaqusReaderWriterTest extends UnitTest {
    
    protected static void checkFileStrings (String input, String check) {
 
-      String[] inputs = input.split ("\n");
-      String[] checks = check.split ("\n");
+      // PrintWriter.println writes \r\n on Windows
+      String[] inputs = input.split ("\r?\n");
+      String[] checks = check.split ("\r?\n");
 
       ArrayList<String> inputStrs = new ArrayList<>();
       for (int i=0; i<inputs.length; i++) {

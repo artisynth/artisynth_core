@@ -1284,9 +1284,8 @@ public abstract class GeometryTransformer {
          
          ScaledRigidTransform3d srt = (ScaledRigidTransform3d)X;
          AffineTransform3d trans = new AffineTransform3d();
-         trans.setRotation (srt.R);
          trans.setTranslation (srt.p);
-         trans.setScaling (srt.s, srt.s, srt.s);
+         trans.A.scale (srt.s, srt.R);  // A = s*R
          return new AffineTransformer(trans);
       }
       else 

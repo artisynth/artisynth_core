@@ -77,14 +77,9 @@ public class LinearElasticContact extends ElasticContactBase {
       double[] fres, double dist, ContactPoint cpnt0, ContactPoint cpnt1,
       Vector3d normal, double contactArea, int flags) {
       
-      double area = getContactArea (cpnt0, normal, contactArea);
-
       double h = getThickness (cpnt0, cpnt1);
       double E = getYoungsModulus(cpnt0, cpnt1);
-      double Ka = E*myStiffnessMultiplier*area;
-      if ((flags & TWO_WAY_CONTACT) != 0) {
-         Ka *= 0.5;
-      }
+      double Ka = E*myStiffnessMultiplier*contactArea;
       
       if (myUseLogDistance) {
          double r = myMinThicknessRatio;

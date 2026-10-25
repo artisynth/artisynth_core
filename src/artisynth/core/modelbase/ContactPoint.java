@@ -437,26 +437,73 @@ public class ContactPoint implements MeshFieldPoint {
    }
 
    /**
-    * Computes an estimate of the local contact for this point, assuming that
-    * it is associated with a vertex or edge-edge contact.  Otherwise, the
-    * method returns -1.
+    * Computes an estimate of the local contact area for this point, assuming
+    * that it is associated with either a vertex or a mesh edge. For a
+    * vertex, the area is one third of the area of each face surrounding the
+    * vertex. For an edge (as used for edge-edge contacts), it is one third of
+    * the area of each face adjacent to the edge. (Dividing each face's area
+    * equally among its vertices, or among its edges, partitions the mesh
+    * area.) In both cases, the area is projected onto the plane perpendicular
+    * to the contact normal. If the point is associated with neither a vertex
+    * nor an edge, the method returns -1.
     *
     * @param nrml contact normal
-    * @return area estimate, or -1 if not vertex or edge-edge.
+    * @return area estimate, or -1 if not associated with a vertex or edge
     */
    public double computeContactArea (Vector3d nrml) {
-      if (myVtxs == null || myVtxs.length != 1) {
+      if (myVtxs == null) {
          return -1;
       }
       Vector3d xsum = new Vector3d();
-      // sum the cross products of all the face edges surrounding this
-      // vertex. This effectively gives an area-weighted vertex normal.
-      myVtxs[0].sumEdgeCrossProductsWorld (xsum);
-      // take the dot product of the vertex normal with the contact normal to
-      // get the area component in the contact plane. Divide by 6 because (a)
-      // cross products give twice the area, and (b) the vertex should take
+      if (myVtxs.length == 1) {
+         // sum the cross products of all the face edges surrounding this
+         // vertex. This effectively gives an area-weighted vertex normal.
+         myVtxs[0].sumEdgeCrossProductsWorld (xsum);
+      }
+      else if (myVtxs.length == 2) {
+         // vertices are the tail and head of an edge: sum the cross products
+         // for the faces adjacent to the edge.
+         HalfEdge he = myVtxs[1].findIncidentHalfEdge (myVtxs[0]);
+         if (he == null) {
+            return -1;
+         }
+         addFaceCrossProduct (xsum, he.getFace());
+         if (he.opposite != null) {
+            addFaceCrossProduct (xsum, he.opposite.getFace());
+         }
+         MeshBase mesh = myVtxs[0].getMesh();
+         if (mesh != null && !mesh.meshToWorldIsIdentity()) {
+            xsum.transform (mesh.getMeshToWorld().R);
+         }
+      }
+      else {
+         return -1;
+      }
+      // take the dot product with the contact normal to get the area
+      // component in the contact plane. Divide by 6 because (a) cross
+      // products give twice the area, and (b) the vertex or edge should take
       // only 1/3 of the area of each incident face.
       return Math.abs(nrml.dot(xsum)/6);     
+   }
+
+   /**
+    * Adds to xsum the cross product of two edges of a triangular face,
+    * computed in mesh coordinates.
+    */
+   private void addFaceCrossProduct (Vector3d xsum, Face face) {
+      if (face != null) {
+         HalfEdge he = face.firstHalfEdge();
+         Point3d p0 = he.getTail().getPosition();
+         Point3d p1 = he.getHead().getPosition();
+         Point3d p2 = he.getNext().getHead().getPosition();
+         Vector3d u = new Vector3d();
+         Vector3d v = new Vector3d();
+         Vector3d xprod = new Vector3d();
+         u.sub (p1, p0);
+         v.sub (p2, p0);
+         xprod.cross (u, v);
+         xsum.add (xprod);
+      }
    }
    
    /**

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="5in" height="3.7669in" viewBox="46 10 592 446">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 Z" fill="#222"/>
+    </marker>
+    <marker id="arrE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 Z" fill="#b03020"/>
+    </marker>
+    <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M0,8 L8,0" stroke="#555" stroke-width="1"/>
+    </pattern>
+    <!-- stress decaying with depth below a small patch in a wide body -->
+    <radialGradient id="decay" gradientUnits="userSpaceOnUse" cx="120" cy="70" r="75">
+      <stop offset="0" stop-color="#4f7bb8"/>
+      <stop offset="0.35" stop-color="#8eaed6"/>
+      <stop offset="1" stop-color="#d6e4f5"/>
+    </radialGradient>
+    <!-- stress spreading until limited by the body sides, then uniform -->
+    <linearGradient id="spread" gradientUnits="userSpaceOnUse" x1="0" y1="70" x2="0" y2="100">
+      <stop offset="0" stop-color="#5f88c0"/>
+      <stop offset="1" stop-color="#b7cde7"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .body   { fill:#d6e4f5; stroke:#3d5f8f; stroke-width:1.5 }
+    .bodyO  { fill:none; stroke:#3d5f8f; stroke-width:1.5 }
+    .stress { fill:#82a4cf; stroke:none }
+    .rigid  { fill:#a8a8a8; stroke:#555; stroke-width:1.5 }
+    .ground { fill:url(#hatch); stroke:none }
+    .gline  { stroke:#333; stroke-width:1.5 }
+    .patch  { stroke:#b03020; stroke-width:4 }
+    .dim    { stroke:#222; stroke-width:1; fill:none }
+    .dimE   { stroke:#b03020; stroke-width:1.2; fill:none }
+    .ext    { stroke:#666; stroke-width:0.8; stroke-dasharray:3,2 }
+    .lead   { stroke:#222; stroke-width:0.8 }
+    .lbl    { font-family:'Times New Roman', Times, 'Nimbus Roman', serif; font-size:20px; font-style:italic; fill:#222 }
+    .lblE   { font-family:'Times New Roman', Times, 'Nimbus Roman', serif; font-size:20px; font-style:italic; fill:#b03020 }
+    .cap    { font-family:'Times New Roman', Times, 'Nimbus Roman', serif; font-size:18px; font-style:normal; fill:#222 }
+  </style>
+
+  <!-- (a) thin layer -->
+  <g transform="translate(30,-40)">
+    <rect class="ground" x="20" y="220" width="200" height="12"/>
+    <line class="gline" x1="20" y1="220" x2="220" y2="220"/>
+    <rect class="body" x="20" y="190" width="200" height="30"/>
+    <rect class="stress" x="70" y="190" width="100" height="30"/>
+    <rect class="bodyO" x="20" y="190" width="200" height="30"/>
+    <rect class="rigid" x="70" y="150" width="100" height="40"/>
+    <line class="patch" x1="70" y1="190" x2="170" y2="190"/>
+    <!-- d_p -->
+    <line class="ext" x1="70" y1="148" x2="70" y2="128"/>
+    <line class="ext" x1="170" y1="148" x2="170" y2="128"/>
+    <line class="dim" x1="70" y1="134" x2="170" y2="134" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="112" y="126">d<tspan font-size="14" dy="5">p</tspan></text>
+    <!-- L -->
+    <line class="dim" x1="200" y1="190" x2="200" y2="220" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="205" y="211">L</text>
+    <!-- L_e -->
+    <line class="dimE" x1="60" y1="190" x2="60" y2="220" marker-start="url(#arrE)" marker-end="url(#arrE)"/>
+    <text class="lblE" x="30" y="211">L<tspan font-size="14" dy="5">e</tspan></text>
+    <text x="120" y="260" text-anchor="middle"><tspan class="cap">(a) thin layer:  </tspan><tspan class="lbl">L<tspan font-size="14" dy="5">e</tspan><tspan dy="-5" font-style="normal"> ≈ </tspan>L</tspan></text>
+  </g>
+
+  <!-- (b) large body: stress decays before reaching the sides -->
+  <g transform="translate(380,10)">
+    <rect class="ground" x="20" y="170" width="200" height="12"/>
+    <line class="gline" x1="20" y1="170" x2="220" y2="170"/>
+    <rect class="body" x="20" y="70" width="200" height="100"/>
+    <path d="M45,70 A75,75 0 0 0 195,70 Z" fill="url(#decay)"/>
+    <rect class="bodyO" x="20" y="70" width="200" height="100"/>
+    <rect class="rigid" x="108" y="50" width="24" height="20"/>
+    <line class="patch" x1="108" y1="70" x2="132" y2="70"/>
+    <!-- d_p -->
+    <line class="ext" x1="108" y1="48" x2="108" y2="22"/>
+    <line class="ext" x1="132" y1="48" x2="132" y2="22"/>
+    <line class="dim" x1="108" y1="28" x2="132" y2="28" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="112" y="18">d<tspan font-size="14" dy="5">p</tspan></text>
+    <!-- L -->
+    <line class="dim" x1="205" y1="70" x2="205" y2="170" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="188" y="125">L</text>
+    <!-- L_e -->
+    <line class="dimE" x1="98" y1="70" x2="98" y2="94" marker-start="url(#arrE)" marker-end="url(#arrE)"/>
+    <text class="lblE" x="70" y="92">L<tspan font-size="14" dy="5">e</tspan></text>
+    <text x="120" y="210" text-anchor="middle"><tspan class="cap">(b) large body:  </tspan><tspan class="lbl">L<tspan font-size="14" dy="5">e</tspan><tspan dy="-5" font-style="normal"> ≈ </tspan>d<tspan font-size="14" dy="5">p</tspan></tspan></text>
+  </g>
+
+  <!-- (c) tall body -->
+  <g transform="translate(30,235)">
+    <rect class="ground" x="20" y="170" width="200" height="12"/>
+    <line class="gline" x1="20" y1="170" x2="220" y2="170"/>
+    <rect class="body" x="100" y="70" width="40" height="100"/>
+    <rect class="stress" x="100" y="70" width="40" height="100"/>
+    <rect class="bodyO" x="100" y="70" width="40" height="100"/>
+    <rect class="rigid" x="80" y="50" width="80" height="20"/>
+    <line class="patch" x1="100" y1="70" x2="140" y2="70"/>
+    <!-- d_p -->
+    <line class="ext" x1="100" y1="48" x2="100" y2="22"/>
+    <line class="ext" x1="140" y1="48" x2="140" y2="22"/>
+    <line class="dim" x1="100" y1="28" x2="140" y2="28" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="112" y="18">d<tspan font-size="14" dy="5">p</tspan></text>
+    <!-- L -->
+    <line class="dim" x1="160" y1="70" x2="160" y2="170" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="166" y="125">L</text>
+    <!-- L_e -->
+    <line class="dimE" x1="80" y1="70" x2="80" y2="170" marker-start="url(#arrE)" marker-end="url(#arrE)"/>
+    <text class="lblE" x="50" y="125">L<tspan font-size="14" dy="5">e</tspan></text>
+    <text x="120" y="210" text-anchor="middle"><tspan class="cap">(c) tall body:  </tspan><tspan class="lbl">L<tspan font-size="14" dy="5">e</tspan><tspan dy="-5" font-style="normal"> ≈ </tspan>L</tspan></text>
+  </g>
+
+  <!-- (d) intermediate: stress spreads until limited by the sides, then uniform -->
+  <g transform="translate(380,235)">
+    <rect class="ground" x="20" y="170" width="200" height="12"/>
+    <line class="gline" x1="20" y1="170" x2="220" y2="170"/>
+    <rect class="body" x="75" y="70" width="90" height="100"/>
+    <path d="M102,70 L138,70 L165,97 L165,170 L75,170 L75,97 Z" fill="url(#spread)"/>
+    <rect class="bodyO" x="75" y="70" width="90" height="100"/>
+    <rect class="rigid" x="102" y="50" width="36" height="20"/>
+    <line class="patch" x1="102" y1="70" x2="138" y2="70"/>
+    <!-- d_p -->
+    <line class="ext" x1="102" y1="48" x2="102" y2="22"/>
+    <line class="ext" x1="138" y1="48" x2="138" y2="22"/>
+    <line class="dim" x1="102" y1="28" x2="138" y2="28" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="112" y="18">d<tspan font-size="14" dy="5">p</tspan></text>
+    <!-- body cross section A_B -->
+    <line class="dim" x1="75" y1="158" x2="165" y2="158" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="108" y="150">A<tspan font-size="14" dy="5">B</tspan></text>
+    <!-- uniform stress level -->
+    <line class="lead" x1="62" y1="120" x2="100" y2="120"/>
+    <text class="lbl" x="58" y="126" text-anchor="end">p A<tspan font-size="14" dy="5">p</tspan><tspan dy="-5" font-style="normal">/</tspan>A<tspan font-size="14" dy="5">B</tspan></text>
+    <!-- L -->
+    <line class="dim" x1="185" y1="70" x2="185" y2="170" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <text class="lbl" x="191" y="125">L</text>
+    <text x="120" y="210" text-anchor="middle"><tspan class="cap">(d) intermediate:  </tspan><tspan class="lbl">L<tspan font-size="14" dy="5">e</tspan><tspan dy="-5" font-style="normal"> ≈ </tspan>d<tspan font-size="14" dy="5">p</tspan><tspan dy="-5" font-style="normal"> + </tspan>L A<tspan font-size="14" dy="5">p</tspan><tspan dy="-5" font-style="normal">/</tspan>A<tspan font-size="14" dy="5">B</tspan></tspan></text>
+  </g>
+</svg>

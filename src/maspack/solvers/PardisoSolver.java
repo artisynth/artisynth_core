@@ -114,11 +114,7 @@ public class PardisoSolver extends DirectSolverBase {
    public static boolean printThreadInfo = true;
    
    public static boolean supportsMultipleRhs = true;
-   // Bit of a hack to allow things to work without the native
-   // library that supports multiple rhs:  
-   static String nativeLibrary = supportsMultipleRhs ?
-      "PardisoJNI.2021.1.1" : "PardisoJNI.2021.1";         
-      //"PardisoJNI.2026.1" : "PardisoJNI.2021.1";         
+   static String nativeLibrary = "PardisoJNI.2026";
    // MacOS64 has its own library, since MKL for macOS ended with 2023.2.
    // 2021.1.1.1 is MKL 2021.1.1 with the native wrapper's GMRES/CGS solves.
    static String macOS64NativeLibrary = "PardisoJNI.2021.1.1.1";

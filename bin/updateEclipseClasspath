@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Updates the jar file entries in ArtiSynth's Eclipse .classpath file so that
+# they match the jar files listed in lib/LIBRARIES (see bin/makeClasspath).
+# Other entries are left unchanged, and the file is rewritten only if this
+# changes it. No libraries are verified, downloaded or removed.
+#
+# Eclipse does this automatically when it builds the project (see
+# lib/updateLibraries.xml); this script allows it to be done without Eclipse,
+# e.g., before committing a change to lib/LIBRARIES.
+#
+# The ArtiSynth home folder is assumed to be '..' relative to this file; the
+# environment variable ARTISYNTH_HOME is not used.
+if [ "$#" -gt 0 ] ; then
+   echo "Usage: updateEclipseClasspath" >&2
+   exit 1
+fi
+AH="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+case "$(uname -s)" in
+   CYGWIN*|MINGW*|MSYS*)
+      AH="$(cygpath -w "$AH")"
+      CP="$AH\\lib\\vfs2.jar;$AH\\bin\\libraryInstaller.jar"
+      ;;
+   *)
+      CP="$AH/lib/vfs2.jar:$AH/bin/libraryInstaller.jar"
+      ;;
+esac
+exec java -cp "$CP" artisynth.core.driver.LibraryInstaller \
+   -ahome "$AH" -syncEclipseClassesOnly

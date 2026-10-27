@@ -8,6 +8,7 @@ import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
 import artisynth.core.modelbase.ModelBase;
 import maspack.properties.PropertyList;
+import maspack.solvers.MumpsSolver;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.SparseSolverId;
 import maspack.util.EnumRange;
@@ -45,8 +46,7 @@ public class SimulationSettings extends SettingsBase {
    private boolean myShowIllConditionedSolves =
       DEFAULT_SHOW_ILL_CONDITIONED_SOLVES;
 
-   // to be incorporated later
-   public static SparseSolverId DEFAULT_MATRIX_SOLVER =
+   public static final SparseSolverId DEFAULT_MATRIX_SOLVER =
       SparseSolverId.getDefaultDirectSolver();
 
    static {
@@ -70,6 +70,10 @@ public class SimulationSettings extends SettingsBase {
          "abortOnInvertedElements",
          "abort when FEM encounters inverted elements with non-linear materials",
          DEFAULT_ABORT_ON_INVERTED_ELEMENTS);
+      myProps.add (
+         "matrixSolver", 
+         "default sparse direct solver for mechanical systems",
+         DEFAULT_MATRIX_SOLVER);
       myProps.add (
          "hybridSolvesEnabled", 
          "enable use of hybrid direct/iterative solves",
@@ -157,17 +161,31 @@ public class SimulationSettings extends SettingsBase {
 
    public void setShowIllConditionedSolves (boolean enable) {
       PardisoSolver.setShowPerturbedPivots (enable);
+      MumpsSolver.setShowPerturbedPivots (enable);
       myShowIllConditionedSolves = enable;
    } 
 
-   // for later use:
-
    public SparseSolverId getMatrixSolver () {
-      return null;
+      return MechSystemBase.getDefaultMatrixSolver();
    }
 
-   public void setMatrixSolver (SparseSolverId MatrixSolver) {
+   public Range getMatrixSolverRange () {
+      return createMatrixSolverRange();
    }
 
+   public void setMatrixSolver (SparseSolverId solverId) {
+      if (SparseSolverId.isDirectSolverAvailable (solverId)) {
+         MechSystemBase.setDefaultMatrixSolver (solverId);
+      }
+   }
+
+   /**
+    * Creates a range restricting matrix solver selections to the direct
+    * solvers available on this platform.
+    */
+   static Range createMatrixSolverRange() {
+      return new EnumRange<SparseSolverId> (
+         SparseSolverId.class, SparseSolverId.getAvailableDirectSolvers());
+   }
 
 }

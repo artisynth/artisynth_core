@@ -4463,7 +4463,7 @@ the navigation panel (Section \ref{navPanelSec}).
 \iflatexml
 \includegraphics[]{images/simulationSettings}
 \else
-\includegraphics[width=3in]{images/simulationSettings}
+\includegraphics[width=2.75in]{images/simulationSettings}
 \fi
 \end{center}
 \caption{Simulation settings dialog.}%
@@ -4479,8 +4479,8 @@ button will save the current settings to the user's preferences
 when ArtiSynth is restarted.
 
 \begin{sideblock}
-Note that simulation settings do not take effect until the next model
-is loaded or reloaded.
+Note: simulation settings do {\it not} take effect until the next
+model is loaded or reloaded.
 \end{sideblock}
 
 {\it Simulation} settings include:
@@ -4492,6 +4492,13 @@ is loaded or reloaded.
 The default maximum step size used for simulation, in seconds.  See
 ``Simulation control properties'' in the
 \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+This setting can also be
+specified on the command line with the option
+%
+\begin{verbatim}
+  -maxStep <stepSize>
+\end{verbatim}
+%
 
 \item[stabilization]\mbox{}
 
@@ -4499,12 +4506,28 @@ The default stabilization method used to correct collision
 interpenetrations and drift from position constraints. See
 ``Simulation control properties'' in the
 \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+This setting can also be
+specified on the command line with the option
+%
+\begin{verbatim}
+  -posCorrection <method>
+\end{verbatim}
+%
+where {\tt <method>} is one of {\tt GlobalMass} or {\tt GlobalStiffness}.
 
 \item[colliderType]\mbox{}
 
 The default collider type used for collision detection. See
 ``Collision methods and collider types'' in the
-\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.  At present,
+the default collider type is {\tt TRI\_INTERSECTION}.  Use of the {\tt
+AJL\_CONTOUR} collider can be enabled from the command line with the
+option
+%
+\begin{verbatim}
+  -useAjlCollision
+\end{verbatim}
+%
 
 \item[useImplicitFriction]\mbox{}
 
@@ -4525,28 +4548,87 @@ This is an attribute of 3D FEM models that instructs the simulation to
 abort whenever inverted elements are encountered by FEM materials that
 don't support element inversion (such as most hyperelastic materials).
 The default value for this attribute is {\tt true}. Setting it to
-false may be useful for diagnostic purposes.
+false may be useful for diagnostic purposes. This setting can also be
+set {\tt true} on the command line with the option
+%
+\begin{verbatim}
+  -abortOnInvertedElems
+\end{verbatim}
+%
+
+\item[matrixSolver]\mbox{}
+
+Sets the matrix solver to be used for system simulation. Which solvers
+are available depends on the platform. For Linux and Windows, {\tt
+Pardiso} and {\tt Mumps} should both be available, with the former
+usually delivering better performance. For older Apple computers using
+Intel processors, only {\tt Pardiso} is available. For newer Apple
+computers using the Arm architecture (i.e., M-chips), {\tt
+Accelerate} and {\tt Mumps} are available, with the former usually
+delivering better performance but not exact numerical repeatability.
+The default value is the first available solver, which is {\tt
+Accelerate} for Arm-based Apple computers and {\tt Pardiso}
+otherwise. This setting can also be
+specified on the command line with the option
+%
+\begin{verbatim}
+  -matrixSolver <solver>
+\end{verbatim}
+%
+where {\tt <solver>} is one of {\tt Pardiso}, {\tt Mumps}, or {\tt
+Accelerate}.
 
 \item[hybridSolvesEnabled]\mbox{}
 
 Enables {\it hybrid solves} in the sparse matrix solver used for
 system simulation. The default value is {\tt true}. Hybrid solves
 combine iterative and direct methods in a way that can often improve
-simulation speeds several fold. However, hybrid solves do not
+simulation speeds several fold. However, hybrid solves do {\it not}
 generally produce results with exact numerical repeatability. It may
 therefore be preferable in some diagnostic and testing situations to
-disable hybrid solves.
+disable hybrid solves. This setting can also be specified on the
+command line with the options
+%
+\begin{verbatim}
+  -enableHybridSolves
+  -disableHybridSolves
+\end{verbatim}
+%
 
 \item[numSolverThreads]\mbox{}
 
 Number of threads used by the sparse matrix solver used for system
-simulation. The default value is the number of threads available on
-the machine. Simulations will usually run faster with more threads
+simulation. The default value is -1, which lets the solver library
+choose the number of threads; this is usually the number of threads
+available on the machine, unless limited by the environment variable
+{\tt OMP\_NUM\_THREADS}. Simulations will usually run faster with more threads
 (although the speed increase is generally sublinear). However, using
 more than one thread will usually produce results that do not have
 exact numerical repeatability.  It may therefore be preferable in
 some diagnostic and testing situations to set the number of solver
 threads to 1.
+This setting can also be
+specified on the command line with the option
+%
+\begin{verbatim}
+  -numSolverThreads <num>
+\end{verbatim}
+%
+
+\item[showIllConditionedSolves]\mbox{}
+
+If {\tt true}, causes the sparse matrix solver to print a message
+whenever it needs to perturb pivots during matrix factorization, which
+usually indicates that the system is ill-conditioned. The message
+gives the number of perturbed pivots, as in
+%
+\begin{verbatim}
+  Pardiso: num perturbed pivots=12
+\end{verbatim}
+%
+Ill-conditioning can arise from redundant constraints or from
+very large differences in the stiffness or mass of model components,
+and may degrade simulation accuracy. The default value is {\tt true}.
 
 \end{description}
 

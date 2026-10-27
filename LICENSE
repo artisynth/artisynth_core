@@ -253,3 +253,134 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================
+
+The ArtiSynth native library MumpsJNI, downloaded as part of the
+ArtiSynth libraries, contains a statically linked copy of the sparse
+direct solver MUMPS 5.9.1 (https://mumps-solver.org), together with the
+ordering packages METIS and SCOTCH. These, and the run-time libraries
+that MumpsJNI depends on, are described below.
+
+----------------------------------------------------------------------
+MUMPS:
+
+  Copyright 1991-2026 CERFACS, CNRS, ENS Lyon, INP Toulouse, Inria,
+  Mumps Technologies, University of Bordeaux.
+
+  This version of MUMPS is provided to you free of charge. It is
+  released under the CeCILL-C license
+  (https://cecill.info/licences/Licence_CeCILL-C_V1-en.html),
+  except for variants of AMD ordering and [sdcz]MUMPS_TRUNCATED_RRQR
+  derived from the LAPACK package distributed under BSD 3-clause
+  license (see below), and except for the external and optional
+  ordering PORD (see below).
+
+  You can acknowledge (using references [1] and [2]) the contribution
+  of this package in any scientific publication dependent upon the use
+  of the package. Please use reasonable endeavours to notify the authors
+  of the package of this publication.
+
+   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+   A fully asynchronous multifrontal solver using distributed dynamic
+   scheduling, SIAM Journal on Matrix Analysis and Applications,
+   Vol 23, No 1, pp 15-41 (2001).
+
+   [2] P. R. Amestoy, A. Buttari, J.-Y. L'Excellent and T. Mary,
+   Performance and scalability of the block low-rank multifrontal
+   factorization on multicore architectures,
+   ACM Transactions on Mathematical Software,
+   Vol 45, Issue 1, pp 2:1-2:26 (2019)
+
+  As a counterpart to the access to the source code and rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability.
+
+The AMD ordering variants in MUMPS are based on:
+
+  AMD, Copyright (c), 1996-2016, Timothy A. Davis,
+  Patrick R. Amestoy, and Iain S. Duff.  All Rights Reserved.
+  Used in MUMPS under the BSD 3-clause license:
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+   * Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials provided
+     with the distribution.
+   * Neither the name of the University of California, Berkeley nor
+     the names of its contributors may be used to endorse or promote
+     products derived from this software without specific prior
+     written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+
+PORD, included with MUMPS, was written by Juergen Schulze as part of
+the SPACE-1.0 package (University of Paderborn), and is in the public
+domain.
+
+----------------------------------------------------------------------
+METIS 5.1.0:
+
+  Copyright 1995-2013, Regents of the University of Minnesota
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied. See the License for the specific language governing
+  permissions and limitations under the License.
+
+----------------------------------------------------------------------
+SCOTCH 7.0.12 (https://gitlab.inria.fr/scotch/scotch):
+
+  Copyright 2004-2026 IPB, Universite de Bordeaux, INRIA & CNRS
+
+  SCOTCH is governed by the CeCILL-C license under French law and
+  abiding by the rules of distribution of free software, available at
+  https://cecill.info/licences/Licence_CeCILL-C_V1-en.html.
+
+----------------------------------------------------------------------
+Run-time libraries used by Pardiso and/or MUMPS:
+
+- Intel oneMKL (Linux and Windows; statically linked) and the Intel
+  OpenMP run-time library libiomp5 (supplied with the native
+  libraries) are distributed under the Intel Simplified Software
+  License: https://www.intel.com/content/www/us/en/developer/articles/license/onemkl-license-faq.html
+  On Windows, the Intel Fortran run-time libraries (libifcoremd,
+  libmmd, svml_dispmd) are redistributed under the Intel oneAPI
+  redistribution terms.
+
+- The GNU Fortran and GCC run-time libraries (libgfortran, libgcc),
+  statically linked on Linux and macOS, are licensed under the GPL
+  version 3 with the GCC Runtime Library Exception
+  (https://www.gnu.org/licenses/gcc-exception-3.1.html), which permits
+  their use in programs under other licenses.
+
+- The GCC quad-precision math library libquadmath, statically linked
+  on Linux and macOS, is licensed under the GNU Lesser General Public
+  License, version 2.1 (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html).
+
+- On macOS, the LLVM OpenMP run-time library libomp is licensed under
+  the Apache License, Version 2.0 with LLVM Exceptions
+  (https://llvm.org/LICENSE.txt).
+======================================================================

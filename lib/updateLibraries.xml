@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Downloads any jar files or native libraries listed in lib/LIBRARIES that
+  are missing from lib/. Used by Eclipse as a project builder (see
+  .externalToolBuilders/UpdateLibraries.launch) so that the libraries are
+  installed before the Java builder runs, but can also be run directly
+  using 'ant -f lib/updateLibraries.xml'.
+
+  This is equivalent to running bin/updateArtisynthLibs without -updateLibs:
+  existing files are not checked against the server. Older versions of the
+  listed libraries are removed once the current versions are present, as
+  are the obsolete libraries listed in lib/OBSOLETE.
+  (Removal may fail on Windows for files that are still open, in which case
+  a warning is printed.)
+
+  In addition, the jar file entries in .classpath are updated to match the
+  jar files listed in lib/LIBRARIES (option -syncEclipseClasses). The file is
+  rewritten only if this changes it.
+
+  When run inside Eclipse, lib/ and .classpath are then refreshed so that
+  the Java builder sees the new files. This is done here, rather than relying
+  on the launch configuration's refresh scope, because ${project} in that
+  scope is resolved from the current selection and is unreliable during a
+  build.
+
+  Since the builder runs only when lib/ or .classpath changes, the file
+  UpdateArtisynthLibs.launch provides an External Tools launch (Run >
+  External Tools > UpdateArtisynthLibs) that runs this file directly, e.g.,
+  to retry after a failed download.
+-->
+<project name="artisynth_core libraries" default="update" basedir="..">
+  <!-- Ant itself always ends with "BUILD SUCCESSFUL", which can't be changed
+       here; the echo, printed just before it, makes clear that this was only
+       the library update, and that the Java build follows.
+       level="info" puts the echo on the same Eclipse console stream as the
+       other output; the default level, "warning", uses a separate stream,
+       so the message can appear out of order -->
+  <target name="update" depends="install,refresh,check">
+    <echo level="info"
+          message="LIBRARIES UPDATED SUCCESSFULLY; compile will follow if needed"/>
+  </target>
+
+  <!-- fails, after the refresh, if any library could not be installed or
+       .classpath could not be updated. The Eclipse builder runs only when
+       lib/ or .classpath changes, so 'Build Project' will not retry; hence
+       the message explains how to do so. -->
+  <target name="check">
+    <fail message="Some libraries could not be installed (see messages above).&#10;Check the network connection, then retry using&#10;  Run &gt; External Tools &gt; UpdateArtisynthLibs&#10;or Project &gt; Clean, or by running bin/updateArtisynthLibs.">
+      <condition>
+        <not><equals arg1="${installer.result}" arg2="0"/></not>
+      </condition>
+    </fail>
+  </target>
+
+  <target name="install">
+    <!-- the installer itself needs these, so give a clear error if they're
+         missing (both are committed to git) -->
+    <fail message="Can't update libraries: lib/vfs2.jar is missing.&#10;Restore it using 'git checkout lib/vfs2.jar'.">
+      <condition>
+        <not><available file="${basedir}/lib/vfs2.jar"/></not>
+      </condition>
+    </fail>
+    <fail message="Can't update libraries: bin/libraryInstaller.jar is missing.&#10;Restore it using 'git checkout bin/libraryInstaller.jar'.">
+      <condition>
+        <not><available file="${basedir}/bin/libraryInstaller.jar"/></not>
+      </condition>
+    </fail>
+    <!-- fork is required: LibraryInstaller calls System.exit(), which
+         would otherwise exit Eclipse. The forked JVM is the one running
+         Ant (i.e., Eclipse's JVM), not the java found on the PATH.
+         Errors are reported by the 'check' target, so that files that were
+         installed are still refreshed. -->
+    <java classname="artisynth.core.driver.LibraryInstaller"
+          fork="true" failonerror="false" resultproperty="installer.result"
+          dir="${basedir}">
+      <arg value="-syncEclipseClasses"/>
+      <classpath>
+        <pathelement location="${basedir}/lib/vfs2.jar"/>
+        <pathelement location="${basedir}/bin/libraryInstaller.jar"/>
+      </classpath>
+    </java>
+    <!-- eclipse.refreshLocal is defined only when Ant runs in Eclipse's JRE -->
+    <condition property="eclipse.refresh.available">
+      <typefound name="eclipse.refreshLocal"/>
+    </condition>
+  </target>
+
+  <target name="refresh" if="eclipse.refresh.available">
+    <eclipse.refreshLocal resource="artisynth_core/lib" depth="infinite"/>
+    <eclipse.refreshLocal resource="artisynth_core/.classpath" depth="zero"/>
+  </target>
+</project>

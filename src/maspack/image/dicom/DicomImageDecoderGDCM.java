@@ -34,7 +34,7 @@ import maspack.util.BinaryFileInputStream;
 public class DicomImageDecoderGDCM implements DicomImageDecoder {
  
    // name of the native library, as given to NativeLibraryManager
-   static String nativeLibrary = "gdcmjni";
+   static String nativeLibrary = "gdcmjni.3.0.22";
    static boolean loadedNativeLibrary = false;
 
    /**

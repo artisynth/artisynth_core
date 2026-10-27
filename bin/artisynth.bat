@@ -5,7 +5,7 @@ setlocal EnableDelayedExpansion
 set FAST=no
 set HELP=no
 set SILENT=no
-set JAVA_OPTS=-Xms200M -Xmx6G -Xmn100M
+set JAVA_OPTS=
 set BATCHFILE=%~f0
 
 rem MumpsJNI links the Intel Fortran runtime (libifcoremd.dll), which
@@ -31,7 +31,7 @@ for %%G IN (%*) DO (
                 )
         ) else (
         if defined ART_HOME_PENDING (
-                set ART_HOME=%%G
+                set "ART_HOME=%%~G"
                 set ART_HOME_PENDING=
         ) else (
                 if %%G==-fast (
@@ -65,10 +65,20 @@ if defined ART_HOME_PENDING (
 if defined ART_HOME set ARTISYNTH_HOME=%ART_HOME%
 if not defined ARTISYNTH_HOME set ARTISYNTH_HOME=%~dp0..
 set ARTISYNTH_PATH=.;%HOMEPATH%;%ARTISYNTH_HOME%
-if defined CLASSPATH (
-        set "CLASSPATH=%ARTISYNTH_HOME%\classes;%ARTISYNTH_HOME%\lib\*;%CLASSPATH%"
+rem Classpath consists of the main classes directory and the jar files listed
+rem in lib\LIBRARIES, followed by the existing CLASSPATH minus any entries for
+rem lib\* or jar files in lib\ (so that older versions of the libraries that
+rem may still be in lib\ are excluded). If LIBRARIES can't be read, use lib\*
+rem followed by the existing CLASSPATH. 'call' keeps cmd from stripping the
+rem quotes around a path containing spaces.
+set "ACP="
+for /f "usebackq delims=" %%C in (`call "%ARTISYNTH_HOME%\bin\makeClasspath.bat" -addEnv 2^>NUL`) do set "ACP=%%C"
+if defined ACP (
+        set "CLASSPATH=!ACP!"
+) else if defined CLASSPATH (
+        set "CLASSPATH=!ARTISYNTH_HOME!\classes;!ARTISYNTH_HOME!\lib\*;!CLASSPATH!"
 ) else (
-        set "CLASSPATH=%ARTISYNTH_HOME%\classes;%ARTISYNTH_HOME%\lib\*"
+        set "CLASSPATH=!ARTISYNTH_HOME!\classes;!ARTISYNTH_HOME!\lib\*"
 )
 if %PROCESSOR_ARCHITECTURE%==AMD64 (
         set TEMP_PATH="%ARTISYNTH_HOME%\lib\Windows64;%PATH%"
@@ -77,6 +87,15 @@ if %PROCESSOR_ARCHITECTURE%==AMD64 (
 )
 @rem need to create TEMP_PATH first because we need to quote it 
 set PATH=%TEMP_PATH:"=%
+rem Enable native access (used by JOGL and ArtiSynth's native libraries), to
+rem avoid warnings from Java 24 and later, and blocking by future versions.
+rem The option is supported only by Java 17 and later. 'call' keeps cmd from
+rem stripping the quotes around a java path containing spaces.
+set "JVER="
+for /f "tokens=3" %%V in ('call %JAVA% -version 2^>^&1 ^| findstr /i "version"') do if not defined JVER set "JVER=%%~V"
+set "JMAJOR="
+if defined JVER for /f "delims=.-+" %%M in ("!JVER!") do set "JMAJOR=%%M"
+if defined JMAJOR if !JMAJOR! GEQ 17 set "JAVA_OPTS=!JAVA_OPTS! --enable-native-access=ALL-UNNAMED"
 if %HELP%==yes (
         echo synopsis:
         echo %  artisynth [PROGRAM_OPTIONS]
@@ -107,8 +126,7 @@ if %JAVAERROR% EQU 9009 (
   echo Error: Java executable not found. Please ensure that Java is in your path
   pause
   exit /B 1
-)
-else (
+) else (
   echo Error: ArtiSynth encountered a problem. Please check the stack trace for information.
   pause
   exit /B 2

@@ -12,11 +12,6 @@ ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
 cd $ARTISYNTH_HOME/classes
 cat > $CLASSLIST << EOF
 artisynth/core/driver/LibraryInstaller.class
-artisynth/core/util/ArtisynthIO.class
-artisynth/core/util/ArtisynthPath.class
-artisynth/core/util/ArtisynthIO.class
-artisynth/core/util/ArtisynthPath.class
-artisynth/core/util/ArtisynthPath\$FileMatcher.class
 maspack/util/ClassFinder.class
 maspack/util/Clonable.class
 maspack/util/ReaderTokenizer.class

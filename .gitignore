@@ -55,6 +55,9 @@ CVS
 ######################
 .cproject
 *.launch
+# except builder launch files, which are part of the project setup
+!.externalToolBuilders/*.launch
+!/UpdateArtisynthLibs.launch
 
 ######################
 # User Settings

@@ -7,7 +7,7 @@
 # ARTISYNTH_HOME is set to '..' relative to this script, unless it is
 # already set. The classpath consists of ArtiSynth's classes directory and
 # the jar files listed in lib/LIBRARIES (see bin/makeClasspath), followed
-# by any existing CLASSPATH.
+# by any existing CLASSPATH, minus entries for ArtiSynth's lib folder.
 
 if [ -z "$ARTISYNTH_HOME" ] ; then
    D=`dirname "$0"`/..
@@ -16,9 +16,11 @@ fi
 AT=$ARTISYNTH_HOME
 
 # Classpath consists of the main classes directory and the jar files listed
-# in lib/LIBRARIES (so that older versions of these that may still be in
-# lib/ are excluded). If LIBRARIES can't be read, use lib/*.
-ACP=`"$AT/bin/makeClasspath" 2>/dev/null`
+# in lib/LIBRARIES, followed by the existing CLASSPATH minus any entries for
+# lib/* or jar files in lib/ (so that older versions of the libraries that
+# may still be in lib/ are excluded). If LIBRARIES can't be read, use lib/*
+# followed by the existing CLASSPATH.
+ACP=`"$AT/bin/makeClasspath" -addEnv 2>/dev/null`
 
 case "`uname -s`" in
    CYGWIN*|MINGW*|MSYS*)
@@ -31,9 +33,7 @@ case "`uname -s`" in
       export ARTISYNTH_HOME=$ATW
       export ARTISYNTH_PATH=".;`cygpath -w "$HOME"`;$ATW"
       CP_SEP=";"
-      if [ -z "$ACP" ] ; then
-         ACP="$ATW\classes;$ATW\lib\*"
-      fi
+      CP_DEFAULT="$ATW\classes;$ATW\lib\*"
       ;;
    *)
       # Linux and MacOS: native libraries are loaded by absolute path, so
@@ -41,17 +41,26 @@ case "`uname -s`" in
       export ARTISYNTH_HOME=$AT
       export ARTISYNTH_PATH=".:$HOME:$AT"
       CP_SEP=":"
-      if [ -z "$ACP" ] ; then
-         ACP="$AT/classes:$AT/lib/*"
-      fi
+      CP_DEFAULT="$AT/classes:$AT/lib/*"
       ;;
 esac
-if [ -z "$CLASSPATH" ] ; then
+if [ -n "$ACP" ] ; then
    CLASSPATH=$ACP
+elif [ -z "$CLASSPATH" ] ; then
+   CLASSPATH=$CP_DEFAULT
 else
-   CLASSPATH=$ACP$CP_SEP$CLASSPATH
+   CLASSPATH=$CP_DEFAULT$CP_SEP$CLASSPATH
 fi
 export CLASSPATH
 export PATH="$PATH:$AT/bin"
 
-exec java "$@"
+# Enable native access (used by JOGL and ArtiSynth's native libraries), to
+# avoid warnings from Java 24 and later, and blocking by future versions.
+# The option is supported only by Java 17 and later.
+NATIVE_ACCESS=
+JAVA_MAJOR=`java -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -n 1`
+if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 17 ] ; then
+   NATIVE_ACCESS="--enable-native-access=ALL-UNNAMED"
+fi
+
+exec java $NATIVE_ACCESS "$@"

@@ -63,7 +63,6 @@ public class SimulationPrefs extends Preferences {
    private boolean myShowIllConditionedSolves =
       SimulationSettings.DEFAULT_SHOW_ILL_CONDITIONED_SOLVES;
 
-   // to be incorporated later
    private SparseSolverId myMatrixSolver =
       SimulationSettings.DEFAULT_MATRIX_SOLVER;
 
@@ -127,8 +126,17 @@ public class SimulationPrefs extends Preferences {
       return myMatrixSolver;
    }
 
-   public void setMatrixSolver (SparseSolverId MatrixSolver) {
-      myMatrixSolver = MatrixSolver;
+   public Range getMatrixSolverRange () {
+      return SimulationSettings.createMatrixSolverRange();
+   }
+
+   public void setMatrixSolver (SparseSolverId solverId) {
+      // solver may be unavailable if the preferences came from another
+      // platform; revert to the default in that case
+      if (!SparseSolverId.isDirectSolverAvailable (solverId)) {
+         solverId = SimulationSettings.DEFAULT_MATRIX_SOLVER;
+      }
+      myMatrixSolver = solverId;
    }
 
    public boolean getHybridSolvesEnabled () {
@@ -164,6 +172,7 @@ public class SimulationPrefs extends Preferences {
       setHybridSolvesEnabled (mySettings.getHybridSolvesEnabled());
       setNumSolverThreads (mySettings.getNumSolverThreads());
       setShowIllConditionedSolves (mySettings.getShowIllConditionedSolves());
+      setMatrixSolver (mySettings.getMatrixSolver());
    }
 
    public void applyToCurrent() {
@@ -175,6 +184,7 @@ public class SimulationPrefs extends Preferences {
       mySettings.setHybridSolvesEnabled (getHybridSolvesEnabled());
       mySettings.setNumSolverThreads (getNumSolverThreads());
       mySettings.setShowIllConditionedSolves (getShowIllConditionedSolves());
+      mySettings.setMatrixSolver (getMatrixSolver());
 
       if (mySettings.getDialog() != null) {
          mySettings.getDialog().updateWidgetValues();

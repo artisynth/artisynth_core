@@ -15,3 +15,8 @@
 # Temporary files
 ######################
 /cachedir
+
+######################
+# Stamp file from 'make build'
+######################
+/.LIBRARIES_installed

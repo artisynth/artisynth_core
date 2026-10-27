@@ -16,7 +16,7 @@
 
 \title{ArtiSynth Quick Installation Guide}
 \author{John Lloyd}
-\setpubdate{Last updated: July, 2024}
+\setpubdate{Last updated: October, 2026}
 \iflatexml
 \date{}
 \fi
@@ -66,10 +66,11 @@ development kit (JDK).
 an Intel-based JDK (containing {\tt x64} in its download name); on ARM-based
 MacOS machines, this should run using the Intel compatibility layer.
 You will need a full Java Development Kit (JDK), not simply a runtime
-environment (JRE), and it must have version 8 or higher. If you need
-a JDK, we recommend obtaining one from Oracle at
-\href{https://www.oracle.com/java/technologies/downloads/}%
-{www.oracle.com/java/technologies/downloads}.
+environment (JRE), and it should have version 21 or higher (Java 21 is
+recommended if you plan to use ArtiSynth with MATLAB). If you need
+a JDK, we suggest Eclipse Temurin, available from
+\href{https://adoptium.net/temurin/releases/}%
+{adoptium.net/temurin/releases}.
  
 \item To verify that the Java JDK is visible to your system, open a
 terminal window (e.g., {\tt CMD} on Windows), run the command {\tt
@@ -140,11 +141,16 @@ then add the folder {\tt <JDK>\BKS bin} (Windows) or {\tt <JDK>/bin}
 \ref{SettingPath}. The folder should be added {\it ahead} of any other
 Java installations that might be specified on the Path.
 
-On Windows, {\tt <JDK\_DIR>} is likely to be located under {\tt C:\BKS Program
-Files\BKS Java}. For example, JDK 21 should be at
+On Windows, {\tt <JDK>} is usually something like
+\begin{verbatim}
+   C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot
+\end{verbatim}
+for Temurin, or 
 \begin{verbatim}
    C:\Program Files\Java\jdk-21
 \end{verbatim}
+for Oracle. The Windows JDK installer usually makes the JDK visible
+automatically.
 
 \subsection{MacOS}
 
@@ -155,15 +161,17 @@ and that your home directory is {\tt <HOMEDIR>}.
 
 \begin{itemize}
 
-\item If your command line shell is {\tt bash} (which
-it will be by default), then the initialization file is {\tt
-<HOMEDIR>/.bashrc}. Use a plain text editor to edit (or create) this file and
-insert a line of the form
+\item If your command line shell is {\tt zsh} (which it will be by
+default), then the initialization file is {\tt <HOMEDIR>/.zshrc}. Use a
+plain text editor to edit (or create) this file and insert a line of
+the form
 %
 \begin{lstlisting}[]
   export JAVA_HOME=`/usr/libexec/java_home -v 21`
 \end{lstlisting}
 %
+The same line can be used if your shell is {\tt bash}, in which case
+the initialization file is {\tt <HOMEDIR>/.bashrc}.
 
 \item If you have changed your shell to {\tt csh} or {\tt tcsh},
 then the initialization file is {\tt <HOMEDIR>/.cshrc}. Use a plain text editor
@@ -177,8 +185,7 @@ to edit or create this file and insert a line of the form
 \end{itemize}
 
 Note that in both examples above, the left quote character "{\tt \`{}}" is used
-instead of the more common right quote "{\tt '}".  Also, for JDK 8, it may be
-necessary to specify the argument {\tt -v 1.8.0} to {\tt java\_home}.
+instead of the more common right quote "{\tt '}".
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -192,7 +199,7 @@ in order to find executables. Adding a directory to the path allows
 executables contained in that directory to be called directly from a
 command window (such as {\tt CMD} on Windows).
 
-\subsection{Windows 10}
+\subsection{Windows}
 
 \begin{enumerate}
 
@@ -212,33 +219,10 @@ your command window.
 
 \end{enumerate}
 
-\subsection{Windows 8 and earlier}
-
-\begin{enumerate}
-
-\item Right-click {\sf My Computer}, and then click {\sf Properties}.
-
-\item Click the {\sf Advanced} tab.
-
-\item Click {\sf Environment variables}.
-
-\item In the top {\sf User variables} window, click on {\sf Path} and 
-then {\sf Edit}. If {\sf Path} does not exist, click {\sf New}.
-
-\item In the edit window, add the full path name for each new directory,
-separated by semi-colons '{\tt ;}'.
-
-\item Close {\it all} dialogs by clicking {\sf OK} and restart 
-your command window.
-
-\end{enumerate}
-
 For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
-artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
-Files\BKS Java\BKS jdk-21}, then we can add the {\tt bin}
-directories for both by setting the User path to
+artisynth\_core}, then you would add the directory
 \begin{verbatim}
-  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk-21\bin
+  C:\artisynth\artisynth_core\bin
 \end{verbatim}
 
 \subsection{MacOS}
@@ -247,9 +231,9 @@ Since MacOS is a Unix-based system, directories can be added to the
 path by editing the {\tt PATH} environment variable directly in the
 initialization files for whichever command line shell you are using,
 in the same manner as described for Linux (Section \ref{Linux}).
-The default command line shell for MacOS is {\tt bash}.
+The default command line shell for MacOS is {\tt zsh}.
 
-On MacOS 10.8 and greater, directories can also be added to the
+On MacOS, directories can also be added to the
 path by adding a text file containing the directories to {\tt
 /etc/paths.d}.  In particular, we can create a file called {\tt
 ArtiSynth} in {\tt /etc/paths.d} that contains the full path names of
@@ -283,12 +267,14 @@ redefine {\tt PATH} inside one of the initialization files for
 whichever command line shell you are using.
 
 Assume that your home folder is {\tt <HOMEDIR>}. Then for the {\tt
-bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} (or create the file
-if it does not already exist) and insert a line of the form
+zsh} shell (the default on MacOS), one can edit {\tt
+<HOMEDIR>/.zshrc}, or for the {\tt bash} shell (the usual default on
+Linux), {\tt <HOMEDIR>/.bashrc} (creating the file if it does not
+already exist), and insert a line of the form
 \begin{verbatim}
    export PATH=<DIR>:$PATH
 \end{verbatim}
-while for the {\tt csh} out {\tt tcsh} shells, one can edit {\tt
+while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
 <HOMEDIR>/.cshrc} and insert a line of the form
 \begin{verbatim}
    setenv PATH <DIR>":"$PATH
@@ -297,13 +283,13 @@ while for the {\tt csh} out {\tt tcsh} shells, one can edit {\tt
 \section{Getting past MacOS security}
 \label{MacOSSecurity}
 
-On recent versions of {\tt MacOS}, a problem that may occur when trying to run
+On some MacOS systems, a problem that {\it may} occur when trying to run
 ArtiSynth models is that MacOS may complain about using a nonvalidated external
 library. This may take the form of a console error that looks like this:
 %
 \begin{lstlisting}[]
  ...
- /Users/lloyd/git/artisynth_core/lib/MacOS64/libPardisoJNI.11.1.2.1.dylib)
+ /Users/roger/artisynth_core/lib/MacOS64/libPardisoJNI.2021.1.1.dylib
  not valid for use in process using Library Validation: library load disallowed
  by system policy 
  ...
@@ -321,11 +307,11 @@ The problem here is that one or more of the native libraries are not ``known''
 to Apple and are therefore not trusted. Clicking the "?" on the popup will
 open a window containing more information about what to do.
 
-The short version is to immediately open your Security and Privacy
-settings after the error occurs, and then, near the bottom of the {\sf
-General} tab, you should see a notification about the blocked
-application with a button to the right labeled {\sf Open
-Anyway}. Clicking that button will grant the application a security
-exception. You will then need to exit and restart ArtiSynth.
+The short version is to immediately open {\sf System Settings > Privacy
+\& Security} after the error occurs. Near the bottom, under {\sf
+Security}, you should see a notification about the blocked library with
+a button to the right labeled {\sf Open Anyway}. Clicking that button
+will grant the library a security exception. You will then need to exit
+and restart ArtiSynth.
 
 \end{document}

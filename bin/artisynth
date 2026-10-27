@@ -3,24 +3,10 @@
 #  export JAVA_HOME=/usr/local/sun/jdk1.6.0
 #  export PATH=$JAVA_HOME/bin:$PATH
 
-contains()
-{
-    #contains $path $directory
-    path="$1"
-    directory="$2"
-
-    if [ -z "$path" ] || [ -z "$directory" ] ; then
-        return 0
-    fi
-    echo "$path" | fgrep -w "$directory" > /dev/null
-    return $?
-}
-
 HELP=no
 SILENT=no
 NO_GUI=no
-JAVA_OPTS="-Xms200M -Xmn100M"
-MEM_LIMIT="-Xmx6G"
+JAVA_OPTS=
 ART_HOME=
 declare -a MAIN_OPTS
 IDX=0
@@ -82,14 +68,12 @@ if [ -n "$ART_HOME" ] ; then
     export ARTISYNTH_PATH=".":$HOME:$ARTISYNTH_HOME
 elif [ -z "$ARTISYNTH_HOME" ] ; then
     # try to figure out ARTISYNTH_HOME
-    D=`dirname $0`/..
+    D=`dirname "$0"`/..
     export ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
     export ARTISYNTH_PATH=".":$HOME:$ARTISYNTH_HOME
 fi
 AT=$ARTISYNTH_HOME
 OSNAME=`uname -s`
-# Classpath needs to be set to main classes directory and jar files
-# in $ARTISYNTH_HOME/lib
 if [[ "$OSNAME" == *"CYGWIN"* || "$OSNAME" == *"MINGW"* ]]; then
    # Windows based system
 
@@ -103,39 +87,31 @@ if [[ "$OSNAME" == *"CYGWIN"* || "$OSNAME" == *"MINGW"* ]]; then
    export ARTISYNTH_HOME=$ATW
    HOMEW=`cygpath -w "$HOME"`
    export ARTISYNTH_PATH=".;$HOMEW;$ATW"
-   if [ -z $CLASSPATH ]; then
-      CLASSPATH="$ATW\classes;$ATW\lib\*"
-   else 
-      if ! contains $CLASSPATH "$ATW\lib\*" ; then
-         CLASSPATH="$ATW\lib\*:$CLASSPATH"
-      fi
-      if ! contains $CLASSPATH "$ATW\classes" ; then
-         CLASSPATH="$ATW\classes;$CLASSPATH"
-      fi
-   fi
+   CP_SEP=";"
+   CP_DEFAULT="$ATW\classes;$ATW\lib\*"
 elif [[ "$OSNAME" == *"Linux"* || "$OSNAME" == *"Darwin"* ]] ; then
    # Linux or Mac system
-   if [ -z $CLASSPATH ]; then
-      CLASSPATH=$AT/classes:$AT/lib/*
-   else 
-      if ! contains $CLASSPATH "$AT/lib/*" ; then
-         CLASSPATH=$AT/lib/*:$CLASSPATH
-      fi
-      if ! contains $CLASSPATH "$AT/classes" ; then
-         CLASSPATH=$AT/classes:$CLASSPATH
-      fi
-   fi
-   if [[ "$OSNAME" == *"Linux"* ]] ; then
-      if ! uname -m | grep -q 64 ; then
-         MEM_LIMIT="-Xmx2G"
-      fi
-   fi
+   CP_SEP=":"
+   CP_DEFAULT="$AT/classes:$AT/lib/*"
    # Note: DYLD_LIBRARY_PATH is not set on the Mac. The native libraries are
    # loaded by absolute path, and their non-system dependencies (libiomp5
    # for Pardiso) are pre-loaded by the solvers. macOS also strips DYLD_*
    # variables when java is run via /usr/bin/java.
 else     
     echo Unknown operating system: $OSNAME
+fi
+# Classpath consists of the main classes directory and the jar files listed
+# in $ARTISYNTH_HOME/lib/LIBRARIES, followed by the existing CLASSPATH minus
+# any entries for lib/* or jar files in lib/ (so that older versions of the
+# libraries that may still be in lib/ are excluded). If LIBRARIES can't be
+# read, use lib/* followed by the existing CLASSPATH.
+ACP=`"$AT/bin/makeClasspath" -addEnv 2>/dev/null`
+if [ -n "$ACP" ] ; then
+   CLASSPATH=$ACP
+elif [ -z "$CLASSPATH" ] ; then
+   CLASSPATH=$CP_DEFAULT
+else
+   CLASSPATH=$CP_DEFAULT$CP_SEP$CLASSPATH
 fi
 export CLASSPATH
 
@@ -167,7 +143,13 @@ if [ $? != "0" ] ; then
     echo Error: Java executable not found. Please edit line 3+4 of $0
     exit 1
 fi
-JAVA_OPTS="$JAVA_OPTS $MEM_LIMIT"
+# Enable native access (used by JOGL and ArtiSynth's native libraries), to
+# avoid warnings from Java 24 and later, and blocking by future versions.
+# The option is supported only by Java 17 and later.
+JAVA_MAJOR=`java -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -n 1`
+if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 17 ] ; then
+   JAVA_OPTS="$JAVA_OPTS --enable-native-access=ALL-UNNAMED"
+fi
 if [ $NO_GUI = yes ] ; then
    JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
 fi

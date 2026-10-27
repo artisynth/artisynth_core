@@ -211,7 +211,7 @@ public enum SparseSolverId {
     */
    public static SparseSolverId findAvailableDirectSolver (String name) {
       for (SparseSolverId id : getAvailableDirectSolvers()) {
-         if (id.name().equals(name) && id.isDirect()) {
+         if (id.name().equalsIgnoreCase(name) && id.isDirect()) {
             return id;
          }
       }

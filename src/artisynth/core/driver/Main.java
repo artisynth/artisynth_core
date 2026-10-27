@@ -1709,17 +1709,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          numThreads = numSolverThreads.value;
       }
       PardisoSolver.setDefaultNumThreads(numThreads);
-      
-      // display ill-conditioned solves
-      mySimulationSettings.setShowIllConditionedSolves (
-         mySimulationPrefs.getShowIllConditionedSolves());
 
-      // settings that are not in preferences:
-
-      // no-incompress-damping is probably obsolete:
-      FemModel3d.noIncompressStiffnessDamping = noIncompressDamping.value;
-
-      // matrix solver
+      // default matrix solver
+      SparseSolverId solverId = mySimulationPrefs.getMatrixSolver();
       if (matrixSolver.value != null) {
          SparseSolverId id =
             SparseSolverId.findAvailableDirectSolver (matrixSolver.value);
@@ -1729,9 +1721,19 @@ public class Main implements DriverInterface, ComponentChangeListener {
                " unavailable or unknown; ignoring");            
          }
          else {
-            MechSystemBase.setDefaultMatrixSolver (id);
+            solverId = id;
          }
       }
+      MechSystemBase.setDefaultMatrixSolver (solverId);
+      
+      // display ill-conditioned solves
+      mySimulationSettings.setShowIllConditionedSolves (
+         mySimulationPrefs.getShowIllConditionedSolves());
+
+      // settings that are not in preferences:
+
+      // no-incompress-damping is probably obsolete:
+      FemModel3d.noIncompressStiffnessDamping = noIncompressDamping.value;
 
       if (profileFactorSolve.value) {
          MechSystemSolver.setDefaultProfileFactorSolve (true);
@@ -2746,6 +2748,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private void verifyNativeLibraries (boolean update) {
 
       LibraryInstaller installer = new LibraryInstaller();
+      installer.setLibDir (
+         ArtisynthPath.getHomeRelativeFile ("lib", ".").toString());
       File libFile = ArtisynthPath.getHomeRelativeFile ("lib/LIBRARIES", ".");
       if (!libFile.canRead()) {
          // error will have been printed by launcher, so no need to do so here
@@ -2764,6 +2768,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          int status = 0;
          try {
             status = installer.verifyNativeLibs (update);
+            // remove old versions after downloading, since removal
+            // requires the current version to be present
+            installer.removeOldNativeLibs();
          }
          catch (Exception e) {
             if (installer.isConnectionException (e)) {
@@ -3871,8 +3878,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public void quit () {
-      dispose();
-      exit (0);
+      if (myRunningUnderMatlab) {
+         // if running under matlab, we don't want to exit the entire process, 
+         // so just dispose of resources. NOTE: this dispose call fails
+         // if the model is running
+         dispose();
+      }
+      else {
+         exit (0);
+      }
    }
 
    /**

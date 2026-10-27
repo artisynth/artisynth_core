@@ -1099,7 +1099,7 @@ public abstract class GeometryTransformer {
                      Vector3d nrm = normals.get(ni);
                      pworld.transform (TMW, refs[ni]);
                      nworld.transform (TMW, nrm);
-                     transformNormal (nworld, pworld);
+                     computeTransformNormal (nworld, nworld, pworld);
                      nrm.inverseTransform (TMWnew, nworld);
                      nrm.normalize();
                   }

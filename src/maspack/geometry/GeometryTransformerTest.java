@@ -323,6 +323,16 @@ public abstract class GeometryTransformerTest extends UnitTest {
       }
    }
 
+   void checkUndoDataRestored (GeometryTransformer gtr) {
+      // all saved undo data must be consumed when restoring, otherwise
+      // the restore of subsequent primitives gets out of order
+      if (gtr.getUndoDataSize() > 0) {
+         throw new TestException (
+            "undo data not fully restored: " + gtr.getUndoDataSize() +
+            " objects left");
+      }
+   }
+
    void testMesh (PolygonalMesh mesh) {
 
       GeometryTransformer[] gtrs = createTransformers();
@@ -343,6 +353,7 @@ public abstract class GeometryTransformerTest extends UnitTest {
          gtr.setUndoState (UndoState.RESTORING);
          gtr.transform (testmesh);
          checkMeshEquals (testmesh, mesh, 0);
+         checkUndoDataRestored (gtr);
 
          checkmesh = computeMeshWorldCheck (mesh, gtr);
          testmesh = mesh.copy();
@@ -358,6 +369,7 @@ public abstract class GeometryTransformerTest extends UnitTest {
          gtr.setUndoState (UndoState.RESTORING);
          gtr.transformWorld (testmesh, null);
          checkMeshEquals (testmesh, mesh, 0);
+         checkUndoDataRestored (gtr);
       }
       
    }

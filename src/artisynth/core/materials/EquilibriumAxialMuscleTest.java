@@ -84,8 +84,51 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
       testDerivatives (new Thelen2003AxialMuscle());
    }
 
+   private void checkScaledForce (
+      String msg, double f, double fscaled, double s) {
+      double err = Math.abs(fscaled-s*f)/Math.abs(s*f);
+      if (err > 1e-10) {
+         throw new TestException (
+            msg + ": force scaled to "+fscaled+", expected "+(s*f));
+      }
+   }
+
+   /**
+    * Changing units with scaleDistance() or scaleMass() should scale the
+    * force by s, with maxContractionVelocity and fibreDamping unchanged.
+    */
+   public void testScaling (EquilibriumAxialMuscle mat) {
+      double s = 1000;
+      double a = 1.0;
+      // rigid tendon makes computeF() independent of muscle state
+      mat.setRigidTendon (true);
+      mat.setFibreDamping (0.1);
+      // muscle at 1.1 optimal fibre lengths, with nonzero velocity so that
+      // force-velocity and damping terms contribute
+      double l = mat.getTendonSlackLength() + 1.1*mat.getOptFibreLength();
+      double ldot = 0.3;
+      double f = mat.computeF (l, ldot, 0, a);
+
+      EquilibriumAxialMuscle scaled =
+         (EquilibriumAxialMuscle)mat.clone();
+      scaled.scaleDistance (s);
+      checkScaledForce (
+         "scaleDistance", f, scaled.computeF (s*l, s*ldot, 0, a), s);
+
+      scaled = (EquilibriumAxialMuscle)mat.clone();
+      scaled.scaleMass (s);
+      checkScaledForce (
+         "scaleMass", f, scaled.computeF (l, ldot, 0, a), s);
+   }
+
+   void testScaling() {
+      testScaling (new Millard2012AxialMuscle());
+      testScaling (new Thelen2003AxialMuscle());
+   }
+
    public void test() {
       testDerivatives();
+      testScaling();
    }
 
    public static void main (String[] args) {

@@ -137,7 +137,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       myProps.add(
          "computeLmDotFromLDot",
          "if true, use ldot to compute lmdot",
-         DEFAULT_IGNORE_FORCE_VELOCITY);
+         DEFAULT_COMPUTE_LMDOT_FROM_LDOT);
       myProps.addReadOnly (
          "length",
          "length of the combined tendon/muscle");
@@ -1111,11 +1111,12 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       myMaxIsoForce *= s;
       setOptFibreLength (s*myOptFibreLength);
       myTendonSlackLength *= s;
-      myMaxContractionVelocity *= s;
-      myDamping *= s;
+      // maxContractionVelocity (optimal fibre lengths/sec) and fibreDamping
+      // (w.r.t. normalized velocity) are independent of distance units
 
       myMuscleLength *= s;
       myMuscleLengthPrev *= s;
+      myMuscleVel *= s;
       myLength *= s;
       myLengthPrev *= s;
    }
@@ -1123,7 +1124,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    public void scaleMass(double s) {
       super.scaleMass(s);
       myMaxIsoForce *= s;
-      myDamping *= s;
+      // fibreDamping is normalized by maxIsoForce, so is not scaled
    }
 }
 

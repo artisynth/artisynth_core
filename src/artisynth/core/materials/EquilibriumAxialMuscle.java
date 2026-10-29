@@ -770,7 +770,10 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       double dfa = computeActiveForceLengthDeriv(ln)*dln;
       double dfp = computePassiveForceLengthDeriv(ln)*dln;
       double vterm = myDamping;
-      if (!myIgnoreForceVelocity && vn != 0) {
+      if (!myIgnoreForceVelocity) {
+         // include the slope at vn = 0 too, as computeFm() does; otherwise
+         // the damping is underestimated whenever vm is exactly 0, e.g. in
+         // static holds with computeLmDotFromLDot
          double dfv = computeForceVelocityDeriv (vn, a);
          vterm += a*fa*dfv;
       }

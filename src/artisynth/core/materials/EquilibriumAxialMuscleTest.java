@@ -106,10 +106,9 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
     */
    public void testCompliantDerivatives (
       EquilibriumAxialMuscle mat, boolean lmDotFromLDot,
-      double lnorm, double a) {
+      double lnorm, double a, double ldot) {
 
       double h = 0.01;
-      double ldot = 0.05;
       mat.setRigidTendon (false);
       mat.setFibreDamping (0.1);
       mat.setComputeLmDotFromLDot (lmDotFromLDot);
@@ -137,7 +136,7 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
       double dl = 1e-7*l;
       double dFdl = (computeFAtState (mat, state, l+dl, ldot, a)-f0)/dl;
       String msg = mat.getClass().getSimpleName()+" lmDotFromLDot="
-         +lmDotFromLDot+" lnorm="+lnorm+" a="+a;
+         +lmDotFromLDot+" lnorm="+lnorm+" a="+a+" ldot="+ldot;
       if (lmDotFromLDot) {
          double dv = 1e-7;
          double dFdldot =
@@ -155,11 +154,16 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
          // near optimal length, and on the descending limb at full activation
          testCompliantDerivatives (
             new Millard2012AxialMuscle (1000, 0.1, 0.2, 0.1),
-            lmDotFromLDot, 1.0, 0.5);
+            lmDotFromLDot, 1.0, 0.5, 0.05);
          testCompliantDerivatives (
             new Millard2012AxialMuscle (1000, 0.1, 0.2, 0.1),
-            lmDotFromLDot, 1.3, 1.0);
+            lmDotFromLDot, 1.3, 1.0, 0.05);
       }
+      // static hold: with computeLmDotFromLDot, vm is exactly 0 when ldot
+      // is 0, and the damping must still include the force-velocity slope
+      testCompliantDerivatives (
+         new Millard2012AxialMuscle (1000, 0.1, 0.2, 0.1),
+         true, 1.0, 0.5, 0.0);
    }
 
    void testDerivatives() {

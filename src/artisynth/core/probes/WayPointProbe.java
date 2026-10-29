@@ -531,7 +531,10 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
    }
 
    /**
-    * {@inheritDoc}
+    * Save the root model's state at time {@code t} to a waypoint at time 
+    * {@code t}.
+    * 
+    * @param t probe apply time
     */
    public void apply (double t) {
       double tround = TimeBase.round(t);

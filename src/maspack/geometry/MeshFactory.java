@@ -3612,6 +3612,184 @@ public class MeshFactory {
       return mesh;
    }
 
+   /**
+    * Creates a quad mesh formed by connecting a series of open rectangular
+    * prisms along a curve in the x-y plane. The curve is a polyline described
+    * by the x-y point pairs in {@code xy}. Following the curve, a local
+    * coordinate frame is assumed, with x pointing along the curve, z aligned
+    * with the world z axis, and y = z X x. Each prism has widths {@code wx},
+    * {@code wy}, {@code wz} along the local x, y and z axes, and is centered
+    * on the curve with an offset {@code yoffset} along local y.
+    *
+    * <p>The curve is resampled by arc length into {@code n} equal intervals,
+    * where {@code n} is {@code wx} rounded to fit the curve length, and each
+    * prism spans the chord between adjacent samples. Prism ends are mitered
+    * at the joints so that the width along y remains {@code wy}. When the
+    * original curve has corners, the resampled chords may cut those corners.
+    * For open curves, the end faces are aligned with the local frame of the
+    * curve at its end points.
+    *
+    * @param xy x-y coordinate pairs describing the curve
+    * @param wx nominal prism width along the curve
+    * @param wy prism width along local y
+    * @param wz prism width along z
+    * @param yoffset offset of each prism along local y
+    * @param closed if {@code true}, the curve (and mesh) is closed
+    * @param capped if {@code true} and {@code closed} is {@code false},
+    * the ends of the mesh are closed with quads
+    * @return created mesh
+    */
+   public static PolygonalMesh createQuadBand (
+      double[] xy, double wx, double wy, double wz, double yoffset,
+      boolean closed, boolean capped) {
+
+      if (wx <= 0) {
+         throw new IllegalArgumentException ("wx must be positive");
+      }
+      // collect points, removing consecutive duplicates
+      double maxc = 0;
+      for (int i=0; i<xy.length; i++) {
+         maxc = Math.max (maxc, Math.abs(xy[i]));
+      }
+      double tol = 1e-12*maxc;
+      ArrayList<Point2d> pnts = new ArrayList<>();
+      for (int i=0; i<xy.length/2; i++) {
+         Point2d p = new Point2d (xy[2*i], xy[2*i+1]);
+         if (pnts.size() == 0 || p.distance (pnts.get(pnts.size()-1)) > tol) {
+            pnts.add (p);
+         }
+      }
+      if (closed && pnts.size() > 1 &&
+          pnts.get(0).distance (pnts.get(pnts.size()-1)) <= tol) {
+         pnts.remove (pnts.size()-1);
+      }
+      int npnts = pnts.size();
+      if (npnts < (closed ? 3 : 2)) {
+         throw new IllegalArgumentException (
+            "curve must have at least "+(closed ? 3 : 2)+" distinct points");
+      }
+      // cumulative arc length along the curve
+      int nsegs = closed ? npnts : npnts-1;
+      double[] slen = new double[nsegs+1];
+      for (int i=0; i<nsegs; i++) {
+         slen[i+1] = slen[i] + pnts.get(i).distance (pnts.get((i+1)%npnts));
+      }
+      double len = slen[nsegs];
+
+      // resample the curve at equal arc length intervals
+      int n = Math.max (closed ? 3 : 1, (int)Math.round (len/wx));
+      int nsamps = closed ? n : n+1;
+      Point2d[] samps = new Point2d[nsamps];
+      int seg = 0;
+      for (int k=0; k<nsamps; k++) {
+         double s = k*len/n;
+         while (seg < nsegs-1 && slen[seg+1] < s) {
+            seg++;
+         }
+         double t = (s-slen[seg])/(slen[seg+1]-slen[seg]);
+         t = Math.max (0, Math.min (1, t));
+         samps[k] = new Point2d();
+         samps[k].combine (
+            1-t, pnts.get(seg), t, pnts.get((seg+1)%npnts));
+      }
+
+      // chord directions between samples
+      Vector2d[] udirs = new Vector2d[n];
+      for (int k=0; k<n; k++) {
+         udirs[k] = new Vector2d();
+         udirs[k].sub (samps[(k+1)%nsamps], samps[k]);
+         udirs[k].normalize();
+      }
+
+      // create vertices for the rectangular cross section at each sample
+      double ylo = yoffset-wy/2;
+      double yhi = yoffset+wy/2;
+      double[] ycs = new double[] { ylo, yhi, yhi, ylo };
+      double[] zcs = new double[] { -wz/2, -wz/2, wz/2, wz/2 };
+      Point3d[] vlist = new Point3d[4*nsamps];
+      Vector2d xdir = new Vector2d();
+      for (int k=0; k<nsamps; k++) {
+         double scale = 1;
+         if (!closed && k == 0) {
+            // align end with the curve's local frame at its first point
+            xdir.sub (pnts.get(1), pnts.get(0));
+            xdir.normalize();
+         }
+         else if (!closed && k == n) {
+            // align end with the curve's local frame at its last point
+            xdir.sub (pnts.get(npnts-1), pnts.get(npnts-2));
+            xdir.normalize();
+         }
+         else {
+            Vector2d uin = udirs[(k+n-1)%n];
+            Vector2d uout = udirs[k];
+            xdir.add (uin, uout);
+            double mag = xdir.norm();
+            if (mag < 1e-8) {
+               // curve reverses direction; no miter possible
+               xdir.set (uout);
+            }
+            else {
+               xdir.scale (1/mag);
+               // scale y to maintain width wy across the miter
+               scale = 1/xdir.dot (uout);
+            }
+         }
+         // ydir = z X xdir
+         double yx = -scale*xdir.y;
+         double yy = scale*xdir.x;
+         Point2d p = samps[k];
+         for (int j=0; j<4; j++) {
+            vlist[4*k+j] = new Point3d (
+               p.x + ycs[j]*yx, p.y + ycs[j]*yy, zcs[j]);
+         }
+      }
+
+      // create side faces, plus caps if needed
+      boolean addCaps = (capped && !closed);
+      int[][] faces = new int[4*n + (addCaps ? 2 : 0)][];
+      for (int k=0; k<n; k++) {
+         int b0 = 4*k;
+         int b1 = 4*((k+1)%nsamps);
+         for (int j=0; j<4; j++) {
+            int jn = (j+1)%4;
+            faces[4*k+j] = new int[] { b0+j, b0+jn, b1+jn, b1+j };
+         }
+      }
+      if (addCaps) {
+         int b = 4*n;
+         faces[4*n] = new int[] { 0, 3, 2, 1 };
+         faces[4*n+1] = new int[] { b, b+1, b+2, b+3 };
+      }
+      PolygonalMesh mesh = new PolygonalMesh();
+      mesh.set(vlist, faces);
+      return mesh;
+   }
+
+   /**
+    * Creates a triangular mesh formed by connecting a series of open
+    * rectangular prisms along a curve in the x-y plane. This is identical to
+    * {@link #createQuadBand} except that the resulting mesh is triangulated.
+    *
+    * @param xy x-y coordinate pairs describing the curve
+    * @param wx nominal prism width along the curve
+    * @param wy prism width along local y
+    * @param wz prism width along z
+    * @param yoffset offset of each prism along local y
+    * @param closed if {@code true}, the curve (and mesh) is closed
+    * @param capped if {@code true} and {@code closed} is {@code false},
+    * the ends of the mesh are closed
+    * @return created mesh
+    */
+   public static PolygonalMesh createBand (
+      double[] xy, double wx, double wy, double wz, double yoffset,
+      boolean closed, boolean capped) {
+      PolygonalMesh mesh =
+         createQuadBand (xy, wx, wy, wz, yoffset, closed, capped);
+      mesh.triangulate();
+      return mesh;
+   }
+
    private static void addQuadTriangles(
       PolygonalMesh mesh, int vidx0, int vidx1, int vidx2, int vidx3) {
 

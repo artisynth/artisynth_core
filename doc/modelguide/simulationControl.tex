@@ -2727,6 +2727,29 @@ and override either its \javamethodAlt{%
 methods, as described for {\tt NumericMonitorProbe}s (Section
 \ref{NumericMonitorProbes:sec}).
 
+%\section{Timeline Actions}
+%
+%It is sometimes useful to perform distinct tasks at various points in
+%(simulated) time as a simulation proceeds. One obvious example is saving probe
+%data to a file after a certain time has elapsed. Other examples might include
+%one-off changes in simulation values, or even changing the structure of the
+%model.
+%
+%Such tasks can be effected by {\it timeline actions}, which are instances of
+%\javaclass[\workspace]{TimelineAction}. Applications implement actions
+%by subclassing {\tt TimelineAction} with an override of the {\tt apply()}
+%method to perform the required task, and then adding the resulting action to
+%the root model's {\it timelineActions} component list. As an example, consider
+%the example of Section \ref{SimpleMuscleWithProbes:sec}, and suppose that one
+%wants to save the velocity probe when it reaches its stop time of 10. This
+%could be effected by adding the following to the end of the {\tt build()}
+%method:
+%%
+%\begin{lstlisting}[]
+%      TimelineAction saveProbe = new TimelineAction() {
+%\end{lstlisting}
+%%
+
 \section{Working with TRC data}
 \label{TRCData:sec}
 

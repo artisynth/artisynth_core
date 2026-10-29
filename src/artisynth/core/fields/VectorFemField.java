@@ -203,6 +203,7 @@ public abstract class VectorFemField<T extends VectorObject<T>>
          throw new InternalErrorException (
             "Can't clone instance of "+value.getClass());
       }
+      notifyValuesChanged();
    }
 
    /* ---- Begin I/O methods ---- */

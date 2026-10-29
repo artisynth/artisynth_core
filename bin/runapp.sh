@@ -1,59 +1,66 @@
 #!/bin/bash
-# A shell script for running a java class
+#
+# Runs a Java class with the environment needed by ArtiSynth applications:
+#
+#   runapp.sh [JAVA_OPTIONS] <className> [ARGS]
+#
+# ARTISYNTH_HOME is set to '..' relative to this script, unless it is
+# already set. The classpath consists of ArtiSynth's classes directory and
+# the jar files listed in lib/LIBRARIES (see bin/makeClasspath), followed
+# by any existing CLASSPATH, minus entries for ArtiSynth's lib folder.
 
-ART=$ARTISYNTH_HOME
-if [[ -z $ART ]]; then
-    ART=".."
+if [ -z "$ARTISYNTH_HOME" ] ; then
+   D=`dirname "$0"`/..
+   ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
 fi
+AT=$ARTISYNTH_HOME
 
-# OS Detection
-# Classpath needs to be set to main classes directory and jar files
-# in $ARTISYNTH_HOME/lib
-OSNAME=`uname -s`
-if [ "$OSNAME" = "Linux" ] ; then
-    if uname -m | grep -q 64 ; then
-       OS=$OSNAME"64"
-    else
-       OS=$OSNAME
-       MEM_LIMIT="-Xmx2G"
-    fi
-    contains $LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS
-    if [ $? -ne 0 ] || [ -z $LD_LIBRARY_PATH ] ; then
-        export LD_LIBRARY_PATH=$ART/lib/$OS:$LD_LIBRARY_PATH
-    fi
-    PATH="$PATH:$ART/bin"
-    CLASSPATH="$ART/classes:$ART/lib/*"
-elif [ "$OSNAME" = "Darwin" ] ; then
-    if [ `uname -p` = "powerpc" ] ; then
-        ARCH="ppc"
-    elif java -version 2>&1 | fgrep -q 'version "1.6' ; then
-        ARCH="x86_64"
-    else
-        ARCH="i386"
-    fi
-    contains $DYLD_LIBRARY_PATH $ART/lib/$OSNAME-$ARCH
-    if [ $? -ne 0 ] || [ -z $DYLD_LIBRARY_PATH ]; then
-        export DYLD_LIBRARY_PATH=$ART/lib/$OSNAME-$ARCH:$DYLD_LIBRARY_PATH
-    fi
-    PATH="$PATH:$ART/bin"
-    CLASSPATH="$ART/classes:$ART/lib/*"
-elif echo "$OSNAME" | grep CYGWIN 1>/dev/null 2>&1 ; then
-    export ARTISYNTH_HOME=`cygpath -w $ART`
-    export ARTISYNTH_PATH=".;`cygpath -w $HOME`;$ART"
-    if uname -m | grep -q 64 ; then
-       # echo Cygwin on Windows64
-       export PATH=`cygpath "$ART\lib\Windows64"`:$PATH
-    else
-       # echo Cygwin on Windows32
-       export PATH=`cygpath "$ART\lib\Windows"`:$PATH
-       MEM_LIMIT="-Xmx1G"
-    fi
-    PATH="$PATH:$ART/bin:"
-    CLASSPATH="$ART\classes;$ART\lib\*"
-else     
-    echo Unknown operating system: $OSNAME
+# Classpath consists of the main classes directory and the jar files listed
+# in lib/LIBRARIES, followed by the existing CLASSPATH minus any entries for
+# lib/* or jar files in lib/ (so that older versions of the libraries that
+# may still be in lib/ are excluded). If LIBRARIES can't be read, use lib/*
+# followed by the existing CLASSPATH.
+ACP=`"$AT/bin/makeClasspath" -addEnv 2>/dev/null`
+
+case "`uname -s`" in
+   CYGWIN*|MINGW*|MSYS*)
+      # MumpsJNI links the Intel Fortran runtime, whose Ctrl-C handler would
+      # otherwise abort the process instead of letting the JVM shut down.
+      export FOR_DISABLE_CONSOLE_CTRL_HANDLER=1
+      # native libraries can depend on other libraries in lib/Windows64
+      PATH="$AT/lib/Windows64:$PATH"
+      ATW=`cygpath -w "$AT"`
+      export ARTISYNTH_HOME=$ATW
+      export ARTISYNTH_PATH=".;`cygpath -w "$HOME"`;$ATW"
+      CP_SEP=";"
+      CP_DEFAULT="$ATW\classes;$ATW\lib\*"
+      ;;
+   *)
+      # Linux and MacOS: native libraries are loaded by absolute path, so
+      # no library path needs to be set
+      export ARTISYNTH_HOME=$AT
+      export ARTISYNTH_PATH=".:$HOME:$AT"
+      CP_SEP=":"
+      CP_DEFAULT="$AT/classes:$AT/lib/*"
+      ;;
+esac
+if [ -n "$ACP" ] ; then
+   CLASSPATH=$ACP
+elif [ -z "$CLASSPATH" ] ; then
+   CLASSPATH=$CP_DEFAULT
+else
+   CLASSPATH=$CP_DEFAULT$CP_SEP$CLASSPATH
 fi
 export CLASSPATH
-export PATH
+export PATH="$PATH:$AT/bin"
 
-java "$@" 
+# Enable native access (used by JOGL and ArtiSynth's native libraries), to
+# avoid warnings from Java 24 and later, and blocking by future versions.
+# The option is supported only by Java 17 and later.
+NATIVE_ACCESS=
+JAVA_MAJOR=`java -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -n 1`
+if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 17 ] ; then
+   NATIVE_ACCESS="--enable-native-access=ALL-UNNAMED"
+fi
+
+exec java $NATIVE_ACCESS "$@"

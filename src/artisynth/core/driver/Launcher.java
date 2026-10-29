@@ -36,6 +36,9 @@ public class Launcher {
    public static final boolean useJOGL2 = true;
    private String myMainClassName;
 
+   // Java version that will be required by an upcoming ArtiSynth update
+   private static final int UPCOMING_JAVA_VERSION = 21;
+
    public Launcher (String mainClassName) {
       myMainClassName = mainClassName;
    }
@@ -67,8 +70,45 @@ public class Launcher {
       }
    }
 
+   /**
+    * Returns the major version of the Java runtime, or -1 if it can't be
+    * determined. The specification version is "1.8" for Java 8, and "9",
+    * "17", "21", etc., thereafter.
+    */
+   static int getJavaMajorVersion() {
+      String version = System.getProperty ("java.specification.version", "");
+      if (version.startsWith ("1.")) {
+         version = version.substring (2);
+      }
+      try {
+         return Integer.parseInt (version);
+      }
+      catch (NumberFormatException e) {
+         return -1;
+      }
+   }
+
+   /**
+    * Prints a notice if the Java runtime is older than the version that will
+    * be required by an upcoming ArtiSynth update. Printed to System.err so
+    * that it appears in red in the Eclipse console.
+    */
+   private static void maybePrintJavaVersionNotice() {
+      int major = getJavaMajorVersion();
+      if (major > 0 && major < UPCOMING_JAVA_VERSION) {
+         System.err.println (
+            "NOTE: An upcoming ArtiSynth update will require Java "+
+            UPCOMING_JAVA_VERSION+" or later (you are running\n"+
+            "Java "+major+"). Please upgrade your JDK to Java "+
+            UPCOMING_JAVA_VERSION+" or later, or switch to an IDE that\n"+
+            "provides it. Java "+UPCOMING_JAVA_VERSION+
+            " (and not later) is recommended if you use MATLAB.");
+      }
+   }
+
    public Object launch (String[] args) {
 
+      maybePrintJavaVersionNotice();
       boolean updateLibs = false;
       String classpath = null;
       ArrayList<String> mainArgs = new ArrayList<>();
@@ -189,6 +229,87 @@ public class Launcher {
       }
       else {
          return new File[0];
+      }
+   }
+
+   /**
+    * Returns the names of the jar files listed in lib/LIBRARIES for the
+    * current system, or {@code null} if LIBRARIES cannot be read.
+    */
+   private Set<String> getLibraryJarnames (File libDir) {
+      LibraryInstaller installer = new LibraryInstaller();
+      try {
+         installer.setLibDir (libDir.toString());
+         installer.readLibs (new File (libDir, "LIBRARIES"));
+      }
+      catch (Exception e) {
+         return null;
+      }
+      return new LinkedHashSet<String> (installer.getJarnames());
+   }
+
+   /**
+    * Returns the jar files in the ArtiSynth library folder that are listed in
+    * lib/LIBRARIES for the current system and are present. Other jar files in
+    * the folder (such as older versions that could not be removed) are
+    * ignored. If LIBRARIES cannot be read, as indicated by {@code jarnames}
+    * being {@code null}, all the jar files in the folder are returned
+    * instead.
+    */
+   private File[] getLibraryJarFiles (File libDir, Set<String> jarnames) {
+      if (jarnames == null) {
+         return getJarFiles (libDir.toString());
+      }
+      ArrayList<File> jarFiles = new ArrayList<>();
+      for (String jarname : jarnames) {
+         File file = new File (libDir, jarname);
+         if (file.exists()) {
+            jarFiles.add (file);
+         }
+      }
+      return jarFiles.toArray (new File[0]);
+   }
+
+   /**
+    * Returns true if {@code file} is a jar file in the ArtiSynth library
+    * folder that is not listed in lib/LIBRARIES, such as an older version
+    * of a listed jar.
+    */
+   private boolean isUnlistedLibraryJar (
+      File file, File canonicalLibDir, Set<String> jarnames) {
+      if (!file.getName().endsWith (".jar")) {
+         return false;
+      }
+      try {
+         File parent = file.getCanonicalFile().getParentFile();
+         return (canonicalLibDir.equals (parent) &&
+                 !jarnames.contains (file.getName()));
+      }
+      catch (IOException e) {
+         return false;
+      }
+   }
+
+   /**
+    * Prints a warning for any jar files on the system class path (which is
+    * set using CLASSPATH or the java -cp option) that are in the ArtiSynth
+    * library folder but are not listed in lib/LIBRARIES. These cannot be
+    * excluded once the JVM has started, and may be older versions whose
+    * classes take precedence over, or mix with, those of the current ones.
+    */
+   private void warnAboutUnlistedLibraryJars (
+      File canonicalLibDir, Set<String> jarnames) {
+      LinkedList<File> files = new LinkedList<File>();
+      addClassPathFiles (files, System.getProperty ("java.class.path"));
+      for (File file : files) {
+         if (isUnlistedLibraryJar (file, canonicalLibDir, jarnames)) {
+            System.out.println (
+               "WARNING: class path contains "+file+
+               ", which is not listed in "+
+               new File (canonicalLibDir, "LIBRARIES")+
+               " and may be an older version. Your CLASSPATH should not "+
+               "include ArtiSynth's lib folder, or any jar files in it.");
+         }
       }
    }
 
@@ -337,6 +458,8 @@ public class Launcher {
    public static int verifyLibraries (boolean update) {
       int downloadCnt = 0;
       LibraryInstaller installer = new LibraryInstaller();
+      installer.setLibDir (
+         ArtisynthPath.getHomeRelativeFile ("lib", ".").toString());
       File libFile = ArtisynthPath.getHomeRelativeFile ("lib/LIBRARIES", ".");
       if (!libFile.canRead()) {
          System.out.println ("WARNING: Can't access "+libFile);
@@ -368,6 +491,10 @@ public class Launcher {
             else {
                downloadCnt += retval;
             }
+            // remove old jar versions after downloading (since removal
+            // requires the current version), but before the class loader
+            // opens the jar files (which may prevent removal on Windows)
+            installer.removeOldJars();
          }
          catch (Exception e) {
             if (installer.isConnectionException (e)) {
@@ -431,8 +558,26 @@ public class Launcher {
       LinkedHashSet<File> fileSet = new LinkedHashSet<File>();
 
       String ahome = ArtisynthPath.getHomeDir();
+      File libDir = new File (ahome, "lib");
+      Set<String> jarnames = getLibraryJarnames (libDir);
 
       addClassPathFiles (files, classpath);
+      if (jarnames != null) {
+         // exclude unlisted library jars from the class path entries
+         try {
+            File canonicalLibDir = libDir.getCanonicalFile();
+            warnAboutUnlistedLibraryJars (canonicalLibDir, jarnames);
+            Iterator<File> it = files.iterator();
+            while (it.hasNext()) {
+               if (isUnlistedLibraryJar (it.next(), canonicalLibDir, jarnames)) {
+                  it.remove();
+               }
+            }
+         }
+         catch (IOException e) {
+            // ignore - can't determine canonical lib folder
+         }
+      }
 
       try {
          for (File file : files) {
@@ -444,7 +589,7 @@ public class Launcher {
       }
       addFileIfNeeded (files, fileSet, ahome+SEP+"classes");
 
-      File[] jarFiles = getJarFiles (ahome+SEP+"lib");
+      File[] jarFiles = getLibraryJarFiles (libDir, jarnames);
       for (File file : jarFiles) {
          addFileIfNeeded (files, fileSet, file);
       }

@@ -33,8 +33,6 @@ public class SimpleMuscle extends MuscleMaterial {
    //protected ScalarFieldPointFunction myMaxStressFunction = null;
    protected ScalarFieldComponent myMaxStressField = null;
 
-   protected Vector3d myTmp = new Vector3d();
-   protected Matrix3d myMat = new Matrix3d();
 
    // Set this true to keep the tangent matrix continuous (and symmetric) at
    // lam = lamOpt, at the expense of slightly negative forces for lam < lamOpt
@@ -189,6 +187,9 @@ public class SimpleMuscle extends MuscleMaterial {
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Vector3d dir0, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      Vector3d tmpv = new Vector3d();
+      Matrix3d tmpm = new Matrix3d();
 
       // Methods and naming conventions follow the paper "Finite element
       // implementation of incompressible, isotropic hyperelasticity", by
@@ -201,7 +202,7 @@ public class SimpleMuscle extends MuscleMaterial {
          return;
       }
 
-      Vector3d dir = myTmp;
+      Vector3d dir = tmpv;
       def.getF().mul (dir, dir0);
       double mag = dir.norm();
       dir.scale (1/mag);
@@ -219,11 +220,11 @@ public class SimpleMuscle extends MuscleMaterial {
          //
          // compute -2/3 (dev sigma (X) I)' - 4 wa/(3J) (dir (X) dir (X) I)'
          //
-         myMat.outerProduct (dir, dir);
-         myMat.scale (2*wa/J); // will be scaled again by -2/3 below
-         addStress (myMat, J, I4, W4, dir);
-         myMat.scale (-2/3.0);
-         TensorUtils.addSymmetricIdentityProduct (D, myMat);
+         tmpm.outerProduct (dir, dir);
+         tmpm.scale (2*wa/J); // will be scaled again by -2/3 below
+         addStress (tmpm, J, I4, W4, dir);
+         tmpm.scale (-2/3.0);
+         TensorUtils.addSymmetricIdentityProduct (D, tmpm);
          TensorUtils.addScaledIdentity (D, 4/3.0*w0/J);
          TensorUtils.addScaledIdentityProduct (D, 4/9.0*(wa-w0)/J);
          
@@ -260,8 +261,6 @@ public class SimpleMuscle extends MuscleMaterial {
 
    public SimpleMuscle clone() {
       SimpleMuscle mat = (SimpleMuscle)super.clone();
-      mat.myTmp = new Vector3d();
-      mat.myMat = new Matrix3d();
       return mat;
    }
 
@@ -283,4 +282,10 @@ public class SimpleMuscle extends MuscleMaterial {
 
 
    
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == SimpleMuscle.class;
+   }
 }

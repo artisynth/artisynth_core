@@ -5,6 +5,8 @@
 /* Last Modified by Chad Decker on Jan 10th 2006			*/
 /* -------------------------------------------------------------------- */
 
+#include "hybridSolve.h"
+
 /* PARDISO prototype. */
 
 #if defined(WINDOWS_COMPILER)
@@ -106,11 +108,12 @@ extern "C" {
 //          identifies error conditions (0=no error)
 //  dparam  floating point parameters (mainly for AMG iterative solver)
 
-class DLLEXPORT Pardiso4 
+class DLLEXPORT Pardiso4 : public HybridSolver 
 {
   private:
 
 	double *myVals;   // non-zero matrix values
+	double *myCurVals; // current values, for hybrid iterative solves
 
 	int mySize;	   // matrix size
 	int myMaxSize;     // maximum matrix size
@@ -140,6 +143,9 @@ class DLLEXPORT Pardiso4
 	void *myInternalStore[NUM_INTERNAL_PTRS];
 #define NUM_PARAMS 64
 	int myIParams[NUM_PARAMS];
+	// explicit iparm overrides, applied before every PARDISO call
+	int myIParamOverrides[NUM_PARAMS] = {};
+	int myIParamIsOverridden[NUM_PARAMS] = {};
 	int myMaxFact;
 	int myFactorization;
 
@@ -182,6 +188,9 @@ class DLLEXPORT Pardiso4
 	int myExplicitNumThreads;
 
   protected:
+	void applyIParamOverrides();
+	// HybridSolver implementation
+	int precondSolve (double* z, const double* r);
 	/* int getActualMaxRefinementSteps(); */
 	/* int getActualReorderMethod(); */
 	/* int getActualPivotPerturbation(); */
@@ -220,6 +229,10 @@ class DLLEXPORT Pardiso4
 	int setMessageLevel (int level);
 	int getMessageLevel ();
 
+	int setIParam (int idx, int value);
+	int getIParam (int idx);
+	void clearIParams ();
+
         // not supported since MKL doesn't allow per-instance thread
         // setting for Pardiso
 	//int setNumThreads (int n);
@@ -247,6 +260,10 @@ class DLLEXPORT Pardiso4
 	int solveMatrix (double *x, double* b, int nrhs);
 	int iterativeSolve (
            const double *vals, double *x, double* b, int tolExp);
+	// Hybrid iterative solves (GMRES or CGS in the wrapper, with phase 33
+	// solves as the preconditioner); see hybridSolve.h. The method above
+	// uses Pardiso's own iterative solver instead.
+	using HybridSolver::iterativeSolve;
 
 	int factorAndSolve (
            const double* vals, double *x, double* b, int tolExp);

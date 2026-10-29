@@ -7,6 +7,8 @@ import java.util.Deque;
 import java.util.List;
 
 import artisynth.core.femmodels.FemElement3dBase;
+import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.ShellElement3d;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
@@ -35,6 +37,9 @@ public class VectorNodalField<T extends VectorObject<T>>
    ArrayList<T> myValues;
    protected ArrayList<T[]> myVolumetricValues;   
    protected ArrayList<T[]> myShellValues;   
+   // true if updateForConcurrentAccess() has filled the cache for all
+   // elements; cleared whenever the cache is cleared
+   protected boolean myCacheFilled = false;
 
    protected void initValues() {
       myValues = new ArrayList<>();
@@ -198,6 +203,7 @@ public class VectorNodalField<T extends VectorObject<T>>
       T storedValue = createTypeInstance();
       storedValue.set (value);
       myValues.set (nodeNum, storedValue);
+      notifyValuesChanged();
    }
 
    /**
@@ -224,6 +230,7 @@ public class VectorNodalField<T extends VectorObject<T>>
       int nodeNum = node.getNumber();
       checkNodeNum (nodeNum);
       myValues.set (nodeNum, null);
+      notifyValuesChanged();
    }
    
    /**
@@ -233,6 +240,7 @@ public class VectorNodalField<T extends VectorObject<T>>
       for (int i=0; i<myValues.size(); i++) {
          myValues.set (i, null);
       }
+      notifyValuesChanged();
    }
 
    public T getValue (int[] nodeNums, double[] weights) {
@@ -258,7 +266,9 @@ public class VectorNodalField<T extends VectorObject<T>>
          nodeNums[i] = nodes[i].getNumber();
       }
       IntegrationPoint3d[] ipnts = elem.getAllIntegrationPoints();
-      T[] varray = (T[])(new Object[ipnts.length]);
+      // allocate as VectorObject[], since the erasure of T is VectorObject
+      // and so a cast from Object[] would fail at runtime
+      T[] varray = (T[])(new VectorObject[ipnts.length]);
       for (int k=0; k<ipnts.length; k++) {
          VectorNd N = ipnts[k].getShapeWeights();
          for (int i=0; i<nodes.length; i++) {
@@ -282,6 +292,39 @@ public class VectorNodalField<T extends VectorObject<T>>
          initCacheArray (myFem.getElements().getNumberLimit());
       myShellValues = 
          initCacheArray (myFem.getShellElements().getNumberLimit());
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Computes the cached values for all elements, so that subsequent
+    * queries only read the cache.
+    */
+   @Override
+   public void updateForConcurrentAccess() {
+      if (myCacheFilled) {
+         return;
+      }
+      if (myVolumetricValues == null) {
+         initializeCache();
+      }
+      for (FemElement3d e : myFem.getElements()) {
+         int eidx = e.getNumber();
+         T[] varray = myVolumetricValues.get(eidx);
+         if (varray == null) {
+            varray = initValueArray (/*elemType*/0, eidx);
+            myVolumetricValues.set (eidx, varray);
+         }
+      }
+      for (ShellElement3d e : myFem.getShellElements()) {
+         int eidx = e.getNumber();
+         T[] varray = myShellValues.get(eidx);
+         if (varray == null) {
+            varray = initValueArray (/*elemType*/1, eidx);
+            myShellValues.set (eidx, varray);
+         }
+      }
+      myCacheFilled = true;
    }
 
    protected T getCachedValue (int elemType, int elemIdx, int subIdx) {
@@ -380,6 +423,19 @@ public class VectorNodalField<T extends VectorObject<T>>
    public void clearCacheIfNecessary() {
       myVolumetricValues = null;
       myShellValues = null;
+      myCacheFilled = false;
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Also clears the cached values at the element integration points,
+    * since these are interpolated from the nodal values.
+    */
+   @Override
+   protected void notifyValuesChanged() {
+      super.notifyValuesChanged();
+      clearCacheIfNecessary();
    }
    
    // build render object for rendering Vector3d values

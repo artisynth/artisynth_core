@@ -156,6 +156,35 @@ public class AffineTransformerTest extends GeometryTransformerTest {
       return mesh;
    }
 
+   /**
+    * Checks that GeometryTransformer.create() maps a ScaledRigidTransform3d
+    * to x' = s*R*x + p (including the rotation).
+    */
+   void testCreateFromScaledRigid() {
+      ScaledRigidTransform3d X = new ScaledRigidTransform3d();
+      Point3d p0 = new Point3d();
+      Point3d p1 = new Point3d();
+      Point3d pcheck = new Point3d();
+      for (int i=0; i<10; i++) {
+         X.setRandom();
+         GeometryTransformer gtr = GeometryTransformer.create (X);
+         for (int j=0; j<10; j++) {
+            p0.setRandom();
+            pcheck.transform (X.R, p0);
+            pcheck.scale (X.s);
+            pcheck.add (X.p);
+            gtr.transformPnt (p1, p0);
+            checkEquals ("point transformed by ScaledRigidTransform3d",
+               p1, pcheck, EPS);
+         }
+      }
+   }
+
+   public void test() {
+      super.test();
+      testCreateFromScaledRigid();
+   }
+
    public static void main (String[] args) {
       RandomGenerator.setSeed (0x1234);
       AffineTransformerTest tester = new AffineTransformerTest();

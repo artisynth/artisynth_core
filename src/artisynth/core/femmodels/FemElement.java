@@ -128,15 +128,14 @@ public abstract class FemElement extends RenderableComponentBase
       T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       myMaterial = newMat;
-      // issue change event in case solve matrix symmetry or state has changed:
+      // issue change event, in case solve matrix symmetry or state has
+      // changed, and to clear cached material data:
       MaterialChangeEvent mce = 
-      MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
-      if (mce != null) {
-         if (mce.stateChanged()) {
-            notifyStateVersionChanged();
-         }
-         notifyParentOfChange (mce);
+         MaterialBase.createChangeEvent ("material", newMat, oldMat);
+      if (mce.stateChanged()) {
+         notifyStateVersionChanged();
       }
+      notifyParentOfChange (mce);
       //return newMat;
    }
 
@@ -995,9 +994,8 @@ public abstract class FemElement extends RenderableComponentBase
          if (mce.stateChanged() && e.getHost() == getMaterial()) {
             notifyStateVersionChanged(); // clear element material state 
          }
-         if (mce.stateOrSymmetryChanged()) {
-            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
-         }
+         // always notify, so that FemModel can clear cached material data
+         notifyParentOfChange (new MaterialChangeEvent (this, mce));  
       }
    }
 

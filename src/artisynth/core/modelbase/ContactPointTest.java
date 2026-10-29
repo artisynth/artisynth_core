@@ -10,9 +10,11 @@ import maspack.util.*;
 import maspack.matrix.*;
 import maspack.geometry.*;
 
+import java.util.Iterator;
+
 /**
  * Tests the methods in ContactPoint; specifically, the ones that reconstruct
- * vertex weights.
+ * vertex weights, and computeContactArea().
  */
 public class ContactPointTest extends UnitTest {
 
@@ -63,6 +65,7 @@ public class ContactPointTest extends UnitTest {
          testForTriangle (v1, v2, v3, 0.456, 0.2214);
          testForTriangle (v1, v2, v3, 0.1, 0.7);               
       }
+      testContactArea();
    }
 
    void checkResult (ContactPoint cp, Vertex3d[] vtxs, double[] wgts) {
@@ -111,6 +114,160 @@ public class ContactPointTest extends UnitTest {
       ContactPoint cp = new ContactPoint (p0);
       cp.setForTriangle (v1, v2, v3);
       checkResult (cp, vtxs, wgts);
+   }
+
+   /**
+    * Computes, in world coordinates, the area-weighted normal of a triangular
+    * face (i.e., the face normal scaled by the face area).
+    */
+   Vector3d faceAreaVector (Face face) {
+      HalfEdge he = face.firstHalfEdge();
+      Point3d p0 = he.getTail().getWorldPoint();
+      Point3d p1 = he.getHead().getWorldPoint();
+      Point3d p2 = he.getNext().getHead().getWorldPoint();
+      Vector3d u = new Vector3d();
+      Vector3d v = new Vector3d();
+      Vector3d avec = new Vector3d();
+      u.sub (p1, p0);
+      v.sub (p2, p0);
+      avec.cross (u, v);
+      avec.scale (0.5);
+      return avec;
+   }
+
+   /**
+    * Checks computeContactArea() for every vertex and edge of a mesh, using a
+    * random normal. The expected value is one third of the projected area of
+    * each face adjacent to the vertex or edge.
+    */
+   void testContactArea (PolygonalMesh mesh) {
+      Vector3d nrml = new Vector3d();
+      nrml.setRandom();
+      nrml.normalize();
+
+      double tol = EPS*mesh.getRadius()*mesh.getRadius();
+      for (Vertex3d vtx : mesh.getVertices()) {
+         Vector3d asum = new Vector3d();
+         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+         while (it.hasNext()) {
+            asum.add (faceAreaVector (it.next().getFace()));
+         }
+         double expected = Math.abs(nrml.dot(asum))/3;
+         ContactPoint cp = new ContactPoint (vtx);
+         double area = cp.computeContactArea (nrml);
+         if (Math.abs(area-expected) > tol) {
+            throw new TestException (
+               "Vertex "+vtx.getIndex()+": area="+area+
+               ", expected "+expected);
+         }
+      }
+      for (Face face : mesh.getFaces()) {
+         HalfEdge he = face.firstHalfEdge();
+         do {
+            if (he.isPrimary()) {
+               Vector3d asum = faceAreaVector (he.getFace());
+               if (he.opposite != null) {
+                  asum.add (faceAreaVector (he.opposite.getFace()));
+               }
+               double expected = Math.abs(nrml.dot(asum))/3;
+               ContactPoint cp = new ContactPoint (
+                  new Point3d(he.getHead().getWorldPoint()), he, 0.5);
+               double area = cp.computeContactArea (nrml);
+               if (Math.abs(area-expected) > tol) {
+                  throw new TestException (
+                     "Edge "+he.vertexStr()+": area="+area+
+                     ", expected "+expected);
+               }
+            }
+            he = he.getNext();
+         }
+         while (he != face.firstHalfEdge());
+      }
+   }
+
+   /**
+    * For a flat mesh, with the normal set to the mesh normal, check that the
+    * vertex areas, and also the edge areas, both sum to the mesh area.
+    */
+   void testContactAreaPartition (PolygonalMesh mesh, Vector3d nrml) {
+      double totalArea = 0;
+      for (Face face : mesh.getFaces()) {
+         totalArea += face.computeArea();
+      }
+      double vtxSum = 0;
+      for (Vertex3d vtx : mesh.getVertices()) {
+         vtxSum += new ContactPoint (vtx).computeContactArea (nrml);
+      }
+      double edgeSum = 0;
+      for (Face face : mesh.getFaces()) {
+         HalfEdge he = face.firstHalfEdge();
+         do {
+            if (he.isPrimary()) {
+               ContactPoint cp = new ContactPoint (
+                  new Point3d(he.getHead().getWorldPoint()), he, 0.5);
+               edgeSum += cp.computeContactArea (nrml);
+            }
+            he = he.getNext();
+         }
+         while (he != face.firstHalfEdge());
+      }
+      double tol = EPS*mesh.numFaces()*totalArea;
+      if (Math.abs(vtxSum-totalArea) > tol) {
+         throw new TestException (
+            "Summed vertex areas = "+vtxSum+", expected "+totalArea);
+      }
+      if (Math.abs(edgeSum-totalArea) > tol) {
+         throw new TestException (
+            "Summed edge areas = "+edgeSum+", expected "+totalArea);
+      }
+   }
+
+   public void testContactArea() {
+      int cnt = 20;
+      for (int i=0; i<cnt; i++) {
+         RigidTransform3d TMW = new RigidTransform3d();
+         if (i > 0) {
+            // i == 0 tests an identity mesh-to-world transform
+            TMW.setRandom();
+         }
+         // flat open plane: also check the partition property
+         PolygonalMesh plane = MeshFactory.createPlane (2.0, 1.5, 6, 4);
+         plane.setMeshToWorld (TMW);
+         Vector3d nrml = new Vector3d();
+         nrml.transform (TMW.R, Vector3d.Z_UNIT);
+         testContactAreaPartition (plane, nrml);
+         testContactArea (plane);
+
+         // perturbed open plane
+         for (Vertex3d vtx : plane.getVertices()) {
+            vtx.pnt.z = 0.2*RandomGenerator.nextDouble (-1, 1);
+         }
+         plane.notifyVertexPositionsModified();
+         testContactArea (plane);
+
+         // closed mesh
+         PolygonalMesh sphere = MeshFactory.createIcosahedralSphere (1.3, 1);
+         sphere.setMeshToWorld (TMW);
+         testContactArea (sphere);
+      }
+
+      // points not associated with a vertex or edge should return -1
+      PolygonalMesh plane = MeshFactory.createPlane (1.0, 1.0, 2, 2);
+      Face face = plane.getFace(0);
+      Point3d cent = new Point3d();
+      face.computeCentroid (cent);
+      ContactPoint cp =
+         new ContactPoint (cent, face, new Vector2d(0.3, 0.3));
+      checkEquals ("area for face point",
+                   cp.computeContactArea (Vector3d.Z_UNIT), -1.0);
+      cp = new ContactPoint (new Point3d (0.1, 0.2, 0));
+      checkEquals ("area for no-vertex point",
+                   cp.computeContactArea (Vector3d.Z_UNIT), -1.0);
+      // edge whose vertices are not connected
+      cp = new ContactPoint (new Point3d());
+      cp.setForEdge (plane.getVertex(0), plane.getVertex(8));
+      checkEquals ("area for unconnected edge",
+                   cp.computeContactArea (Vector3d.Z_UNIT), -1.0);
    }
 
    public static void main (String[] args) {

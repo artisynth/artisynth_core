@@ -1,0 +1,44 @@
+# Do not delete this file.
+#
+# This file lists jar files and native libraries that are no longer required
+# by ArtiSynth, so that they can be removed from lib/ whenever the libraries
+# listed in lib/LIBRARIES are installed or verified. Older versions of the
+# libraries in LIBRARIES are removed automatically, and do not need to be
+# listed here, unless they can't be matched to their replacements (e.g.,
+# because the library was renamed).
+#
+# The format is the same as for LIBRARIES: each name must be on a separate
+# line, the character '#' comments out all remaining characters to the end
+# of the line, and names may be preceded by an optional system specifier,
+# in which case they are removed only on matching systems.
+#
+# Names may also contain the wildcard character '*', which matches any
+# sequence of characters, subject to the following rules:
+#
+# Jar file names must end in .jar and must not begin with '*'; e.g.,
+# 'jogl-all-*-natives-windows-i586.jar'.
+#
+# Native library names can be generic, in which case they are transformed
+# into system-specific names, as in LIBRARIES, and '*' can appear only at the
+# end of the version suffix. 'PardisoJNI.2021.1.1' matches only that version,
+# 'PardisoJNI.2021.*' matches all 2021 versions, and 'PardisoJNI.*' matches
+# all versions, including a file with no version.
+#
+# Native library names can also be system-specific, such as libgomp.so.1, in
+# which case they match only on the indicated system. '*' can appear anywhere
+# after at least one character of the base name, e.g., 'libiomp5*.dylib' but
+# not 'lib*.dylib'.
+#
+# Libraries listed in LIBRARIES always take precedence: jar files are never
+# removed if their names, with versions removed, match a jar file listed in
+# LIBRARIES (for any system), and native libraries listed in LIBRARIES for
+# the current system, and their links, are never removed. Names with
+# wildcards also never remove other versions of those native libraries,
+# while exact names do: e.g., 'gdcmjni.dll' removes that file even though
+# gdcmjni.3.0.22.1.dll is in use.
+#
+gdcm.jar
+gdcmjni.dll
+libgdcmjni.so
+libgdcmjni.dylib
+

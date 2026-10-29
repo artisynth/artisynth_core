@@ -815,6 +815,30 @@ public class CPD {
       double lambda, double beta2, double w, double tol, 
       int maxIters, Point3d[] TY, double[] sigma2Holder) {
       
+      return coherent (
+         X, Y, lambda, beta2, w, tol, maxIters, TY, sigma2Holder, null);
+   }
+
+   /**
+    * Uses the coherent CPD algorithm to align a set of points, and optionally
+    * returns the weights W of the resulting deformation field
+    * {@code v(x) = sum_m G(x, Y_m) W_m}, with
+    * {@code G(x,y) = exp(-|x-y|^2/(2 beta2))}.
+    * @param X reference input points
+    * @param Y points to register
+    * @param lambda weight factor for regularization term (&gt; 0)
+    * @param beta2 coherence factor, beta^2 (&gt; 0)
+    * @param w weight, accounting to noise (w=0 --&gt; no noise)
+    * @param tol will iterative until objective function changes by less than this
+    * @param maxIters maximum number of iterations
+    * @param TY transformed points
+    * @param sigma2Holder initial variance estimate
+    * @param Wout if not {@code null}, returns the M x 3 weight matrix W
+    */
+   public static Point3d[] coherent(Point3d[] X, Point3d[] Y,
+      double lambda, double beta2, double w, double tol,
+      int maxIters, Point3d[] TY, double[] sigma2Holder, MatrixNd Wout) {
+
       int M = Y.length;
       int N = X.length;
    
@@ -908,6 +932,10 @@ public class CPD {
       
       if (sigma2Holder != null) {
          sigma2Holder[0] = sigma2;
+      }
+      // W is needed to apply the deformation field to points other than Y (e.g. mesh vertices)
+      if (Wout != null) {
+         Wout.set (W);
       }
       
       return TY;

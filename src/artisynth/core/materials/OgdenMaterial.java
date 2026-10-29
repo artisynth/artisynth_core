@@ -1,5 +1,7 @@
 package artisynth.core.materials;
 
+import java.util.Arrays;
+
 import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
@@ -8,6 +10,7 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.util.ArraySupport;
 
 public class OgdenMaterial extends IncompressibleMaterialBase {
 
@@ -61,9 +64,6 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    ScalarFieldComponent myAlpha5Field = null;
    ScalarFieldComponent myAlpha6Field = null;
 
-   private SymmetricMatrix3d myB;
-   private SymmetricMatrix3d myB2;
-   private SymmetricMatrix3d myTmp;
    
    static {
       myProps.addInheritableWithField (
@@ -100,9 +100,6 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
     * Creates a new OgdenMaterial with default parameter values.
     */
    public OgdenMaterial () {
-      myB   = new SymmetricMatrix3d();
-      myB2  = new SymmetricMatrix3d();
-      myTmp = new SymmetricMatrix3d();
    }
 
    /**
@@ -147,22 +144,22 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
 
    public synchronized void setMu3 (double mu) {
       myMu[2] = mu;
-      myMu2Mode =
-         PropertyUtils.propagateValue (this, "Mu2", myMu[2], myMu2Mode);
+      myMu3Mode =
+         PropertyUtils.propagateValue (this, "Mu3", myMu[2], myMu3Mode);
       notifyHostOfPropertyChange();
    }
 
    public synchronized void setMu4 (double mu) {
       myMu[3] = mu;
-      myMu2Mode =
-         PropertyUtils.propagateValue (this, "Mu2", myMu[3], myMu2Mode);
+      myMu4Mode =
+         PropertyUtils.propagateValue (this, "Mu4", myMu[3], myMu4Mode);
       notifyHostOfPropertyChange();
    }
 
    public synchronized void setMu5 (double mu) {
       myMu[4] = mu;
-      myMu2Mode =
-         PropertyUtils.propagateValue (this, "Mu2", myMu[4], myMu2Mode);
+      myMu5Mode =
+         PropertyUtils.propagateValue (this, "Mu5", myMu[4], myMu5Mode);
       notifyHostOfPropertyChange();
    }
 
@@ -537,13 +534,15 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    public void computeDevStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
 
       double J = def.getDetF();
 
       sigma.setZero();
 
       // Calculate Deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);
+      computeDevLeftCauchyGreen(B,def);
 
       Vector3d lam = new Vector3d();
       Vector3d lamSqr  = new Vector3d();
@@ -567,7 +566,7 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       
       // Calculate principal stretches and principal directions
       // Eigenvalues of B are squares of the principal stretches
-      myB.getEigenValues(lamSqr, principalDirection);
+      B.getEigenValues(lamSqr, principalDirection);
       for ( int i=0; i<3; i++) {
          lam.set(i, Math.sqrt(lamSqr.get(i)) );
       }
@@ -664,9 +663,11 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    public double computeDevStrainEnergy (
       DeformedPoint def, Matrix3d Q, double excitation, 
       MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
       
       // Calculate Deviatoric left Cauchy-Green tensor
-      computeLeftCauchyGreen(myB,def);
+      computeLeftCauchyGreen(B,def);
 
       Vector3d principalStretch   = new Vector3d();
       Vector3d principalStretch2  = new Vector3d();
@@ -690,7 +691,7 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       
       // Calculate principal stretches and principal directions
       // Eigenvalues of B are squares of the principal stretches
-      myB.getEigenValues(principalStretch2, null);
+      B.getEigenValues(principalStretch2, null);
       for ( int i=0; i<3; i++) {
          principalStretch.set(i, Math.sqrt(principalStretch2.get(i)) );
       }
@@ -715,9 +716,9 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       if (!(mat instanceof OgdenMaterial)) {
          return false;
       }
-      OgdenMaterial stvk = (OgdenMaterial)mat;
-      if (myMu != stvk.myMu ||
-          myAlpha != stvk.myAlpha) {
+      OgdenMaterial ogden = (OgdenMaterial)mat;
+      if (!ArraySupport.equals (myMu, ogden.myMu) ||
+          !ArraySupport.equals (myAlpha, ogden.myAlpha)) {
          return false;
       }
       else {
@@ -727,7 +728,8 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
 
    public OgdenMaterial clone() {
       OgdenMaterial mat = (OgdenMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
+      mat.myMu = Arrays.copyOf (myMu, myMu.length);
+      mat.myAlpha = Arrays.copyOf (myAlpha, myAlpha.length);
       return mat;
    }
 
@@ -773,4 +775,10 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       }
    }
    
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == OgdenMaterial.class;
+   }
 }

@@ -22,7 +22,6 @@ public class NeoHookeanMaterial extends FemMaterial {
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
 
-   private SymmetricMatrix3d myB;
    //private SymmetricMatrix3d myB2;
 
    static {
@@ -40,8 +39,6 @@ public class NeoHookeanMaterial extends FemMaterial {
     * Creates a new NeoHookeanMaterial with default parameter values.
     */
    public NeoHookeanMaterial (){
-      myB = new SymmetricMatrix3d();
-      //myB2 = new SymmetricMatrix3d();
    }
 
    /**
@@ -122,9 +119,10 @@ public class NeoHookeanMaterial extends FemMaterial {
       double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
       double mu = G;
       
-      computeLeftCauchyGreen (myB,def);
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
+      computeLeftCauchyGreen (B,def);
 
-      sigma.scale (mu/J, myB);
+      sigma.scale (mu/J, B);
       double diagTerm = (lam*Math.log(J)-mu)/J;
       sigma.m00 += diagTerm;
       sigma.m11 += diagTerm;
@@ -172,8 +170,6 @@ public class NeoHookeanMaterial extends FemMaterial {
 
    public NeoHookeanMaterial clone() {
       NeoHookeanMaterial mat = (NeoHookeanMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
-      //mat.myB2 = new SymmetricMatrix3d();
       return mat;
    }
    
@@ -211,4 +207,10 @@ public class NeoHookeanMaterial extends FemMaterial {
       System.out.println ("D=\n" + D.toString ("%12.6f"));
    }
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == NeoHookeanMaterial.class;
+   }
 }

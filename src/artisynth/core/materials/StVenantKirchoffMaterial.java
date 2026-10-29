@@ -29,8 +29,6 @@ public class StVenantKirchoffMaterial extends FemMaterial {
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
 
-   private SymmetricMatrix3d myB;
-   private SymmetricMatrix3d myB2;
 
    static {
       myProps.addInheritableWithField (
@@ -47,8 +45,6 @@ public class StVenantKirchoffMaterial extends FemMaterial {
     * Creates a new StVenantKirchoffMaterial with default parameter values.
     */
    public StVenantKirchoffMaterial (){
-      myB = new SymmetricMatrix3d();
-      myB2 = new SymmetricMatrix3d();
    }
 
    /**
@@ -123,6 +119,9 @@ public class StVenantKirchoffMaterial extends FemMaterial {
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
+      SymmetricMatrix3d B2 = new SymmetricMatrix3d();
 
       double J = def.getDetF();
 
@@ -133,19 +132,19 @@ public class StVenantKirchoffMaterial extends FemMaterial {
       double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
       double mu = G;
 
-      computeLeftCauchyGreen (myB,def);
+      computeLeftCauchyGreen (B,def);
 
-      double tr = 0.5*(myB.m00 + myB.m11 + myB.m22 - 3);
+      double tr = 0.5*(B.m00 + B.m11 + B.m22 - 3);
 
-      myB2.mulTransposeLeft (myB); // myB2 = B*B
+      B2.mulTransposeLeft (B); // B2 = B*B
 
-      sigma.scale ((lam*tr-mu)/J, myB);
-      sigma.scaledAdd (mu/J, myB2);
+      sigma.scale ((lam*tr-mu)/J, B);
+      sigma.scaledAdd (mu/J, B2);
 
       if (D != null) {
          D.setZero();
-         TensorUtils.addTensorProduct (D, lam/J, myB, myB);
-         TensorUtils.addSymmetricTensorProduct4 (D, mu/J, myB, myB);
+         TensorUtils.addTensorProduct (D, lam/J, B, B);
+         TensorUtils.addSymmetricTensorProduct4 (D, mu/J, B, B);
          D.setLowerToUpper();         
       }
    }
@@ -191,8 +190,6 @@ public class StVenantKirchoffMaterial extends FemMaterial {
 
    public StVenantKirchoffMaterial clone() {
       StVenantKirchoffMaterial mat = (StVenantKirchoffMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
-      mat.myB2 = new SymmetricMatrix3d();
       return mat;
    }
 
@@ -231,4 +228,10 @@ public class StVenantKirchoffMaterial extends FemMaterial {
    }
 
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == StVenantKirchoffMaterial.class;
+   }
 }

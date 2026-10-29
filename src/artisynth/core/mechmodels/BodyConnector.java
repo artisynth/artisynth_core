@@ -1015,6 +1015,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
             gi.dist = bc.getDistance();
             gi.compliance = bc.getCompliance();
             gi.damping = bc.getDamping();
+            gi.stepDamping = 0;
             gi.force = 0;
             gi.coordLimit = bc.isLimit();
             gi.motionType = bc.getMotionType();
@@ -1129,6 +1130,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
             }
             ni.compliance = uc.getCompliance();
             ni.damping = uc.getDamping();
+            ni.stepDamping = 0;
             ni.force = 0;
             ni.coordLimit = uc.isLimit();
             ni.motionType = uc.getMotionType();

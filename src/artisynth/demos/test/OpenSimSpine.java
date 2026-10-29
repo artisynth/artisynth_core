@@ -20,6 +20,7 @@ import maspack.fileutil.uri.URIx;
 import maspack.matrix.*;
 import maspack.geometry.*;
 import maspack.render.*;
+
 import maspack.render.Renderer.*;
 import maspack.properties.*;
 
@@ -81,16 +82,15 @@ public class OpenSimSpine extends RootModel {
       // create model
       parser.createModel (mech);
 
-
-      // don't allow ground to move
-      @SuppressWarnings("unchecked")
       ComponentList<RigidBody> bodies =
          (ComponentList<RigidBody>)mech.get("bodyset");
+
+      // don't allow ground to move
       {
          // remove ground and associated joint
          RigidBody ground = parser.getGround();
          System.out.println ("ground=" + ground);
-         ComponentUtils.deleteComponentAndDependencies (ground);
+         //ComponentUtils.deleteComponentAndDependencies (ground);
 
          // RigidBody sacrum = bodies.get ("sacrum");
          // @SuppressWarnings("unchecked")
@@ -200,8 +200,10 @@ public class OpenSimSpine extends RootModel {
       }
 
       for (ModelComponent force : forceset) {
-         RenderProps.setAlphaMode (
-            (RenderableComponent)force, PropertyMode.Inherited);
+         if (force instanceof RenderableComponent) {
+            RenderProps.setAlphaMode (
+               (RenderableComponent)force, PropertyMode.Inherited);
+         }
       }
 
       //RenderProps.setLineStyle (forceset, LineStyle.SPINDLE);

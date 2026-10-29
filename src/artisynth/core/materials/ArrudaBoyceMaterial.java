@@ -256,4 +256,10 @@ public class ArrudaBoyceMaterial extends IncompressibleMaterialBase {
       }
       // N is unitless
    }
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == ArrudaBoyceMaterial.class;
+   }
 }

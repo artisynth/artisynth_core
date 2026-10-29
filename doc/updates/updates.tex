@@ -85,6 +85,297 @@
 
 % Apr 15, 2023: Refactoring and adding stiction compliance to implicit
 %  friction integration
+\section*{Oct 26, 2026}
+
+\subsection{Automated library downloading}
+
+New functionality has been introduced to automatically download
+updates to {\tt .jar} and native library files without requiring users
+to run {\tt updateArtisynthLibs} after updating from GitHub.  This
+capability is centered around the manifest of required libraries
+contained in the existing {\tt lib/LIBRARIES} file. In particular:
+
+\begin{itemize}
+
+\item {\bf Eclipse:} An Ant-based builder process runs ahead of
+the Java builder whenever {\tt lib/LIBRARIES} or {\tt .classpath}
+changes, or when the project is cleaned. It downloads any missing
+libraries, removes unused ones, and updates {\tt .classpath} to match
+{\tt lib/LIBRARIES}. This means that libraries are now installed
+automatically when {\tt artisynth\_core} is first imported, as
+shown below:
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{../installation/images/EclipseLibInstall}
+\else
+ \includegraphics[width=0.75\textwidth]{../installation/images/EclipseLibInstall}
+\fi
+\end{center}
+
+Libraries can also be updated on explicit request through
+{\sf Run > External Tools > UpdateArtisynthLibs}.
+
+\item {\bf Running ArtiSynth:} As before, ArtiSynth checks for and
+updates libraries when it starts up.
+
+\item {\bf Command line:} {\tt make} now also updates whenever {\tt
+lib/LIBRARIES} has changed.
+
+\end{itemize}
+
+The {\tt .jar} files appearing in the ArtiSynth classpath are now
+determined directly from {\tt lib/LIBRARIES}, which is used
+to construct the classpath used by Eclipse, the ArtiSynth launch
+scripts, and {\tt make}.
+
+\begin{sideblock}
+Important: this update entails changes to the Eclipse project files
+{\tt .project}, {\tt .classpath}, and {\tt ArtiSynth.launch}. Sites
+which have made local modifications to these files will find that any
+attempt to execute a {\sf git pull} on {\tt artisynth\_core} will
+fail. The easiest resolution is to remove the conflicting files and then
+attempt the {\sf pull} operation again. More details can be found in
+the ``Refused pulls'' section of the
+\artisynthManual[installation/windowsInstallation]{windowsInstallation}{Windows},
+\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS},
+or
+\artisynthManual[installation/linuxInstallation]{linuxInstallation}{Linux}
+installation guides.
+\end{sideblock}
+
+\subsection{Upcoming switch to Java 21}
+
+Before the end of 2026, we expect to raise the minimum Java compliance
+level for ArtiSynth to Java 21. Prior to that time, users should
+ensure that they are using a JDK for Java 21 or greater.  Free builds
+of the JDK are available from several sources; we suggest Eclipse
+Temurin, available from
+
+\href{https://adoptium.net/temurin/releases/}%
+{adoptium.net/temurin/releases}.
+
+One can also obtain later versions of Java through an IDE; Java 21
+or later is bundled with any version of Eclipse from 2024-09 onward.
+
+\begin{sideblock}
+If you are planning to use ArtiSynth with MATLAB, ArtiSynth should be
+run with Java 21 specifically, which is compatible with recent
+versions of MATLAB from R2025a onward.
+\end{sideblock}
+
+\subsection{Changes to contact force behavior}
+
+The {\tt contactArea} argument supplied to the {\tt computeResponse()}
+method of a \javaclass[\mats]{ContactForceBehavior} is now always
+defined, regardless of the collider type. For vertex penetration contact,
+it is 1/3 of the area of each face surrounding the penetrating vertex,
+projected onto the plane perpendicular to the contact normal; for
+edge-edge contacts, it is 1/3 of the area of each face adjacent to the
+penetrating edge; and for contour region contact, it is the region area
+divided by the number of contact points. Previously, it was defined only
+for the {\tt AJL\_CONTOUR} collider, as the penetration region area
+divided by the number of penetrating vertices, which varied with
+penetration depth.
+
+The area associated with a vertex is illustrated below (orange region). It is
+bounded by the midpoints of the adjacent edges (open circles) and the centroids
+of the adjacent faces (filled circles), and so contains 1/3 of the area of each
+face surrounding the vertex.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/VertexContactArea}
+\else
+ \includegraphics[width=2.5in]{images/VertexContactArea}
+\fi
+\end{center}
+
+In addition, for two-way vertex penetration contact (in which vertex
+penetrations are computed for both collidables), {\tt contactArea} is
+now halved for vertex contacts, since the vertices of both collidables
+then cover the same contact region. Contact force behaviors that compute
+forces from pressures should therefore simply scale by {\tt
+contactArea}, with no further adjustment. As a result:
+
+\begin{itemize}
+
+\item The flag {\tt ContactForceBehavior.TWO\_WAY\_CONTACT} is
+deprecated and no longer set. Custom behaviors that halved their
+response when this flag was set will continue to work correctly if they
+use {\tt contactArea}.
+
+\item The method {\tt ContactForceBehavior.computeContactArea()} is
+deprecated. Custom behaviors that use it to compute their own area
+should switch to {\tt contactArea}; otherwise, their forces will be
+doubled for two-way contact, since the flag they relied on is no longer
+set.
+
+\item The {\sf useLocalContactArea} property of
+\javaclass[\mats]{LinearElasticContact} has been removed, since
+{\tt contactArea} now provides the local area.
+
+\end{itemize}
+
+The {\tt fres} array supplied to {\tt computeResponse()} now has
+length four. The new fourth entry is an optional dimensionless {\it
+step damping} factor $\gamma$, which sets a minimum damping equal to
+$\gamma h$ times the contact stiffness, where $h$ is the step size.
+Entries not set by the behavior default to 0, so existing behaviors
+are unaffected.
+
+For more details, see the section ``Contact force behaviors'' in the ``Contact
+and Collision'' chapter of the \artisynthManual{modelguide}{Modeling Guide}.
+
+\subsection{Area compliant contact}
+
+A new force behavior, \javaclass[\mats]{AreaCompliantContact}, provides linear
+compliant contact with stiffness and damping proportional to {\tt contactArea},
+with the damping by default determined by step damping. It is intended to
+provide a fast and easy way to regularize and smooth contact behavior,
+particularly for the vertex-based contact associated with FE models, and is
+described in detail in the section ``Area compliant contact'' in the ``Contact
+and Collision'' chapter of the \artisynthManual{modelguide}{Modeling Guide}.
+
+\subsection{Native support for Apple silicon}
+
+ArtiSynth now runs natively on Macs with Apple silicon (the Apple M
+chips), with native libraries provided for the MacOSArm64
+architecture. It is therefore no longer necessary to install an
+Intel-based ({\sf x64}) JDK and run ArtiSynth under Rosetta; instead,
+an {\sf aarch64} JDK should be used, as described in the
+\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS
+Installation Guide}.  Since Pardiso is not available on this platform,
+the sparse matrix solvers are provided by MUMPS and by Apple's
+Accelerate framework, as described next.
+
+\subsection{MUMPS and Accelerate sparse matrix solvers}
+
+The MUMPS sparse direct solver is now available as an alternative to
+Pardiso, via \javaclass[maspack.solvers]{MumpsSolver}. In addition,
+Apple silcon machines can also use the Accelarate sparse solver
+supplied by Apple's accelerate framework and made available via
+\javaclass[maspack.solvers]{AccelerateSolver}. This is also the
+default solver on Apple silicon, as early tests suggest it is
+significantly faster than MUMPS. Pardiso remains the default solver on
+platforms that support it.
+
+\begin{sideblock}
+Accelerate supports non-symmetric matrices only on MacOS 15.5 or
+greater. For earlier systems, MUMPS will be substituted when necessary.
+\end{sideblock}
+
+If desired, the solver for a specific ArtiSynth run can be explicity specified,
+using either the new {\sf matrixSolver} setting in ``{\sf Settings > Simulation
+...}'', or the command line option {\tt -matrixSolver <solver>}, where {\tt
+<solver>} is one of {\tt Pardiso}, {\tt Mumps}, or {\tt Accelerate}.  If the
+requested solver is not available on the current platform, another available
+solver is substituted automatically. In code, the class
+\javaclass[maspack.solvers]{SparseSolverId} provides methods (such as {\tt
+getAvailableDirectSolvers()} and {\tt isDirectSolverAvailable()}) to query
+which solvers are available.
+
+The number of threads used by all sparse solvers is now capped at the
+number of physical cores, since using hyperthreads tends to degrade
+performance. Solver threading can be set explicitly using {\tt
+-numSolverThreads}, and the new option {\tt -profileFactorSolve}
+prints the time spent factoring and solving the system matrices when
+using implicit integrators.
+
+All solvers support {\it hybrid solves}, in which a previous matrix
+factorization is reused as a preconditioner for an iterative solve,
+avoiding the need to refactor the matrix at every step. This was
+previously supported by Pardiso but new code makes this available to
+all solvers, using either GMRES or CGS, and supplies greater control
+over its operation. As before, hybrid solving is enabled by default,
+but since the resulting binary results are not deterministic, one may
+wish to disable it, using the system's {\sf Simulation} settings or
+the {\tt -disableHybridSolves} command line option.
+
+\subsection{Parallel FE assembly}
+
+The assembly of FE stiffness matrices and forces, and the computation of nodal
+stresses and strains, are now performed in parallel for large models, which can
+substantially reduce simulation times. All ArtiSynth FE materials are thread
+safe and support parallel assembly. However, custom materials are assumed by
+default not to be thread safe, and their presence will disable parallel
+assembly for the model. Authors of custom materials whose stress and tangent
+computations do not modify shared internal state can enable parallel assembly
+by overriding the {\tt isThreadSafe()} method of
+\javaclass[\mats]{FemMaterial} to return {\tt true}.
+
+\subsection{Improved position stabilization}
+
+{\tt GlobalStiffness} position stabilization, which corrects
+constraint violations at the end of each time step using both
+stiffness and mass terms, now uses the system's velocity solve matrix
+to weight the correction. This makes this stabilization mode
+considerably faster and more stable, particularly for FE models.
+
+\subsection{FE computation fixes}
+
+Several bugs affecting less frequently used FE functionality have been
+fixed, which may (as noted) may change simulation results.  Some of
+the fixes were provided by Sarah LeClerc and Yves Chemisky at the
+Universit\'e Grenoble Alpes.
+
+\begin{itemize}
+
+\item For {\tt FULL} soft incompressibility, the stiffness matrix was
+inconsistent with the internal forces when the volume ratio $J \ne
+1$. Forces and stresses are unchanged, but iterates of implicit
+integrators may differ.  The pressure weighting used for
+incompressibility has also been corrected so that it is properly
+volume-weighted.
+
+\item For {\tt NODAL} soft incompressibility, the bulk potential included in
+the reported strain energy density was incorrect.
+
+\item For quadratic tetrahedral, wedge and pyramid elements, nodal stresses and
+strains computed for non-linear materials were incorrect (possibly even in
+sign), due to an incorrect extrapolation from the integration points.
+
+\item For hexahedral elements, setting non-default integration points for one
+element corrupted the nodal extrapolation for all other hex elements, and
+requesting nodal stress or strain for elements with 27 or 64 integration
+points could cause an exception.
+
+\item {\tt setComputeNodalStressStrain()} in \javaclass[\fem]{FemModel} enabled
+nodal stress instead of nodal strain for strain-based measures, such as {\tt
+VonMisesStrain}.
+
+\end{itemize}
+
+\subsection{Real elapsed time widget}
+
+The timeline toolbar now includes a {\sf real time} widget, next to the
+existing simulation {\sf time} widget, that shows the real (wall clock) time
+elapsed since the start of the simulation. This provides a convenient way to
+gauge computation speed. The widget is described in the section ``Basic
+timeline structure'' of the \artisynthManual{uiguide}{User Interface Guide}.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/realTimeWidget}
+\else
+ \includegraphics[width=3.25in]{images/realTimeWidget}
+\fi
+\end{center}
+
+\subsection{GUI improvements}
+
+\begin{itemize}
+
+\item {\sf Set visible} and {\sf Set invisible} are now supplied in
+the context menu for a larger range of components.
+
+\item A new property {\sf negativeForceColor} for the collision
+manager allows negative contact forces.  This helps the user estimate
+the amount of sticking when the contact property {\sf
+bilateralVertexContact} is {\tt true}.
+
+\end{itemize}
+
 \section*{Jun 29, 2026}
 
 \subsection{Measurement tool}

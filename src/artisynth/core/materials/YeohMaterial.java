@@ -39,8 +39,6 @@ public class YeohMaterial extends IncompressibleMaterialBase {
    ScalarFieldComponent myC4Field = null;
    ScalarFieldComponent myC5Field = null;
 
-   private SymmetricMatrix3d myB;
-   private SymmetricMatrix3d myTmp;
 
    static {
       myProps.addInheritableWithField (
@@ -63,8 +61,6 @@ public class YeohMaterial extends IncompressibleMaterialBase {
     * Creates a new YeohMaterial with default parameter values.
     */
    public YeohMaterial (){
-      myB = new SymmetricMatrix3d();
-      myTmp = new SymmetricMatrix3d();
    }
 
    /**
@@ -324,16 +320,19 @@ public class YeohMaterial extends IncompressibleMaterialBase {
       
    public void computeDevStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
-      Matrix3d Q, double excitation, MaterialStateObject state) { 
+      Matrix3d Q, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
+      SymmetricMatrix3d Tmp = new SymmetricMatrix3d(); 
 
       double J = def.getDetF();
 
       // calculate deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);
+      computeDevLeftCauchyGreen(B,def);
 
       // Invariants of B (= invariants of C)
       // Note that these are the invariants of Btilde, not of B!
-      double I1 = myB.trace();
+      double I1 = B.trace();
 
       //
       // W = C1*(I1-3) + C2*(I1-3)^2 + C3*(I1-3)^3
@@ -354,7 +353,7 @@ public class YeohMaterial extends IncompressibleMaterialBase {
       // T = F*dW/dC*Ft
       // 
       //   mat3ds T = B*(W1 + W2*I1) - B2*W2;
-      sigma.scale (W1, myB);
+      sigma.scale (W1, B);
 
       // calculate stress: s = pI + (2/J)dev[T]
       // 
@@ -391,15 +390,15 @@ public class YeohMaterial extends IncompressibleMaterialBase {
          TensorUtils.addScaledIdentityProduct (D, 4.0/9.0*Ji*(wcc-w0));
          TensorUtils.addScaledIdentity (D, 4.0/3.0*Ji*w0);
 
-         myTmp.deviator (sigma); // need to call this???
+         Tmp.deviator (sigma); // need to call this???
          TensorUtils.addSymmetricTensorProduct (
-            D, -2.0/3.0, myTmp, SymmetricMatrix3d.IDENTITY);
+            D, -2.0/3.0, Tmp, SymmetricMatrix3d.IDENTITY);
 
-         TensorUtils.addTensorProduct (D, w2*4.0*Ji, myB);
+         TensorUtils.addTensorProduct (D, w2*4.0*Ji, B);
 
-         myTmp.scale (wc1, myB);  
+         Tmp.scale (wc1, B);  
          TensorUtils.addSymmetricTensorProduct (
-            D, -4.0/3.0*Ji,myTmp,SymmetricMatrix3d.IDENTITY);
+            D, -4.0/3.0*Ji,Tmp,SymmetricMatrix3d.IDENTITY);
 
          D.setLowerToUpper();
       }
@@ -442,8 +441,6 @@ public class YeohMaterial extends IncompressibleMaterialBase {
 
    public YeohMaterial clone() {
       YeohMaterial mat = (YeohMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
-      mat.myTmp = new SymmetricMatrix3d();
       return mat;
    }
 
@@ -494,4 +491,10 @@ public class YeohMaterial extends IncompressibleMaterialBase {
    }
 
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == YeohMaterial.class;
+   }
 }

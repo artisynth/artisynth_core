@@ -19,7 +19,6 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
    PropertyMode myGMode = PropertyMode.Inherited;
    ScalarFieldComponent myGField = null;
 
-   private SymmetricMatrix3d myB;
 
    static {
       myProps.addInheritableWithField (
@@ -34,7 +33,6 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
     * Creates a new IncompNeoHookeanMaterial with default parameter values.
     */
    public IncompNeoHookeanMaterial (){
-      myB = new SymmetricMatrix3d();
    }
 
    /**
@@ -45,7 +43,6 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
     * @param kappa bulk modulus
     */
    public IncompNeoHookeanMaterial (double G, double kappa) {
-      myB = new SymmetricMatrix3d();
       setShearModulus (G);
       setBulkModulus (kappa);
    }
@@ -91,27 +88,29 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
    public void computeDevStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
       
       double J = def.getDetF();
 
-      computeLeftCauchyGreen (myB,def);
+      computeLeftCauchyGreen (B,def);
 
       double G = getShearModulus (def);
       double muJ = G/Math.pow(J, 5.0/3.0);
-      double diagTerm = -muJ*(myB.m00 + myB.m11 + myB.m22)/3.0;
+      double diagTerm = -muJ*(B.m00 + B.m11 + B.m22)/3.0;
 
-      sigma.scale (muJ, myB);
+      sigma.scale (muJ, B);
       sigma.m00 += diagTerm;
       sigma.m11 += diagTerm;
       sigma.m22 += diagTerm;
 
       if (D != null) {
-         double Ib = myB.m00+myB.m11+myB.m22;
+         double Ib = B.m00+B.m11+B.m22;
          D.setZero();
          TensorUtils.addScaledIdentityProduct (D, 2/9.0*muJ*Ib);
          TensorUtils.addScaledIdentity (D, 2/3.0*muJ*Ib);
          TensorUtils.addSymmetricTensorProduct (
-            D, -2/3.0*muJ, myB, SymmetricMatrix3d.IDENTITY);
+            D, -2/3.0*muJ, B, SymmetricMatrix3d.IDENTITY);
          D.setLowerToUpper();         
       }
    }
@@ -142,7 +141,6 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
 
    public IncompNeoHookeanMaterial clone() {
       IncompNeoHookeanMaterial mat = (IncompNeoHookeanMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
       return mat;
    }
 
@@ -179,5 +177,11 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
          super.scaleMass (s);
          setShearModulus (myG*s);
       }
+   }
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == IncompNeoHookeanMaterial.class;
    }
 }

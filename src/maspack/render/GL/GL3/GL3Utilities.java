@@ -8,7 +8,7 @@ public class GL3Utilities {
    
    public static GL3 wrap(GL3 gl) {
       if (debug) {
-         return new GL3Debug(gl);
+         return GL3Debug.wrap(gl);
       }
       return gl;
    }

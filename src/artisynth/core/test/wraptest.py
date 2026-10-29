@@ -19,9 +19,6 @@ MechSystemSolver.myDefaultHybridSolveP = False
 MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
 FemModel3d.noIncompressStiffnessDamping = False
 SurfaceMeshCollider.useAjlCollision = False
-from artisynth.demos.wrapping import StaticWrapTest
-StaticWrapTest.highMeshRes = False;
-StaticWrapTest.highGridRes = False;
 PardisoSolver.setDefaultNumThreads (1)
 MurtyMechSolver.setDefaultAdaptivelyRebuildA (False)
 

@@ -1,42 +1,58 @@
 #!/bin/bash
-D=`dirname $0`/..
+D=`dirname "$0"`/..
 # check for windows
 if [[ ${OS:UNDEF} == *Windows* ]] ; then
   windows=true
 fi
-# look for top level directory containing src/ and classes/ and exit
-# if not found
+# look for the top level directory, which is the nearest one at or above
+# the current directory containing src/, and exit if not found. Its classes/
+# folder is created if necessary (classes/ may not be present in a fresh
+# checkout, and javac 8 does not create the -d folder).
 curdir=`pwd`
-while [[ ! -d src || ! -d classes ]] ; do
-  if [ $PWD != '/' ] ; then
+while [ ! -d src ] ; do
+  if [ "$PWD" != '/' ] ; then
     cd ..
   else
-    echo top level directory containing src/ and classes/ not found
-    exit
+    echo top level directory containing src/ not found >&2
+    exit 1
   fi
 done
 top=`pwd`
-cd $curdir
+cd "$curdir"
+mkdir -p "$top/classes" || exit 1
 if [[ $windows ]] ; then
   AT="`cd \"$D\" 2>/dev/null && pwd -W || echo \"$D\"`"
   ATW=`echo $AT | sed 's|/|\\\\|g'` # need to double \ inside backquote
 else
   AT="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
 fi
-if [ -z "$CLASSPATH" ] ; then
+# Classpath consists of the main classes directory and the jar files listed
+# in lib/LIBRARIES, followed by CLASSPATH minus any entries for lib/* or jar
+# files in lib/ (so that older versions of the libraries that may still be
+# in lib/ are excluded). If LIBRARIES can't be read, use lib/* followed by
+# CLASSPATH.
+CP=`"$AT/bin/makeClasspath" -addEnv 2>/dev/null`
+if [ -z "$CP" ] ; then
   if [[ $windows ]] ; then
     CP="$ATW\classes;$ATW\lib\*"
+    if [ -n "$CLASSPATH" ] ; then
+      CP="$CP;$CLASSPATH"
+    fi
   else
     CP="$AT/classes:$AT/lib/*"
-  fi
-else
-  if [[ $windows ]] ; then
-    CP="$ATW\classes;$ATW\lib\*;$CLASSPATH"
-  else
-    CP="$AT/classes:$AT/lib/*:$CLASSPATH"
+    if [ -n "$CLASSPATH" ] ; then
+      CP="$CP:$CLASSPATH"
+    fi
   fi
 fi
-JAVACFLAGS="-J-Xms500m -J-Xmx500m -source 1.8 -target 1.8 -encoding UTF-8 -Xlint:-options -Xlint:-removal"
+JAVACFLAGS="-J-Xms500m -J-Xmx500m -source 1.8 -target 1.8 -encoding UTF-8 -Xlint:-options"
+# -Xlint:-removal suppresses warnings about APIs deprecated for removal; the
+# 'removal' category exists only in Java 9 and later (javac 8 reports
+# version 1.8)
+JAVAC_MAJOR=`javac -version 2>&1 | sed -n 's/^javac \([0-9]*\).*/\1/p' | head -n 1`
+if [ -n "$JAVAC_MAJOR" ] && [ "$JAVAC_MAJOR" -ge 9 ] ; then
+  JAVACFLAGS="$JAVACFLAGS -Xlint:-removal"
+fi
 find . -name '*.java' > _sources_.txt
-javac -cp $CP -d $top/classes -sourcepath $top/src $JAVACFLAGS @_sources_.txt
+javac -cp "$CP" -d "$top/classes" -sourcepath "$top/src" $JAVACFLAGS @_sources_.txt
 rm -rf _sources_.txt

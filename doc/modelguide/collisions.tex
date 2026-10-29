@@ -1880,6 +1880,15 @@ force vectors when they are drawn in response to {\sf
 drawContactForces} or {\sf drawFrictionForces} being {\tt true}.  The
 default value is 0.
 
+\item[negativeForceColor]\mbox{}
+
+A {\tt Color} value which, if non-null, specifies a distinct color to be used
+for rendering contact forces whose values are negative; i.e., directed opposite
+to the direction of the contact normal. This can only occur for vertex-based
+contacts which are enforced by bilateral constraints when the {\sf
+bilateralVertexContact} property is {\tt true}, and indicates temporary
+contact sticking.
+
 \item[colorMap]\mbox{}
 
 Composite property of type 
@@ -2342,16 +2351,52 @@ constraints. Compliance is enabled whenever the compliance is set
 to a value greater than 0, with stiffness decreasing as compliance
 increases.
 
-Compliance can be enabled by setting the {\sf compliance} and {\sf
+Compliance can offer a couple of advantages over and above solving the problem
+of contact redundancy:
+
+\begin{itemize}
+
+\item {\bf smoother contact behaviour.} The inherent ``springiness'' created by
+compliance can reduce contact bouncing and noise (although this may require
+some parameter tuning).
+
+\item {\bf faster computation.} Compliance incorporates position correction
+directly into its behavior, which removes the need for the extra solve required
+by a position stabilization step (Section \ref{PosStabilization:sec}).
+
+\end{itemize}
+
+One consequence of compliant contact is that it results in persistent
+penetration over the contact area, with a depth that is (roughly) inversely
+proportional to the stiffness . With a high enough stiffness, this penetration
+can usually be made acceptable. (The persistent penetration is also what helps
+stabilize the contact.)
+
+There are several ways to set up compliant contact. One is to use a contact
+force behavior, such as area compliant contact (Section
+\ref{AreaCompliantContact:sec}) or elastic foundation contact (Section
+\ref{ElasticFoundationContact:sec}), both of which compute the compliance and
+damping terms on the fly in service of specified material properties.  The
+other way is to set the compliance and damping terms directly, as discussed in
+the remainder of this section.
+
+\begin{sideblock}
+For many applications, particularly those involving FE contact, we recommend
+using area compliant contact (Section \ref{AreaCompliantContact:sec}), as it
+exhibits good performance and usually requires specifying only one parameter
+(stiffness per unit area $K_a$), with the damping parameter being determined
+automatically.
+\end{sideblock}
+
+Compliance can be enabled directly by setting the {\sf compliance} and {\sf
 damping} properties of either the collision manager {\it or} the
-\javaclass[artisynth.core.mechmodels]{CollisionBehavior} for a
-specific collision pair; these properties correspond to $C$ and $D$ in
-(\ref{contactForce:eqn}). While it is not required to set the damping
-property, it is usually desirable to set it to a value that
-approximates critical damping in order to prevent ``bouncing'' contact
-behavior. Compliance and damping can be set in the GUI by editing the
-properties of either the collision manager or a specific collision
-behavior, or set in code using the accessor methods
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} for a specific
+collision pair; these properties correspond to $C$ and $D$ in
+(\ref{contactForce:eqn}). While it is not required to set the damping property,
+it is usually desirable to set it to a value that approximates critical damping
+in order to prevent ``bouncing'' contact behavior. Compliance and damping can
+be set in the GUI by editing the properties of either the collision manager or
+a specific collision behavior, or set in code using the accessor methods
 %
 \begin{lstlisting}[]
   double getCompliance()
@@ -2467,8 +2512,8 @@ controlling the contact interaction, using the method
 \end{lstlisting}
 %
 A {\tt ContactForceBehavior} must implement the method {\tt
-computeResponse()} to compute the contact force, compliance and
-damping at each contact:
+computeResponse()} to compute the contact force, compliance, damping
+and (optionally) step damping at each contact:
 %
 \begin{lstlisting}[]
   void computeResponse (
@@ -2483,10 +2528,24 @@ contact (see Figure \ref{contactPoints:fig}):
 
 \item[fres]\mbox{}
 
-An array of length three that returns the contact force, compliance
-and damping in its first, second and third entries. The contact force
-is the $F(d)$ shown in (\ref{generalContactForce:eqn}), the compliance
-is $1/F'(d)$, and the damping is $D(d)$.
+An array of length four that returns the contact force, compliance,
+damping and step damping in its first, second, third and fourth
+entries. Entries that are not set default to 0. The contact force is
+the $F(d)$ shown in (\ref{generalContactForce:eqn}), the compliance
+is $1/F'(d)$, and the damping is $D(d)$. The step damping is an
+optional dimensionless factor $\gamma$ that sets a minimum damping
+proportional to the simulation step size $h$, so that the damping
+actually applied is
+%
+\begin{equation}
+\max (D(d), \, \gamma h F'(d)).
+\label{stepDamping:eqn}
+\end{equation}
+%
+This allows the damping time constant (the damping divided by the
+stiffness) to be kept at or above $h/2$, which is required for stable
+compliant contact (Section \ref{AreaCompliantContactDamping:sec}),
+without the behavior needing to know $h$.
 
 \item[dist]\mbox{}
 
@@ -2507,12 +2566,21 @@ The contact normal $n$.
 
 \item[contactArea]\mbox{}
 
-Average area per contact, computed by dividing the total area of the
-contact region by the number of penetrating vertices.  This
-information is {\it only} available if the {\it colliderType} property
-of the collision behavior is set to {\tt AJL\_CONTOUR} (Section
-\ref{CollisionBehavior:sec}); otherwise, {\tt contactArea}
-will be set to -1.
+Area associated with the contact. For vertex penetration contact
+(Section \ref{VertexPenetration:sec}), this is 1/3 of the area of each
+face surrounding the penetrating vertex, projected onto the plane
+perpendicular to the contact normal. For edge-edge contacts, it is
+likewise 1/3 of the area of each face adjacent to the penetrating
+edge. For contour region contact, it is the area of the contact region
+divided by the number of contact points. For two-way vertex penetration
+contact (Section \ref{VertexPenetration:sec}), in which penetrations are
+computed for both colliding surfaces, the area of each vertex contact
+is halved, since the vertices of both surfaces then cover the same
+contact region.
+
+\item[flags]\mbox{}
+
+Not currently used.
 
 \end{description}
 
@@ -2534,7 +2602,7 @@ class SimpleCompliantContact extends ContactForceBehavior {
 
    public void computeResponse (
       double[] fres, double dist, ContactPoint cpnt0, ContactPoint cpnt1, 
-      Vector3d nrml, double regionArea, int flags) {
+      Vector3d nrml, double contactArea, int flags) {
 
       fres[0] = dist*myStiffness;  // contact force
       fres[1] = 1/myStiffness;     // compliance is inverse of stiffness
@@ -2573,44 +2641,19 @@ Since $d$ and $F(d)$ are both assumed to be negative during contact,
 we will assume here that $G(d)$ is negative as well.
 \end{sideblock}
 
-To find the area $A$ within the {\tt computeResponse()} method, one
-has two options:
-
-\begin{enumerate}
-
-\item[A)] Compute an estimate of the local contact area surrounding
-the contact, as discussed below. This may be the more appropriate
-option if the colliding mesh vertices are not uniformly spaced, or if
-the {\tt contactArea} argument is undefined because the {\tt
-AJL\_CONTOUR} collider (Section \ref{ColliderTypes:sec}) is not being
-used.
-
-\item[B)] Use the {\tt contactArea} argument if it is
-defined. This gives an accurate estimate of the per-contact area on
-the assumption that the colliding mesh vertices are uniformly
-distributed. {\tt contactArea} will be defined when using the {\tt
-AJL\_CONTOUR} collider (Section \ref{ColliderTypes:sec}); otherwise,
-it will be set to -1.
-
-\end{enumerate}
-
-For option (A), {\tt ContactForceBehavior} provides the convenience
-method
-\javamethodAlt{%
-artisynth.core.materials.ContactForceBehavior.computeContactArea(,,)}%
-{computeContactArea(cpnt0,cpnt1,nrml)}, which estimates the local
-contact area given the contact points and normal. If the above example
-of {\tt computeResponse()} is modified so that the stiffness parameter
+Within the {\tt computeResponse()} method, the area $A$ is given by the
+{\tt contactArea} argument. If the above example of {\tt
+computeResponse()} is modified so that the stiffness parameter
 controls pressure instead of force, then we obtain the following:
 %
 \begin{lstlisting}[]
    public void computeResponse (
       double[] fres, double dist, ContactPoint cpnt0, ContactPoint cpnt1, 
-      Vector3d nrml, double regionArea, int flags) {
+      Vector3d nrml, double contactArea, int flags) {
 
       // assume stiffness determines pressure instead of force,
       // so it needs to be scaled by the local contact area:
-      double K = myStiffness * computeContactArea (cpnt0, cpnt1, nrml);
+      double K = myStiffness * contactArea;
 
       fres[0] = dist*K;      // contact force
       fres[1] = 1/K;         // compliance
@@ -2619,47 +2662,298 @@ controls pressure instead of force, then we obtain the following:
 \end{lstlisting}
 %
 
+Because {\tt contactArea} is halved for two-way vertex penetration
+contact, forces computed this way do not need further adjustment
+when penetrations are computed for both colliding surfaces.
+
+\subsection{Area compliant contact}
+\label{AreaCompliantContact:sec}
+
+ArtiSynth supplies a built-in contact force behavior,
+\javaclass[artisynth.core.materials]{AreaCompliantContact}, that
+implements linear compliant contact in which the stiffness and damping of each
+contact are proportional to the area associated with it.  {\tt
+AreaCompliantContact} is intended to provide a fast and easy way to regularize
+and smooth contact behavior, particularly for the vertex-based contact
+associated with FE models,
+
+The contact force is given by
+%
+\begin{equation}
+f_c = - K d - D \dot d, \quad K = K_a A, \quad
+D = \max (\beta, \gamma h) K,
+\label{areaCompliantContact:eqn}
+\end{equation}
+%
+where $d$ is the (negative) penetration distance, $A$ is the area
+associated with the contact (as supplied by the {\tt contactArea}
+argument of {\tt computeResponse()}; see Section
+\ref{ContactForceBehavior:sec}), $K_a$ is a stiffness per unit area
+(with units of force/length$^3$), $h$ is the simulation step size,
+$\gamma$ is a dimensionless {\it step damping} factor, and $\beta$ is
+a {\it stiffness damping} time constant. Because the stiffness is specified per unit area rather than per
+contact, the contact pressure produced by a given penetration does not
+depend on the resolution of the colliding meshes.
+
+Like elastic foundation contact (Section \ref{ElasticFoundationContact:sec}),
+area compliant contact is intended for use with vertex penetration contact
+(Section \ref{ContactMethods:sec}). For deformable bodies, it is particularly
+useful for regularizing contact (Section
+\ref{ContactRegularization:sec}): rigid vertex contact with finely
+meshed FEM models is often overconstrained, which can result in
+noisy and unevenly distributed contact pressures, and making the contact
+compliant removes this problem.
+
+\javaclass[artisynth.core.materials]{AreaCompliantContact} exports
+the following properties:
+
+\begin{description}
+
+\item[Ka]\mbox{}
+
+$K_a$ in equation (\ref{areaCompliantContact:eqn}). The default value
+is $5 \times 10^{10}$.
+
+\item[stepDamping]\mbox{}
+
+$\gamma$ in equation (\ref{areaCompliantContact:eqn}). The default value
+is 1.
+
+\item[stiffnessDamping]\mbox{}
+
+$\beta$ in equation (\ref{areaCompliantContact:eqn}). The default value
+is 0.
+
+\end{description}
+
+The following code fragment shows how area compliant contact might be
+set up between an FEM model {\tt fem} representing a thin layer and a
+rigid body {\tt body}, with $K_a$ chosen as described below and the
+damping properties left at their default values:
+%
+\begin{lstlisting}[]
+  double E = 5e6;          // Young's modulus of the FEM material
+  double L = 0.002;        // layer thickness
+  double rho = 20;         // dimensionless stiffness ratio
+
+  CollisionBehavior behav = new CollisionBehavior (true, /*mu=*/0);
+  behav.setMethod (CollisionBehavior.Method.VERTEX_PENETRATION);
+
+  behav.setForceBehavior (new AreaCompliantContact (rho*E/L));
+  mech.setCollisionBehavior (fem, body, behav);
+\end{lstlisting}
+%
+
+\subsubsection{Choosing the stiffness}
+\label{AreaCompliantContactStiffness:sec}
+
+Adding contact compliance is roughly equivalent to placing a layer of
+springs between the contacting surfaces. With {\tt AreaCompliantContact},
+the resulting penetration $\delta$ at each contact point is
+%
+\begin{equation*}
+\delta \approx p/K_a,
+\end{equation*}
+%
+where $p$ is the contact pressure. If the maximum contact pressure
+$p_{\text{max}}$ and a maximum allowable penetration $\delta_{\text{max}}$
+are known, one can simply choose
+%
+\begin{equation}
+\boxed{K_a = p_{\text{max}}/\delta_{\text{max}}.}
+\label{KaFromPmax:eqn}
+\end{equation}
+%
+More often, these quantities are not known in advance, and it is easier to
+choose $K_a$ so that the contact is much stiffer than the deformable
+bodies themselves. This can be done in three steps:
+
+\begin{enumerate}
+
+\item Estimate an {\it effective thickness} $L_e$ for each deformable body.
+This is the depth over which the
+contact stress stays concentrated over the contact patch, such that
+(assuming linear elasticity with Poisson's ratio $\nu=0$) the deformation
+along the contact direction under a contact pressure $p$ is
+approximately
+%
+\begin{equation*}
+\delta_B \approx p L_e / E.
+\end{equation*}
+%
+$L_e$ may equal the true thickness $L$ of the body along the contact
+direction, but is often smaller, as described below.
+
+\item Compute the stiffness per unit area of each body, $E/L_e$, where $E$
+is its Young's modulus. If there are two deformable bodies, with Young's
+moduli $E_1$ and $E_2$ and effective thicknesses $L_{e1}$ and $L_{e2}$,
+combine them like springs in series to obtain a single body stiffness
+%
+\begin{equation*}
+k_B = \frac{1}{L_{e1}/E_1 + L_{e2}/E_2}.
+\end{equation*}
+%
+For a single deformable body in contact with a rigid one, $k_B = E/L_e$.
+
+\item Set
+%
+\begin{equation}
+\boxed{K_a = \rho \, k_B,}
+\label{KaFromE:eqn}
+\end{equation}
+%
+where $\rho$ is a dimensionless stiffness ratio, with values between
+10 and 50 usually being a good choice.
+
+\end{enumerate}
+
+The ratio $\rho$ is approximately the ratio of the deformation of the
+bodies to the penetration $\delta$. It should be large enough that
+$\delta$ is small relative to the body deformation, but not so large that
+the possible noise associated with non-compliant contact (Section
+\ref{ContactRegularization:sec}) is introduced. Since $\rho$ can vary
+over a fairly wide range, $k_B$ only needs to be estimated roughly. In
+particular, when two bodies are in contact, $k_B$ is dominated by the
+softer (or thicker) body, and it is usually sufficient to use $k_B \approx
+\min (E_1/L_{e1}, E_2/L_{e2})$, which overestimates $k_B$ by at most a
+factor of 2.  Also, as the body becomes more incompressible (i.e., as
+$\nu$ approaches 0.5), its effective stiffness along the contact
+direction increases (e.g., by about 3.8 for a thin layer with $\nu =
+0.45$), in which
+case a smaller value of $K_a$ (or lower value of $\rho$) can be used.
+
+{\bf Estimating the effective thickness}
+
+$L_e$ typically lies between the true thickness $L$ of the body along
+the contact direction and the minimal width $d_p$ of the contact
+patch. Let $A_p$ be the area of the patch, and
+$A_B$ the cross-sectional area of the body in the contact plane. The
+contact stress is concentrated within a depth of about $d_p$ below the
+patch. Below that it continues to spread out and decrease, until it is
+limited by the sides of the body, after which it remains roughly
+uniform at $p A_p/A_B$ (Figure \ref{ContactBodyTypes:fig}, panel
+(d)). If the body is much wider than the patch, this uniform stress is
+negligible. This leads to the approximation
+%
+\begin{equation*}
+L_e \approx \min \left(L, \; d_p + L \frac{A_p}{A_B}\right),
+\end{equation*}
+%
+which gives the cases shown in Figure \ref{ContactBodyTypes:fig} and
+summarized here:
+
+\begin{center}
+\begin{tabular}{|lll|}
+\hline
+body type & condition & $L_e$ \\
+\hline
+(a) thin layer & $L < d_p$ & $\approx L$ \\
+(b) large body & $L > d_p$, $L A_p/A_B \ll d_p$ & $\approx d_p$ \\
+(c) tall body & $A_p \approx A_B$ & $\approx L$ \\
+(d) intermediate & other cases & $\approx d_p + L A_p/A_B$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/ContactBodyTypes}
+\else
+ \includegraphics[width=5in]{images/ContactBodyTypes}
+\fi
+\end{center}
+\caption{Effective thickness $L_e$ for different types of body (blue) supported
+by a rigid base and loaded by a rigid indenter (gray). The contact
+patch is shown in red, and the contact stress is shaded, with darker
+shading indicating higher stress. For this 2D illustration, we assume
+that $A_B$ equals the body width and that $d_p = A_p$. (a) Thin
+layer. (b) Large body, in which the stress decays before reaching
+the sides of the body. (c) Tall body. (d) Intermediate case, in
+which the stress spreads out until it is limited by the sides of the
+body, below which it is roughly uniform at $p A_p/A_B$.}
+\label{ContactBodyTypes:fig}
+\end{figure}
+
+These estimates assume that the body is supported on the side opposite
+the contact (by a rigid base, or by other bodies). 
+
 \begin{sideblock}
-{\tt computeContactArea()} only works for vertex penetration
-contact (Section \ref{VertexPenetration:sec}), and will return -1
-otherwise. That's because it needs the contact points' vertex
-information to compute the area.  In particular, for vertex penetration 
-contact, it associates the vertex with 1/3 of the area of
-each of its surrounding faces.
+Note that when two bodies are in contact, $d_p$ and $A_p$ are the same
+for both.
 \end{sideblock}
 
-When computing contact forces, care must also be taken to consider
-whether the vertex penetrations are being computed for {\it both}
-colliding surfaces (two-way contact,
-Section \ref{VertexPenetration:sec}).  This means that forces are
-essentially being computed twice - once for each side of the
-penetrating surface. For forces based on pressure, the resulting
-contact forces should then be halved. To determine when two-way
-contact is in effect, the {\tt flags} argument can be examined for the
-flag {\tt TWO\_WAY\_CONTACT}:
-\begin{lstlisting}[]
-   public void computeResponse (
-      double[] fres, double dist, ContactPoint cpnt0, ContactPoint cpnt1, 
-      Vector3d nrml, double regionArea, int flags) {
+{\bf Example}
 
-      double K = myStiffness * computeContactArea (cpnt0, cpnt1, nrml);
-      if ((flags & TWO_WAY_CONTACT) != 0) {
-        K *= 0.5;  // divide force response by 2
-      }
-      fres[0] = dist*K;      // contact force
-      fres[1] = 1/K;         // compliance
-      fres[2] = myDamping;   // damping
-   }
+For a cartilage-like layer with $E = 5 \times 10^6$ and a thickness of 2 mm
+(in SI units) pressed against a rigid body, $k_B = E/L = 2.5 \times
+10^{9}$, and $\rho = 20$ gives $K_a = 5 \times 10^{10}$. If the layer
+instead contacts a second, identical layer, then $k_B = 1/(2 L/E) = 1.25
+\times 10^{9}$, giving $K_a = 2.5 \times 10^{10}$. The FEM-FEM case might
+then be set up as follows:
+%
+\begin{lstlisting}[]
+  double E1 = 5e6, Le1 = 0.002;  // Young's modulus and Le, first FEM
+  double E2 = 5e6, Le2 = 0.002;  // Young's modulus and Le, second FEM
+  double rho = 20;               // dimensionless stiffness ratio
+
+  double kB = 1/(Le1/E1 + Le2/E2);
+  behav.setForceBehavior (new AreaCompliantContact (rho*kB));
 \end{lstlisting}
+
+\begin{sideblock}
+The default value of $K_a$ corresponds to the first case above: $\rho =
+20$ for a cartilage-like layer with $E = 5 \times 10^6$ and a thickness of
+2 mm, pressed against a rigid body. It should usually be adjusted for
+other materials, geometries and units.
+\end{sideblock}
+
+\subsubsection{Choosing the damping}
+\label{AreaCompliantContactDamping:sec}
+
+{\sf stiffnessDamping} and {\sf stepDamping} have default values of 0.0 and
+1.0, which should be fine for most applications. They are described in detail
+below just in case an application wishes to adjust them.
+
+Compliant contact forces are integrated using the penetration
+estimated at the middle of the time step. As a result, the damping
+time constant $D/K$ must be at least $h/2$. If it is smaller, stiff
+contacts oscillate from one step to the next, with contacts possibly
+switching on and off at every step, and the oscillation becomes more
+persistent as $K_a$ increases. The {\sf stepDamping} property $\gamma$
+provides this minimum damping automatically, by setting $D/K$ to
+$\gamma h$, where $h$ is the current step size. This does not depend
+on the masses or units of the model, and adjusts automatically if the
+step size is changed. A value of 0.5 damps the oscillation within a
+single step, while larger values give a smoother but more sluggish
+response. The default value of 1 is suitable for most models. Values
+less than 0.5 should be avoided unless $\beta$ is set to at least
+$h/2$.
+
+Step damping is a numerical device and does not model physical
+damping. In particular, when a light rigid body strikes a stiff
+compliant contact, it rebounds with a coefficient of restitution of
+roughly $0.5/(0.5+\gamma)$ (or about 1/3 for the default value),
+regardless of the step size; increasing $\gamma$ reduces this
+rebound. The {\sf stiffnessDamping} property $\beta$ provides damping
+that is independent of the step size, and is needed only when such
+damping is required; for example, when the oscillation of a rigid body
+of mass $M$ on a soft contact, with frequency $\omega =
+\sqrt{K_{\text{tot}}/M}$ (where $K_{\text{tot}}$ is the total
+stiffness of all its contacts), is resolved by the step size (i.e., $\omega h$
+is less than about 1). A damping ratio of about $\zeta$ can then be obtained by
+setting $\beta = 2 \zeta/\omega$. For contact involving FE models, {\sf
+stiffnessDamping} rarely needs to be set.
 
 \subsection{Elastic foundation contact}
 \label{ElasticFoundationContact:sec}
 
-ArtiSynth supplies a built-in contact force behavior,
-\javaclass[artisynth.core.materials]{LinearElasticContact},
-that implements elastic foundation contact (EFC) based on a linear material
-law as described in \cite{bei2004multibody}.  
-By default, the contact pressures are computed from
+ArtiSynth implements elastic foundation contact (EFC), based on a linear
+material law as described in \cite{bei2004multibody}, using
+the built-in contact force behavior 
+\javaclass[artisynth.core.materials]{LinearElasticContact}.
+
+By default, this material computes contact pressures from
 %
 \begin{equation}
 G(d) = -\frac{(1-\nu) E}{(1+\nu)(1-2 \nu)} \ln \left( 1 + \frac{d}{h} \right),
@@ -2711,7 +3005,7 @@ OpenSim (equation 24 in \cite{sherman2011simbody}).
 \begin{sideblock}
 Elastic foundation contact assumes the use of vertex penetration
 contact (Section \ref{ContactMethods:sec}) to achieve correct
-results; otherwise, a runtime error may result.
+results.
 \end{sideblock}
 
 \javaclass[artisynth.core.materials]{LinearElasticContact}
@@ -2754,13 +3048,6 @@ respectively. The default value is {\tt DIRECT}.
 A boolean, which if {\tt true} causes (\ref{logEFC:eqn})
 to be used instead of (\ref{linearEFC:eqn}). The default
 value is {\tt true}.
-
-\item[useLocalContactArea]\mbox{}
-
-A boolean, which if {\tt true} causes contact areas to be estimated
-from the vertex of the penetrating contact point (option A in
-Section \ref{pressureBasedContact:sec}). The default value is {\tt
-true}.
 
 \end{description}
 
@@ -3480,3 +3767,32 @@ Section \ref{CollisionBehavior:sec}.
 \else
 \end{document}
 \fi
+
+%Work this in somewhere:
+%
+%Contact results in inequality (i.e., unilateral) constraints. Assume you have a
+%point in contact with a surface. Its velocity v_n in the direction of the
+%contact surface normal must satisfy
+%
+%v_n >= 0
+%
+%which means the point is free to separate from the surface but not move into
+%it. This is enforced by a reaction force f_n along the normal, which also
+%satisfies
+%
+%f_n >= 0
+%
+%Moreover, f_n is 0 whenever v_n > 0 (since no need to restrain a separating
+%contact) and v_n is 0 whenever f_n > 0 (the reaction force prevents the point
+%from moving).
+%
+%Computing the velocities and reaction forces to satisfy all this is known as a
+%"complementarity problem", and it's more computationally expensive than
+%handling regular equality contraints, particularly when there are many contact
+%points (as there are when doing FE or EFC contact).
+%
+%To speed things up, the default ArtiSynth method for FE and EFC contact is to
+%treat the contacts as equality (bilateral) constraints during the velocity
+%solve, such that v_n = 0, and then afterwards remove any contacts for which the
+%resulting f_n < 0. This is the behavior when bilateralVertexContact=true,
+%and while it results in faster computation

@@ -269,4 +269,18 @@ public class ViscoelasticMaterial extends FemMaterial {
    }
    
    
+
+   @Override
+   public boolean isThreadSafe() {
+      return (getClass() == ViscoelasticMaterial.class &&
+              myBaseMaterial.isThreadSafe() &&
+              myViscoBehavior.getClass() == QLVBehavior.class);
+   }
+
+   @Override
+   public void collectFieldBindings (
+      java.util.List<artisynth.core.modelbase.FieldComponent> fields) {
+      super.collectFieldBindings (fields);
+      myBaseMaterial.collectFieldBindings (fields);
+   }
 }

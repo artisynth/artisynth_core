@@ -33,6 +33,8 @@ import maspack.util.BinaryFileInputStream;
  */
 public class DicomImageDecoderGDCM implements DicomImageDecoder {
  
+   // name of the native library, as given to NativeLibraryManager
+   static String nativeLibrary = "gdcmjni.3.0.22";
    static boolean loadedNativeLibrary = false;
 
    /**
@@ -40,7 +42,7 @@ public class DicomImageDecoderGDCM implements DicomImageDecoder {
     */
    public DicomImageDecoderGDCM() {
       if (!loadedNativeLibrary) {
-         NativeLibraryManager.load("gdcmjni");
+         NativeLibraryManager.load(nativeLibrary);
          loadedNativeLibrary = true;
       }
    }
@@ -58,7 +60,11 @@ public class DicomImageDecoderGDCM implements DicomImageDecoder {
          || dts.uid.equals("1.2.840.10008.1.2.4.91")
          || dts.uid.equals("1.2.840.10008.1.2.4.92")
          || dts.uid.equals("1.2.840.10008.1.2.4.93")
-         || dts.uid.equals("1.2.840.10008.1.2.4.70")) {
+         || dts.uid.equals("1.2.840.10008.1.2.4.57")
+         || dts.uid.equals("1.2.840.10008.1.2.4.70")
+         || dts.uid.equals("1.2.840.10008.1.2.4.80")
+         || dts.uid.equals("1.2.840.10008.1.2.4.81")
+         || dts.uid.equals("1.2.840.10008.1.2.5")) {
          return true;
       }
       else {

@@ -133,7 +133,7 @@ public class LinearMaterialCache {
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
 
          Matrix3d Q = dt.myFrame == null ? Matrix3d.IDENTITY : dt.myFrame;
-         Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
+         Vector3d[] GNx0 = pt.computeShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
          SymmetricMatrix3d stress = new SymmetricMatrix3d();
@@ -324,7 +324,7 @@ public class LinearMaterialCache {
          
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
 
-         Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
+         Vector3d[] GNx0 = pt.computeShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
          SymmetricMatrix3d stress = new SymmetricMatrix3d();

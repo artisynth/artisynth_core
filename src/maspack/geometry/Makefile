@@ -42,6 +42,7 @@ JAVA_TEST_PROGRAMS = \
 	ScalarGridTest \
 	TetgenConvexHullTest \
 	TetgenTessellatorTest \
+	TriFaceClipperTest \
 	TriangleIntersectorTest \
 	VectorGridTest \
 	Vertex3dListTest \

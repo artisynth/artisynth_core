@@ -154,6 +154,18 @@ public abstract class DirectSolverBase implements DirectSolver {
    protected abstract int getNumThreadsNative();
 
    /**
+    * Returns the number of physical CPU cores on this machine, as opposed
+    * to logical/hyperthreaded processors, or a value {@code <= 0} if it
+    * could not be determined. Backed by {@code hybridGetPhysicalCoreCount()}
+    * in {@code hybridSolve.cc}, shared by the MUMPS and Pardiso native
+    * libraries -- see {@link #getPhysicalCoreCount} for the cached,
+    * fallback-applying wrapper callers should normally use instead.
+    *
+    * @return physical core count, or {@code <= 0} if undetermined
+    */
+   protected abstract int getPhysicalCoreCountNative();
+
+   /**
     * Returns a message describing the indicated native return code.
     *
     * @param rcode native return code
@@ -271,27 +283,38 @@ public abstract class DirectSolverBase implements DirectSolver {
     * Sets the number of threads that this solver should use. The results are
     * undefined if this number exceeds the maximum number of threads available
     * on the system. Setting <code>num</code> to a value {@code <=} 0 will
-    * reset the number of threads to the default used by OpenMP, which is
-    * typically the value stored in the environment variable
-    * <code>OMP_NUM_THREADS</code>.
+    * reset the number of threads to {@link #myNominalNumThreads}, i.e.,
+    * whatever this solver would have been assigned when created: the thread
+    * pool's own natural default, overridden by {@link #getDefaultNumThreads}
+    * if positive, and capped by {@link #getPhysicalCoreCount}.
     *
     * <p><b>Note:</b> the thread count is a property of the process rather than
     * of an individual solver, so changing it here affects all solvers running
     * in the same process. It should also not be changed in between the
     * analyze, factor and solve phases.
     *
+    * <p>A positive value here is also recorded as the highest priority input
+    * to automatic thread throttling (see {@link #maxThreadsNnz}), taking
+    * precedence over everything else, including {@link #getPhysicalCoreCount}.
+    *
     * @param num number of threads to use
     * @see #getNumThreads
     */
    public synchronized void setNumThreads (int num) {
       ensureInitialized();
-      setNumThreadsNative (num);
+      myExplicitNumThreads = num;
+      int numThreads = (num > 0 ? num : myNominalNumThreads);
+      if (numThreads != getNumThreadsNative()) {
+         setNumThreadsNative (numThreads);
+      }
    }
 
    /**
     * Returns the number of threads that this solver is using. By default,
-    * this is the number used by OpenMP, which is typically the value stored
-    * in the environment variable <code>OMP_NUM_THREADS</code>.
+    * this is {@link #myNominalNumThreads} -- the thread pool's own natural
+    * default (typically <code>OMP_NUM_THREADS</code>), overridden by {@link
+    * #getDefaultNumThreads} if positive, and capped by {@link
+    * #getPhysicalCoreCount}.
     *
     * @return number of threads being used
     * @see #setNumThreads
@@ -299,6 +322,401 @@ public abstract class DirectSolverBase implements DirectSolver {
    public synchronized int getNumThreads() {
       ensureInitialized();
       return getNumThreadsNative();
+   }
+
+   // -2: not yet queried; a machine property, so cached once for the whole
+   // process rather than per solver instance or per call
+   private static int myPhysicalCoreCount = -2;
+
+   /**
+    * Returns the number of physical CPU cores on this machine, as opposed
+    * to logical/hyperthreaded processors -- queried natively (see {@link
+    * #getPhysicalCoreCountNative}) since Java has no portable way to tell
+    * the two apart, and hyperthreads provide little to no benefit for
+    * compute-bound work like sparse factorization (see {@link
+    * #maxThreadsNnz}). Falls back to {@link Runtime#availableProcessors}
+    * (logical count, with a printed warning) if native detection runs but
+    * fails, or returns {@code -1} if this solver's native library predates
+    * {@link #getPhysicalCoreCountNative} entirely -- callers should treat
+    * that as "undetermined" and skip whatever they would otherwise have
+    * capped by it, rather than treating {@code -1} as a literal core count.
+    *
+    * <p>On Arm-based Macs with both performance and efficiency cores, the
+    * native code shared by the MUMPS and Accelerate solvers counts only the
+    * performance cores. This is tuned for MUMPS, whose use of Accelerate's
+    * BLAS (which runs on the chip's shared matrix units) gains little from
+    * extra threads and is slowed down by the efficiency cores. It is not
+    * true of solvers in general: Pardiso, under Rosetta, is fastest with
+    * all cores.
+    *
+    * <p>Queried once and cached for the life of the process: this is not
+    * meticulously synchronized against concurrent first calls from
+    * different solver instances, but the query is cheap, side-effect-free
+    * and deterministic, so a benign race only risks redoing it once, never
+    * an inconsistent result.
+    *
+    * @return physical core count on this machine, or {@code -1} if
+    * undetermined
+    */
+   public int getPhysicalCoreCount() {
+      ensureInitialized();
+      if (myPhysicalCoreCount == -2) {
+         int n;
+         try {
+            n = getPhysicalCoreCountNative();
+            if (n <= 0) {
+               n = Runtime.getRuntime().availableProcessors();
+               System.out.println (
+                  "note: native physical core count detection failed; using " +
+                  n + " logical processors instead " +
+                  "(Runtime.availableProcessors()), which may include " +
+                  "hyperthreads");
+            }
+         }
+         catch (UnsatisfiedLinkError e) {
+            // this solver's native library predates physical core count
+            // support (e.g. Pardiso built against an older PardisoJNI that
+            // lacks it): leave the count undetermined (-1) rather than
+            // falling back to the logical count, so callers skip the hard
+            // cap entirely instead of deriving one from the wrong
+            // (hyperthreaded) number.
+            n = -1;
+         }
+         myPhysicalCoreCount = n;
+      }
+      return myPhysicalCoreCount;
+   }
+
+   /**
+    * Number of threads explicitly requested for this instance via {@link
+    * #setNumThreads}, or {@code <= 0} if none has been requested. When
+    * positive, this takes priority over everything else -- including
+    * {@link #maxThreadsNnz} throttling and the {@link #getPhysicalCoreCount}
+    * cap -- since the caller asked for it explicitly.
+    */
+   protected int myExplicitNumThreads = -1;
+
+   /**
+    * Number of threads in effect when the matrix was analyzed, or {@code <= 0}
+    * if no matrix has been analyzed. The thread count is a property of the
+    * process, so anything else in the process can change it between this
+    * solver's phases: another solver being created (see {@link
+    * #initThreadState}), or another solver's analysis being throttled for a
+    * smaller matrix (see {@link #applyThreadThrottle}).
+    *
+    * <p>Some solvers require the factorization and solve phases to use the
+    * same number of threads as the analysis: MUMPS fails with error -58 when
+    * they differ and its multithreaded tree parallelism (ICNTL(48)) is
+    * active. Even where it is merely legal, a factorization that inherits
+    * another solver's throttled count runs with fewer threads than intended.
+    * The count is therefore re-asserted for each phase; see {@link
+    * #applyPhaseThreads}.
+    */
+   protected int myPhaseNumThreads = -1;
+
+   /**
+    * Restores the thread count that was in effect when the matrix was
+    * analyzed, if something has changed it since. Called at the start of each
+    * factor and solve phase.
+    *
+    * <p>A consequence is that {@link #setNumThreads} called between an
+    * analysis and a factorization does not affect that factorization; it
+    * applies from the next analysis. This matches the contract of {@link
+    * #setNumThreads}, which requires that the count not be changed between
+    * phases.
+    */
+   protected void applyPhaseThreads() {
+      if (myPhaseNumThreads > 0 &&
+          getNumThreadsNative() != myPhaseNumThreads) {
+         setNumThreadsNative (myPhaseNumThreads);
+      }
+   }
+
+   /**
+    * Number of threads that the solver is assigned when it is created. This
+    * is the number of threads that the solver would assign on its own, overridden
+    * by {@link #myDefaultNumThreads} and, when known, capped by {@link
+    * #getPhysicalCoreCount()}.
+    */
+   protected int myNominalNumThreads = -1;
+
+   /**
+    * Initializes this solver's thread count. Queries the underlying thread
+    * pool's natural (OpenMP/system) count, overrides it with {@link
+    * #myDefaultNumThreads} if positive, caps the result at {@link
+    * #getPhysicalCoreCount} (when that is known -- see its documentation
+    * for when it isn't), and records it in {@link #myNominalNumThreads}.
+    *
+    * <p>Subclasses should call this from their constructor, once the native
+    * solver handle has been created, in place of calling {@code
+    * setNumThreads(myDefaultNumThreads)} directly: going through {@link
+    * #setNumThreads} here would incorrectly record {@link
+    * #myDefaultNumThreads} as an explicit per-instance request (see {@link
+    * #myExplicitNumThreads}), causing it to permanently outrank later
+    * changes to the default.
+    */
+   protected void initThreadState() {
+      setNumThreadsNative (-1);
+      int natNumThreads = getNumThreadsNative();
+      int numThreads = natNumThreads;
+      if (myDefaultNumThreads > 0) {
+         numThreads = myDefaultNumThreads;
+      }
+      int physCores = getPhysicalCoreCount();
+      if (physCores > 0 && numThreads > physCores) {
+         numThreads = physCores;
+      }
+      if (numThreads != natNumThreads) {
+         setNumThreadsNative (numThreads);
+      }
+      myNominalNumThreads = numThreads;
+   }
+
+   /**
+    * One entry in a thread-count throttling table used by {@link
+    * #maxThreadsNnz}: for matrices with at most {@code nnz} non-zero
+    * values, the thread count should be capped at {@code maxThreads}. Thus
+    * {@code nnz} is the <i>upper</i> bound of the range this entry covers,
+    * so a table with a single threshold -- cap to some value below it,
+    * apply no cap (see {@link #lookupMaxThreads}, which then falls through
+    * to {@link #getPhysicalCoreCount} via {@link #myNominalNumThreads})
+    * above it -- needs only one entry.
+    *
+    * @see #lookupMaxThreads
+    */
+   protected static class ThreadLimit {
+      final int nnz;
+      final int maxThreads;
+
+      public ThreadLimit (int nnz, int maxThreads) {
+         this.nnz = nnz;
+         this.maxThreads = maxThreads;
+      }
+   }
+
+   /**
+    * Looks up the thread limit for a matrix with {@code nnz} non-zero
+    * values in {@code table}, an ascending-{@code nnz} list of {@link
+    * ThreadLimit} entries, each giving the upper bound of the range it
+    * covers. Returns the {@code maxThreads} of the first entry whose {@code
+    * nnz} is {@code >=} the given value; if none is (i.e. the matrix is
+    * larger than every entry in the table), {@code -1} is returned (no
+    * limit), which in practice still leaves the thread count capped at
+    * {@link #getPhysicalCoreCount} -- see {@link #applyThreadThrottle}.
+    *
+    * @param table ascending-{@code nnz} thread limit table, entries giving
+    * range upper bounds
+    * @param nnz number of non-zero values to look up
+    * @return thread limit for {@code nnz}, or {@code -1} if none applies
+    */
+   protected static int lookupMaxThreads (ThreadLimit[] table, int nnz) {
+      for (ThreadLimit lim : table) {
+         if (nnz <= lim.nnz) {
+            return lim.maxThreads;
+         }
+      }
+      return -1;
+   }
+
+   /**
+    * Returns the maximum number of threads this solver should use to
+    * analyze/factor a matrix with {@code nnz} non-zero values and the
+    * indicated type, or a value {@code <= 0} if no limit should be applied.
+    * Called automatically from {@link #setMatrix}.
+    *
+    * <p>This exists because some direct solvers (MUMPS in particular, on
+    * Windows) incur a large, largely size-independent per-factor thread-team
+    * overhead, so that using more than one thread on a small matrix can cost
+    * several times more than using one. The default implementation applies
+    * no limit;
+    * subclasses for which this matters should override it, typically using
+    * a small platform-specific {@link ThreadLimit} table together with
+    * {@link #lookupMaxThreads}.
+    *
+    * @param nnz number of non-zero values in the matrix, as passed to
+    * {@link #setMatrixNative} (i.e., for symmetric types, the count for the
+    * upper triangle only)
+    * @param type or-ed flags giving the matrix type
+    * @return maximum number of threads to use, or {@code <=0} for no limit
+    */
+   protected int maxThreadsNnz (int nnz, int type) {
+      return -1;
+   }
+
+   /**
+    * Adjusts this solver's thread count, if necessary, to respect the limit
+    * returned by {@link #maxThreadsNnz} for a matrix with {@code nnz}
+    * non-zero values and the given type. Has no effect if {@link
+    * #maxThreadsNnz} returns a value {@code <= 0}.
+    *
+    * <p>Has no effect if an explicit {@link #setNumThreads} value is in
+    * force (see {@link #myExplicitNumThreads}), which always takes priority.
+    * Otherwise, the thread count used is the smaller of the limit and
+    * {@link #myNominalNumThreads} (the count this solver would otherwise be
+    * using: the thread pool's natural default, overridden by {@link
+    * #getDefaultNumThreads} if positive, and capped by {@link
+    * #getPhysicalCoreCount}). This ensures throttling only ever lowers the
+    * thread count, never raises it above what the caller or system would
+    * otherwise have chosen.
+    */
+   protected void applyThreadThrottle (int nnz, int type) {
+      if (myExplicitNumThreads <= 0) {
+
+         int cap = maxThreadsNnz (nnz, type);
+         if (cap > 0) {
+            int numThreads = Math.min (cap, myNominalNumThreads);
+            if (numThreads != getNumThreadsNative()) {
+               setNumThreadsNative (numThreads);
+            }
+         }
+      }
+   }
+
+   // ------------------------------------------------------------------
+   // iterative solve settings
+   // ------------------------------------------------------------------
+
+   /**
+    * Default restart length for GMRES iterative solves.
+    */
+   public static final int DEFAULT_GMRES_RESTART = 20;
+
+   protected IterativeMethod myIterativeMethod = IterativeMethod.GMRES;
+   protected int myIterativeMaxSolves = DEFAULT_ITERATIVE_MAX_SOLVES;
+   protected double myIterativeTolerance = DEFAULT_ITERATIVE_TOLERANCE;
+   protected int myGmresRestart = DEFAULT_GMRES_RESTART;
+   // results of the most recent iterative solve; -1 if not available
+   protected int myLastIterativeSolves = -1;
+   protected double myLastIterativeResidual = -1;
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setIterativeMethod (IterativeMethod method) {
+      if (method == null) {
+         throw new IllegalArgumentException ("method is null");
+      }
+      myIterativeMethod = method;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public IterativeMethod getIterativeMethod() {
+      return myIterativeMethod;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setIterativeMaxSolves (int max) {
+      if (max < 1) {
+         throw new IllegalArgumentException (
+            "max solves is "+max+"; must be positive");
+      }
+      myIterativeMaxSolves = max;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getIterativeMaxSolves() {
+      return myIterativeMaxSolves;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setIterativeTolerance (double tol) {
+      if (!(tol > 0)) {
+         throw new IllegalArgumentException (
+            "tolerance is "+tol+"; must be positive");
+      }
+      myIterativeTolerance = tol;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public double getIterativeTolerance() {
+      return myIterativeTolerance;
+   }
+
+   /**
+    * Sets the restart length used when the iterative method is GMRES. The
+    * default is {@link #DEFAULT_GMRES_RESTART}.
+    *
+    * @param restart GMRES restart length
+    */
+   public void setGmresRestart (int restart) {
+      if (restart < 1) {
+         throw new IllegalArgumentException (
+            "restart is "+restart+"; must be positive");
+      }
+      myGmresRestart = restart;
+   }
+
+   /**
+    * Queries the GMRES restart length.
+    *
+    * @return GMRES restart length
+    */
+   public int getGmresRestart() {
+      return myGmresRestart;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getLastIterativeSolves() {
+      return myLastIterativeSolves;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public double getLastIterativeResidual() {
+      return myLastIterativeResidual;
+   }
+
+   /**
+    * Returns the code which the native hybrid solve implementation
+    * (lib/hybridSolve.h) uses for an iterative method.
+    *
+    * @param method iterative method
+    * @return native method code
+    */
+   protected static int nativeMethodCode (IterativeMethod method) {
+      return (method == IterativeMethod.CGS ? 1 : 0);
+   }
+
+   private static boolean myUseCriticalArrayAccess = true;
+
+   /**
+    * Sets whether native solvers use JNI critical array access
+    * ({@code GetPrimitiveArrayCritical}) to transfer array data for the
+    * iterative (GMRES or CGS) solves performed by their native wrappers.
+    * The value, right-hand side and solution arrays are then copied directly
+    * between Java and native storage, avoiding extra copies and allocation
+    * of the value array. Critical access is held only while copying, never
+    * during the solve, since on JDK 21 and earlier it defers garbage
+    * collection for all threads. The default is {@code true}. Currently
+    * used by {@link PardisoSolver} and {@link MumpsSolver}.
+    *
+    * @param enable if {@code true}, use critical array access
+    */
+   public static void setUseCriticalArrayAccess (boolean enable) {
+      myUseCriticalArrayAccess = enable;
+   }
+
+   /**
+    * Queries whether native solvers use JNI critical array access for their
+    * iterative solves. See {@link #setUseCriticalArrayAccess}.
+    *
+    * @return {@code true} if critical array access is used
+    */
+   public static boolean getUseCriticalArrayAccess() {
+      return myUseCriticalArrayAccess;
    }
 
    // ------------------------------------------------------------------
@@ -342,6 +760,9 @@ public abstract class DirectSolverBase implements DirectSolver {
 
       ensureInitialized();
       checkSetArgs (vals, rowOffs, colIdxs, size, numVals);
+      applyThreadThrottle (numVals, type);
+      // later phases must use the same thread count as the analysis
+      myPhaseNumThreads = getNumThreadsNative();
       int rcode = setMatrixNative (vals, rowOffs, colIdxs, size, numVals, type);
       if (!isError (rcode)) {
          setState (ANALYZED);
@@ -425,6 +846,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void factor (double[] vals) {
+      applyPhaseThreads();
       if (myState == UNSET) {
          throw new IllegalStateException ("No matrix currently set");
       }
@@ -466,6 +888,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void solve (VectorNd x, VectorNd b) {
+      applyPhaseThreads();
       checkFactored();
       checkSolveArgs (x, b, 1);
       checkSolveResult (solveNative (x.getBuffer(), b.getBuffer(), 1));
@@ -475,6 +898,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void solve (double[] x, double[] b) {
+      applyPhaseThreads();
       checkFactored();
       checkSolveArgs (x, b, 1);
       checkSolveResult (solveNative (x, b, 1));
@@ -484,6 +908,7 @@ public abstract class DirectSolverBase implements DirectSolver {
     * {@inheritDoc}
     */
    public synchronized void solve (double[] X, double[] B, int nrhs) {
+      applyPhaseThreads();
       if (!hasMultipleRhsSolves()) {
          throw new UnsupportedOperationException (
             getSolverName()+" does not support multiple right hand sides");

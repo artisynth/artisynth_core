@@ -226,4 +226,17 @@ public class ScaledFemMaterial extends FemMaterial {
    }
    
    
+
+   @Override
+   public boolean isThreadSafe() {
+      return (getClass() == ScaledFemMaterial.class &&
+              myBaseMaterial.isThreadSafe());
+   }
+
+   @Override
+   public void collectFieldBindings (
+      java.util.List<artisynth.core.modelbase.FieldComponent> fields) {
+      super.collectFieldBindings (fields);
+      myBaseMaterial.collectFieldBindings (fields);
+   }
 }

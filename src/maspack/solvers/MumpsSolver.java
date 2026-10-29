@@ -95,6 +95,9 @@ public class MumpsSolver extends DirectSolverBase {
       DEFAULT,
    };
 
+   // cleared if the native library does not support iterative solves
+   private static boolean myIterativeSolvesSupported = true;
+
    // Error codes returned by MUMPS in INFOG(1). Only those which are likely
    // to arise in this context are named explicitly; all others are reported
    // numerically by getErrorMessage(). Additional information about an error
@@ -405,6 +408,8 @@ public class MumpsSolver extends DirectSolverBase {
 
    private native int doGetNumThreads (long handle);
    private native int doSetNumThreads (long handle, int num);
+   // static: a machine property, not a per-solver one
+   private static native int doGetPhysicalCoreCount();
 
    private native long doGetNumNonZerosInFactors (long handle);
    private native int doGetNumNegEigenvalues (long handle);
@@ -445,10 +450,10 @@ public class MumpsSolver extends DirectSolverBase {
    private native int doSetNullPivotDetection (long handle, int enable);
 
    private native double doGetNullPivotThreshold (long handle);
+   private native int doSetScaling (long handle, int value);
+   private native int doGetScaling (long handle);
    private native int doSetNullPivotThreshold (long handle, double thresh);
 
-   private native int doGetApplyScaling (long handle);
-   private native int doSetApplyScaling (long handle, int apply);
 
    private native int doGetApplyWeightedMatchings (long handle);
    private native int doSetApplyWeightedMatchings (long handle, int apply);
@@ -481,6 +486,16 @@ public class MumpsSolver extends DirectSolverBase {
    private native int doSolve (
       long handle, double[] xvecs, double[] bvecs, int nrhs);
 
+   private native int doIterativeSolve (
+      long handle, double[] vals, double[] x, double[] b, double tol,
+      int method, int maxSolves, int restart, boolean critical);
+
+   private native int doGetLastIterativeSolves (long handle);
+
+   private native double doGetLastIterativeResidual (long handle);
+
+   private native void doGetLastIterativeTimes (long handle, double[] times);
+
    private native void doRelease (long handle);
 
 
@@ -499,6 +514,14 @@ public class MumpsSolver extends DirectSolverBase {
             case Windows32:
             case Windows64: {
                NativeLibraryManager.load ("libiomp5md");
+               // Intel Fortran/SVML runtime, needed only by MUMPS (not
+               // Pardiso, which has no Fortran code) and not present in any
+               // standard system search location -- must be resident before
+               // MumpsJNI loads, same reason as libiomp5md above. Order
+               // matters: libifcoremd itself depends on libmmd.
+               NativeLibraryManager.load ("libmmd");
+               NativeLibraryManager.load ("svml_dispmd");
+               NativeLibraryManager.load ("libifcoremd");
                break;
             }
             case MacOS64: {
@@ -535,7 +558,7 @@ public class MumpsSolver extends DirectSolverBase {
       // create the handle here because earlier JNI implementations of
       // setNumThreads required this internally:
       myHandle = doInit();
-      setNumThreads (myDefaultNumThreads);
+      initThreadState();
    }
 
 
@@ -902,38 +925,42 @@ public class MumpsSolver extends DirectSolverBase {
    }
 
    /**
-    * Sets whether or not MUMPS should apply matrix scaling to its
-    * factorizations (MUMPS parameter ICNTL(8)). Scaling is controlled by
-    * <code>enable</code> as follows: {@code enable > 0} enables scaling,
-    * {@code enable = 0} disables scaling, and {@code enable < 0} causes MUMPS
-    * to choose automatically (the default). The scaling actually applied can
-    * be queried using {@link #getApplyScaling}, which reads it back from
-    * MUMPS after the analyze and factor phases.
+    * Sets the scaling which MUMPS applies to the matrix, as the value of the
+    * MUMPS parameter ICNTL(8). The values relevant to the symmetric systems
+    * used by ArtiSynth are 0 (none), 1, 7 and 8 (computed during each
+    * factorization), and 77 (automatic, which for these systems usually means
+    * computed during the analysis).
     *
-    * @param enable enables/disables matrix scaling
-    * @see #getApplyScaling
+    * <p>The default is {@code -1}, which lets the solver choose between
+    * analysis and factorization scaling for each matrix, since neither suits
+    * all of them and the choice also affects the ordering MUMPS selects.
+    * Setting any other value pins ICNTL(8) and disables that choice. The
+    * policy is described where it is implemented, in {@code
+    * Mumps::adaptStrategy()}.
+    *
+    * @param value value for ICNTL(8)
+    * @see #getScaling
     */
-   public synchronized void setApplyScaling (int enable) {
+   public synchronized void setScaling (int value) {
       if (myHandle == 0) {
          initialize();
       }
-      if (enable > 0) {
-         enable = 1;
-      }
-      doSetApplyScaling (myHandle, enable);
+      doSetScaling (myHandle, value);
    }
 
    /**
-    * Returns whether or not matrix scaling is enabled.
+    * Returns the scaling which MUMPS applies to the matrix, as described for
+    * {@link #setScaling}. If MUMPS was left to choose, the value it actually
+    * used is returned once a solve phase has been run.
     *
-    * @return true if matrix scaling is enabled
-    * @see #setApplyScaling
+    * @return value of ICNTL(8)
+    * @see #setScaling
     */
-   public synchronized boolean getApplyScaling () {
+   public synchronized int getScaling () {
       if (myHandle == 0) {
          initialize();
       }
-      return (doGetApplyScaling (myHandle) != 0);
+      return doGetScaling (myHandle);
    }
 
    /**
@@ -1176,7 +1203,7 @@ public class MumpsSolver extends DirectSolverBase {
     * factorization time; a number exceeding 10 percent of the matrix size
     * indicates numerical problems, which may be alleviated by adjusting
     * {@link #setApplyWeightedMatchings setApplyWeightedMatchings()}, {@link
-    * #setApplyScaling setApplyScaling()}, or {@link #setSymOrderingStrategy
+    * #setScaling setScaling()}, or {@link #setSymOrderingStrategy
     * setSymOrderingStrategy()}.
     *
     * @return number of delayed pivots
@@ -1266,7 +1293,74 @@ public class MumpsSolver extends DirectSolverBase {
     * {@inheritDoc}
     */
    public boolean hasIterativeSolves() {
-      return false;
+      return myIterativeSolvesSupported;
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>MUMPS does not provide iterative solves itself. Instead, the
+    * iteration is performed in the native wrapper, using the most recent
+    * factorization as a preconditioner and the supplied values for matrix
+    * products.
+    */
+   public synchronized int iterativeSolve (
+      double[] vals, double[] x, double[] b) {
+      checkFactored();
+      checkSolveArgs (x, b, 1);
+      if (vals.length < myNumVals) {
+         throw new IllegalArgumentException (
+            "vals is too small: length="+vals.length+
+            ", expected size is "+myNumVals);
+      }
+      myLastIterativeSolves = -1;
+      myLastIterativeResidual = -1;
+      if (!myIterativeSolvesSupported) {
+         return 0;
+      }
+      int iters;
+      try {
+         iters = doIterativeSolve (
+            myHandle, vals, x, b, myIterativeTolerance,
+            nativeMethodCode (myIterativeMethod), myIterativeMaxSolves,
+            myGmresRestart, getUseCriticalArrayAccess());
+         myLastIterativeSolves = doGetLastIterativeSolves (myHandle);
+         myLastIterativeResidual = doGetLastIterativeResidual (myHandle);
+      }
+      catch (UnsatisfiedLinkError e) {
+         // native library predates iterative solve support
+         myIterativeSolvesSupported = false;
+         return 0;
+      }
+      return iters;
+   }
+
+   /**
+    * Returns a time breakdown of the most recent call to {@link
+    * #iterativeSolve}, in msec: the total time spent in the native code, the
+    * time spent in preconditioner solves, and the time spent in matrix-vector
+    * products. The remainder of the total is vector operations and setup.
+    * Intended for performance analysis.
+    *
+    * @return total, preconditioner solve and matrix product times, or
+    * {@code null} if not available
+    */
+   public synchronized double[] getLastIterativeTimes() {
+      if (myHandle == 0 || !myIterativeSolvesSupported) {
+         return null;
+      }
+      double[] times = new double[3];
+      try {
+         doGetLastIterativeTimes (myHandle, times);
+      }
+      catch (UnsatisfiedLinkError e) {
+         // native library predates iterative solve timing
+         return null;
+      }
+      for (int i=0; i<times.length; i++) {
+         times[i] *= 1000;
+      }
+      return times;
    }
 
 
@@ -1337,6 +1431,67 @@ public class MumpsSolver extends DirectSolverBase {
 
    protected int getNumThreadsNative() {
       return doGetNumThreads (myHandle);
+   }
+
+   protected int getPhysicalCoreCountNative() {
+      return doGetPhysicalCoreCount();
+   }
+
+   // ------------------------------------------------------------------
+   // thread throttling
+   //
+   // Empirically measured (factor+solve cost swept across matrix sizes and
+   // thread counts): per-factor() thread-team overhead is roughly an order
+   // of magnitude higher on Windows than Linux, so small matrices should
+   // stay single-threaded on Windows at a much larger size than on Linux.
+   //
+   // These tables give a schedule of the number of threads to use (right
+   // value) up to a specified number of matrix non-zeros (nnz, left value). 
+   // Multiple entries are possible but in general there is general one
+   // nnz beyond which threading becomes effective. This can be measured
+   // using the Java program {@link FindSolverThreadThreshold}.
+   // ------------------------------------------------------------------
+
+   private static final ThreadLimit[] WINDOWS_THREAD_LIMITS = {
+      new ThreadLimit (146100, 1),
+   };
+
+   private static final ThreadLimit[] LINUX_THREAD_LIMITS = {
+      new ThreadLimit (64306, 1),
+   };
+
+   // macOS: measured on an Arm-based Mac (Apple M5 Pro, 5 performance + 10
+   // efficiency cores) with FindSolverThreadThreshold at its default
+   // maxThreads, which is 5 since only the performance cores are counted
+   // there (see getPhysicalCoreCount() and hybridSolve.cc); three runs
+   // agreed.
+   private static final ThreadLimit[] MACOS_THREAD_LIMITS = {
+      new ThreadLimit (146100, 1),
+   };
+
+   private static final boolean ourIsWindows =
+      System.getProperty ("os.name").toLowerCase().startsWith ("windows");
+
+   private static final boolean ourIsMacOS =
+      System.getProperty ("os.name").toLowerCase().startsWith ("mac");
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>MUMPS is given only the upper triangle for symmetric matrices, so
+    * <code>nnz</code> is doubled in that case before consulting the table,
+    * since the tables above are expressed in terms of the full matrix nnz.
+    * This is an approximation (it ignores the diagonal, counted once
+    * rather than twice), good to a percent or so for the matrix sizes
+    * these tables apply to.
+    */
+   protected int maxThreadsNnz (int nnz, int type) {
+      if ((type & Matrix.SYMMETRIC) != 0) {
+         nnz *= 2;
+      }
+      ThreadLimit[] table = ourIsWindows ? WINDOWS_THREAD_LIMITS :
+         (ourIsMacOS ? MACOS_THREAD_LIMITS : LINUX_THREAD_LIMITS);
+      return lookupMaxThreads (table, nnz);
    }
 
 }

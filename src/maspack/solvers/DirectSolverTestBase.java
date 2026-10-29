@@ -439,12 +439,105 @@ public abstract class DirectSolverTestBase extends UnitTest {
          S.setCRSValues (
             vals, colIdxs, rowOffs, numVals, size,
             Partition.UpperTriangular);
-         int iterCnt = solver.iterativeSolve (
-            vals, xvec.getBuffer(), bvec.getBuffer(), 10);
-         check ("iterativeSolve() > 0", iterCnt > 0);
-         checkLargeMatrixSolution (S, xvec, bvec, 1e-9, "iterative solve");
-         if (verbose) {
-            System.out.println ("iterative solve: " + iterCnt);
+         // tolerance 1e-11: methods which stop on the relative 2-norm residual
+         // (GMRES, CGS) must also pass the absolute infinity-norm check below
+         solver.setIterativeTolerance (1e-11);
+         // check both ways of passing arrays to native iterative solves
+         boolean prevCritical = DirectSolverBase.getUseCriticalArrayAccess();
+         try {
+            for (boolean critical : new boolean[] { false, true }) {
+               DirectSolverBase.setUseCriticalArrayAccess (critical);
+               for (Object method : getIterativeMethods()) {
+                  setIterativeMethod (solver, method);
+                  String name = "iterative solve ("+method+
+                     (critical ? ", critical arrays" : "")+")";
+                  xvec.setZero();
+                  int iterCnt = solver.iterativeSolve (
+                     vals, xvec.getBuffer(), bvec.getBuffer());
+                  check (name + ": iterativeSolve() > 0", iterCnt > 0);
+                  checkLargeMatrixSolution (S, xvec, bvec, 1e-9, name);
+                  checkIterativeSolveInfo (solver, method);
+                  if (verbose) {
+                     System.out.println (name + ": " + iterCnt);
+                  }
+                  // a zero right-hand side is solved exactly, with x = 0
+                  VectorNd zero = new VectorNd (size);
+                  xvec.setRandom();
+                  iterCnt = solver.iterativeSolve (
+                     vals, xvec.getBuffer(), zero.getBuffer());
+                  check (name + ", zero rhs: iterativeSolve() > 0",
+                         iterCnt > 0);
+                  check (name + ", zero rhs: x == 0", xvec.norm() == 0);
+               }
+            }
+         }
+         finally {
+            DirectSolverBase.setUseCriticalArrayAccess (prevCritical);
+         }
+      }
+      solver.dispose();
+   }
+
+   /**
+    * Returns the iterative methods which {@link #testLargeMatrix} should
+    * check, each selected using {@link #setIterativeMethod}. The default
+    * returns the values of {@link DirectSolver.IterativeMethod}.
+    */
+   protected Object[] getIterativeMethods() {
+      return DirectSolver.IterativeMethod.values();
+   }
+
+   /**
+    * Selects one of the methods returned by {@link #getIterativeMethods}.
+    */
+   protected void setIterativeMethod (DirectSolver solver, Object method) {
+      solver.setIterativeMethod ((DirectSolver.IterativeMethod)method);
+   }
+
+   /**
+    * Checks the information available after a successful iterative solve
+    * with one of the methods returned by {@link #getIterativeMethods}.
+    */
+   protected void checkIterativeSolveInfo (DirectSolver solver, Object method) {
+      check ("getLastIterativeSolves() > 0",
+             solver.getLastIterativeSolves() > 0);
+      double res = solver.getLastIterativeResidual();
+      check ("getLastIterativeResidual() in [0,tol]",
+             res >= 0 && res <= solver.getIterativeTolerance());
+   }
+
+   /**
+    * Tests the iterative solve settings, if the solver supports iterative
+    * solves.
+    */
+   public void testIterativeSettings() {
+      DirectSolver solver = createSolver();
+      if (solver.hasIterativeSolves()) {
+         checkEquals (
+            "default getIterativeMethod()", solver.getIterativeMethod(),
+            DirectSolver.IterativeMethod.GMRES);
+         checkEquals (
+            "default getIterativeMaxSolves()", solver.getIterativeMaxSolves(),
+            DirectSolver.DEFAULT_ITERATIVE_MAX_SOLVES);
+         checkEquals (
+            "default getIterativeTolerance()", solver.getIterativeTolerance(),
+            DirectSolver.DEFAULT_ITERATIVE_TOLERANCE);
+         solver.setIterativeMethod (DirectSolver.IterativeMethod.CGS);
+         checkEquals (
+            "getIterativeMethod()", solver.getIterativeMethod(),
+            DirectSolver.IterativeMethod.CGS);
+         solver.setIterativeMaxSolves (7);
+         checkEquals ("getIterativeMaxSolves()", solver.getIterativeMaxSolves(), 7);
+         solver.setIterativeTolerance (1e-8);
+         checkEquals (
+            "getIterativeTolerance()", solver.getIterativeTolerance(), 1e-8);
+         try {
+            solver.setIterativeTolerance (0);
+            throw new TestException (
+               "setIterativeTolerance(0) did not throw an exception");
+         }
+         catch (IllegalArgumentException e) {
+            // expected
          }
       }
       solver.dispose();
@@ -480,6 +573,7 @@ public abstract class DirectSolverTestBase extends UnitTest {
       testSingularMatrix();
       testStateAndReuse();
       testLargeMatrix();
+      testIterativeSettings();
    }
 
    public void test() throws IOException {

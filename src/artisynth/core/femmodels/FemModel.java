@@ -476,15 +476,14 @@ public abstract class FemModel extends MechSystemBase
       T newMat = MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       myMaterial = newMat;
-      // issue change event in case solve matrix symmetry or state has changed:
+      // issue change event, in case solve matrix symmetry or state has
+      // changed, and to clear cached material data:
       MaterialChangeEvent mce = 
-         MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
-      if (mce != null) {
-         if (mce.stateChanged()) {
-            notifyElementsOfMaterialStateChange(); 
-         }
-         componentChanged (mce);
-      }      
+         MaterialBase.createChangeEvent ("material", newMat, oldMat);
+      if (mce.stateChanged()) {
+         notifyElementsOfMaterialStateChange(); 
+      }
+      componentChanged (mce);
       invalidateStressAndStiffness();
       if (!isScanning()) {
          // invalidate cached warping data, but not if we are scanning since
@@ -969,16 +968,36 @@ public abstract class FemModel extends MechSystemBase
          clearCachedData (e);
       }
       else if (e instanceof MaterialChangeEvent) {
-         clearCachedData (e);
-         // presumable only need to invalidate rest data if event is 
-         // associated with a linear material, but we do this anyway
-         invalidateRestData();
+         if (((MaterialChangeEvent)e).stateOrSymmetryChanged()) {
+            clearCachedData (e);
+            // presumable only need to invalidate rest data if event is 
+            // associated with a linear material, but we do this anyway
+            invalidateRestData();
+         }
+         else {
+            clearCachedMaterialData();
+         }
       }
    }
 
    public void componentChanged(ComponentChangeEvent e) {
       handleComponentChanged (e);
-      notifyParentOfChange(e);
+      // material changes that do not affect state or symmetry are only
+      // relevant to this model, so don't propagate them further
+      if (!(e instanceof MaterialChangeEvent) ||
+          ((MaterialChangeEvent)e).stateOrSymmetryChanged()) {
+         notifyParentOfChange(e);
+      }
+   }
+
+   /**
+    * Clears any cached data that depends on the materials used by this
+    * model, including those of its elements and material bundles. Called
+    * whenever a material is changed or replaced, and also by {@link
+    * #clearCachedData}. Subclasses that cache such data should override
+    * this.
+    */
+   protected void clearCachedMaterialData() {
    }
 
    /* ----- I/O methods ------ */
@@ -1639,6 +1658,7 @@ public abstract class FemModel extends MechSystemBase
       super.clearCachedData(e);
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
+      clearCachedMaterialData();
    }
 
    public double getCharacteristicSize() {
@@ -1721,6 +1741,7 @@ public abstract class FemModel extends MechSystemBase
    public void propertyChanged (PropertyChangeEvent e) {
       if (e instanceof MaterialChangeEvent) {
          invalidateStressAndStiffness();
+         clearCachedMaterialData();
          if (e.getHost() instanceof FemMaterial && 
              ((FemMaterial)e.getHost()).isLinear()) {
             // invalidate rest data for linear materials, to rebuild

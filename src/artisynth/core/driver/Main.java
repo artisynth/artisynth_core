@@ -1698,6 +1698,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (disableHybridSolves.value) {
          hybridSolves = false;
       }
+      else if (enableHybridSolves.value) {
+         hybridSolves = true;
+      }
       MechSystemSolver.myDefaultHybridSolveP = hybridSolves;
 
       // number of CPU threads to use for the solver
@@ -1706,6 +1709,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
          numThreads = numSolverThreads.value;
       }
       PardisoSolver.setDefaultNumThreads(numThreads);
+
+      // default matrix solver
+      SparseSolverId solverId = mySimulationPrefs.getMatrixSolver();
+      if (matrixSolver.value != null) {
+         SparseSolverId id =
+            SparseSolverId.findAvailableDirectSolver (matrixSolver.value);
+         if (id == null) {
+            System.out.println (
+               "WARNING: option '-matrixSolver': solver " + matrixSolver.value +
+               " unavailable or unknown; ignoring");            
+         }
+         else {
+            solverId = id;
+         }
+      }
+      MechSystemBase.setDefaultMatrixSolver (solverId);
       
       // display ill-conditioned solves
       mySimulationSettings.setShowIllConditionedSolves (
@@ -1716,11 +1735,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // no-incompress-damping is probably obsolete:
       FemModel3d.noIncompressStiffnessDamping = noIncompressDamping.value;
 
-      // matrix solver
-      if (matrixSolver.value != null) {
-         MechSystemBase.setDefaultMatrixSolver (
-            SparseSolverId.valueOf (matrixSolver.value));
+      if (profileFactorSolve.value) {
+         MechSystemSolver.setDefaultProfileFactorSolve (true);
       }
+      
    }      
 
    private void initializeMaintenancePrefs () {
@@ -2678,6 +2696,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder disableHybridSolves =
       new BooleanHolder (false);
+   protected static BooleanHolder enableHybridSolves =
+      new BooleanHolder (false);
    protected static IntHolder numSolverThreads =
       new IntHolder (-1);
    protected static StringHolder posCorrection = new StringHolder ();
@@ -2713,6 +2733,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder openMatlab = new BooleanHolder(false);
 
    protected static StringHolder matrixSolver = new StringHolder();
+   protected static BooleanHolder profileFactorSolve = new BooleanHolder();
    protected static StringHolder testModelLoading = new StringHolder();
 
    // Dimension getViewerSize() {
@@ -2727,6 +2748,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private void verifyNativeLibraries (boolean update) {
 
       LibraryInstaller installer = new LibraryInstaller();
+      installer.setLibDir (
+         ArtisynthPath.getHomeRelativeFile ("lib", ".").toString());
       File libFile = ArtisynthPath.getHomeRelativeFile ("lib/LIBRARIES", ".");
       if (!libFile.canRead()) {
          // error will have been printed by launcher, so no need to do so here
@@ -2745,6 +2768,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          int status = 0;
          try {
             status = installer.verifyNativeLibs (update);
+            // remove old versions after downloading, since removal
+            // requires the current version to be present
+            installer.removeOldNativeLibs();
          }
          catch (Exception e) {
             if (installer.isConnectionException (e)) {
@@ -2959,8 +2985,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-disableHybridSolves %v #disable hybrid linear solves",
          disableHybridSolves);
       parser.addOption (
-         "-matrixSolver %s{Pardiso,Mumps} #default matrix solver",
+         "-enableHybridSolves %v #enable hybrid linear solves",
+         enableHybridSolves);
+      parser.addOption (
+         "-matrixSolver %s #default matrix solver (e.g., Pardiso, Mumps)",
          matrixSolver);
+      parser.addOption (
+         "-profileFactorSolve %v #profile factor/solve times in "+
+         "implicit integrators",
+         profileFactorSolve);
       parser.addOption (
          "-numSolverThreads %d #number of threads to use for linear solver",
          numSolverThreads);
@@ -3845,8 +3878,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public void quit () {
-      dispose();
-      exit (0);
+      if (myRunningUnderMatlab) {
+         // if running under matlab, we don't want to exit the entire process, 
+         // so just dispose of resources. NOTE: this dispose call fails
+         // if the model is running
+         dispose();
+      }
+      else {
+         exit (0);
+      }
    }
 
    /**
@@ -5038,6 +5078,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       taskManagerClassName = new StringHolder(); 
       abortOnInvertedElems = new BooleanHolder (false);
       disableHybridSolves = new BooleanHolder (false);
+      enableHybridSolves = new BooleanHolder (false);
       numSolverThreads = new IntHolder (-1);
       posCorrection = new StringHolder ();
       noIncompressDamping = new BooleanHolder (false);
@@ -5058,6 +5099,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       bgColor = new float[] { -1f, -1f, -1f};       
       openMatlab = new BooleanHolder(false);
       matrixSolver = new StringHolder();
+      profileFactorSolve = new BooleanHolder();
       testModelLoading = new StringHolder();
 
       // statics in other classes

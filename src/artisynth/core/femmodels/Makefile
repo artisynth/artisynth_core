@@ -10,6 +10,7 @@ default: build
 JAVA_TEST_PROGRAMS = \
 	DirectorFrameAttachmentTest \
 	FemElement3dBaseTest \
+	FemIncompElementTest \
 	FrameFem3dAttachmentTest \
 	FrameNodeNodeAttachmentTest \
 	NaturalCoordsComputeTest \
@@ -23,6 +24,7 @@ JAVA_TEST_PROGRAMS = \
 	AbaqusReaderWriterTest \
 	FemModel3dTest \
 	TetrahedralizerTest \
-	StressStrainSettingsTest
+	StressStrainSettingsTest \
+	ParallelAssemblyTest
 
 -include $(ROOT_DIR)/Makefile.base

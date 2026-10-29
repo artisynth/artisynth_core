@@ -65,6 +65,11 @@ public class MaterialBundle extends RenderableComponentBase
             clearElements();
          }
          myUseAllElements = enable;
+         if (myMat != null && getAncestorFem(this) != null) {
+            // augmenting materials have changed
+            notifyParentOfChange (
+               new MaterialChangeEvent (this, "useAllElements", false, false));
+         }
       }
    }
    
@@ -158,12 +163,13 @@ public class MaterialBundle extends RenderableComponentBase
       }
    }
 
-   protected void handlePossibleStateOrSymmetryChange (
+   protected void sendMaterialChangeNotification (
       FemMaterial mat, FemElement3dBase elem) {
+      // always notify, so that FemModel can clear cached material data
+      MaterialChangeEvent mce = new MaterialChangeEvent (
+         this, "materialBundle", mat.hasState(), !mat.hasSymmetricTangent());
+      notifyParentOfChange (mce);
       if (mat.hasState() || !mat.hasSymmetricTangent()) {
-         MaterialChangeEvent mce = new MaterialChangeEvent (
-            this, "materialBundle", mat.hasState(), !mat.hasSymmetricTangent());
-         notifyParentOfChange (mce);
          if (mce.stateChanged()) {
             if (elem != null) {
                elem.notifyStateVersionChanged();
@@ -193,15 +199,14 @@ public class MaterialBundle extends RenderableComponentBase
       }
       FemModel3d fem = getAncestorFem(this);
       if (fem != null) {
-         // issue change event in case solve matrix symmetry or state has changed:
+         // issue change event, in case solve matrix symmetry or state has
+         // changed, and to clear cached material data:
          MaterialChangeEvent mce = 
-            MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
-         if (mce != null) {
-            if (mce.stateChanged()) {
-               notifyElementsOfMaterialStateChange();
-            }
-            notifyParentOfChange (mce);
+            MaterialBase.createChangeEvent ("material", newMat, oldMat);
+         if (mce.stateChanged()) {
+            notifyElementsOfMaterialStateChange();
          }
+         notifyParentOfChange (mce);
          fem.invalidateStressAndStiffness();
          fem.invalidateRestData();
       }
@@ -234,7 +239,7 @@ public class MaterialBundle extends RenderableComponentBase
          }
          if (myMat != null) {
             addMaterialToElement (elem, myMat);
-            handlePossibleStateOrSymmetryChange (myMat, elem);
+            sendMaterialChangeNotification (myMat, elem);
          }
       }
       myElements.add (elem);
@@ -251,7 +256,7 @@ public class MaterialBundle extends RenderableComponentBase
             // we are connected
             if (myMat != null) {
                removeMaterialFromElement (elem, myMat);
-               handlePossibleStateOrSymmetryChange (myMat, elem);
+               sendMaterialChangeNotification (myMat, elem);
             }           
          }
          return true;
@@ -273,7 +278,7 @@ public class MaterialBundle extends RenderableComponentBase
                }
                removeMaterialFromElements (myMat, myElements);
             }
-            handlePossibleStateOrSymmetryChange (myMat, null);
+            sendMaterialChangeNotification (myMat, null);
          }
       }
       myElements.clear();
@@ -405,7 +410,7 @@ public class MaterialBundle extends RenderableComponentBase
             if (!useAllElements()) {
                addMaterialToElements (myMat, myElements);
             }
-            handlePossibleStateOrSymmetryChange (myMat, null);
+            sendMaterialChangeNotification (myMat, null);
          }
       }
    }
@@ -417,7 +422,7 @@ public class MaterialBundle extends RenderableComponentBase
             if (!useAllElements()) {
                removeMaterialFromElements (myMat, myElements);
             }
-            handlePossibleStateOrSymmetryChange (myMat, null);
+            sendMaterialChangeNotification (myMat, null);
          }
       }
       super.disconnectFromHierarchy(hcomp);
@@ -457,9 +462,8 @@ public class MaterialBundle extends RenderableComponentBase
             if (mce.stateChanged() && e.getHost() == getMaterial()) {
                notifyElementsOfMaterialStateChange();
             }
-            if (mce.stateOrSymmetryChanged()) {
-               notifyParentOfChange (new MaterialChangeEvent (this, mce));  
-            }
+            // always notify, so that FemModel can clear cached material data
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
          }
       }
    }
@@ -524,7 +528,7 @@ public class MaterialBundle extends RenderableComponentBase
 
             if (myMat != null) {
                addMaterialToElements (myMat, lremove.getRemoved());
-               handlePossibleStateOrSymmetryChange (myMat, null);
+               sendMaterialChangeNotification (myMat, null);
             }
             myWidgetRobValid = false;
          }
@@ -537,7 +541,7 @@ public class MaterialBundle extends RenderableComponentBase
                (ListRemove<FemElement3dBase>)undoInfo.peekLast();
             if (myMat != null) {
                removeMaterialFromElements (myMat, lremove.getRemoved());
-               handlePossibleStateOrSymmetryChange (myMat, null);
+               sendMaterialChangeNotification (myMat, null);
             }
             myWidgetRobValid = false;
          }

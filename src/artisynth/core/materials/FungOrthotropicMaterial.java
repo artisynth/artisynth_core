@@ -37,8 +37,6 @@ public class FungOrthotropicMaterial extends IncompressibleMaterialBase {
    private double myLam31 = DEFAULT_LAM31; 
    private double myC = DEFAULT_C; 
 
-   private double[]   mu = new double[3]; 
-   private double[][] lam = new double[3][3]; 
 
    PropertyMode myMu1Mode = PropertyMode.Inherited;
    PropertyMode myMu2Mode = PropertyMode.Inherited;
@@ -509,7 +507,10 @@ public class FungOrthotropicMaterial extends IncompressibleMaterialBase {
 
    public void computeDevStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
-      Matrix3d Q, double excitation, MaterialStateObject state) {   
+      Matrix3d Q, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      double[] mu = new double[3];
+      double[][] lam = new double[3][3];   
 
       sigma.setZero();
 
@@ -662,6 +663,9 @@ public class FungOrthotropicMaterial extends IncompressibleMaterialBase {
    public double computeDevStrainEnergy (
       DeformedPoint def, Matrix3d Q, double excitation, 
       MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      double[] mu = new double[3];
+      double[][] lam = new double[3][3];
 
       double[] K = new double[3];
       double[] L = new double[3];
@@ -930,5 +934,11 @@ public class FungOrthotropicMaterial extends IncompressibleMaterialBase {
 
       c.m55 += 0.5*(a22*b00 + 2.0*a02*b02 + a00*b22);
 
+   }
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == FungOrthotropicMaterial.class;
    }
 }

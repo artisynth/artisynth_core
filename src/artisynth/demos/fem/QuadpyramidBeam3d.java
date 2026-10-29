@@ -8,8 +8,6 @@ import artisynth.demos.fem.FemBeam3d;
 
 public class QuadpyramidBeam3d extends FemBeam3d {
 
-   public static boolean omitFromMenu = true;
-
    public void build (String[] args) {
       //super (name, "quadpyramid", 4, 2, /*options=*/0);
       super.build ("quadpyramid", 4, 2, VERTICAL|ADD_DISPLACEMENT);
@@ -17,5 +15,6 @@ public class QuadpyramidBeam3d extends FemBeam3d {
       myFemMod.setMaterial (
          new MooneyRivlinMaterial (150000.0, 0, 0, 0, 0, 15000000.0));
       myFemMod.setIncompressible (FemModel3d.IncompMethod.OFF);
+      myFemMod.setUseConsistentMass (true);
    }
 }

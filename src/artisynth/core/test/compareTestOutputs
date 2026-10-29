@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# Copies test output files with a given suffix (default .out) to files with a
+# different suffix (typically ,ref, in order to reset the reference files).
+#
+usage() {
+   echo "Usage: $0 <suffix0> <suffix1>"
+   exit 1
+}
+if [[ $# == 2 ]]; then
+    suf0=$1
+    suf1=$2
+else
+    usage
+fi
+testname=(
+    "mechmodelTest"
+    "wraptest"
+    "contestAjl"
+    "contestReg"
+    "femtest"
+    "inverseTest"
+    "skinningTest"
+    "wraptest"
+)
+COMPSTATE="java artisynth.core.util.CompareStateFiles"
+for name in "${testname[@]}"; do
+   echo $name
+   $COMPSTATE $name.{$suf0,$suf1}
+done

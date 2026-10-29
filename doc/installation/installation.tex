@@ -2,7 +2,7 @@
 
 \title{ArtiSynth Installation Guide for \SYSTEM{}}
 \author{John Lloyd, Sebastian Kazenbroot-Guppy, and Antonio S{\'a}nchez}
-\setpubdate{Last updated: July, 2024}
+\setpubdate{Last updated: October, 2026}
 \iflatexml
 \date{}
 \fi
@@ -58,9 +58,13 @@ may build their own models using Java code, or load preexisting models
 from either files or Java classes. This document describes how to
 install and run ArtiSynth on \FULLSYSTEM{} machines.
 
-ArtiSynth's prerequisites are listed in Section \ref{Prerequisites}. A
-Java JDK must be installed on your system; information on this is
-given in Section \ref{InstallingJava}.
+ArtiSynth's prerequisites are listed in Section \ref{Prerequisites}.
+You should use Java 21 or later. While ArtiSynth is currently
+compiled to be compatible with Java 8, this will be raised to Java 21
+in the near future.  If you use the Eclipse IDE (version 2024-09 or
+newer) the Java that comes with it is sufficient;
+otherwise, a Java development kit (JDK) must be installed on your
+system, as described in Section \ref{InstallingJava}.
 
 There are two ways to obtain ArtiSynth:
 
@@ -74,8 +78,9 @@ programs. Instructions for this are given in Section
 \item {\bf Install from GitHub} - recommended
 for more serious developers who want to keep their codebase current
 and easily install new features and bug fixes. When installing from
-GitHub, you also need to download the runtime libraries, and compile
-ArtiSynth. GitHub installation instructions are given in Section
+GitHub, ArtiSynth's Java and native libraries are downloaded
+separately (usually automatically), and then it must be compiled.
+GitHub installation instructions are given in Section
 \ref{GitHubInstall}.
 
 \end{enumerate}
@@ -94,7 +99,7 @@ Section \ref{AddingModels}.  When creating models, users may want to
 use an integrated development environment (IDE) for editing and
 compiling their Java code.  At present, most of the ArtiSynth
 community uses the Eclipse IDE (Section \ref{EclipseIDE}), but other
-IDEs such as NetBeans and IntelliJ could be used as well.
+IDEs such as IntelliJ and VS Code could be used as well.
 
 Users may also want to install and run external models and projects
 that have been created either by others or by themselves.  In
@@ -114,32 +119,25 @@ To install ArtiSynth on \SYSTEM{}, you will need:
 
 \begin{itemize}
 
-\item A 64 bit version of \SYSTEM{} running on either an Intel-based
-machine, or an ARM-based machine that implements an Intel
-compatibility layer.
-
 \ifMacOS
-\begin{sideblock}
-Apple ARM-based machines include those based on the M chip
-designs, and currently implement a compatibility layer (called
-Rosetta) that allows ArtiSynth to run as is, provided that you use an
-Intel-based JDK (see Section \ref{InstallingJava}).
-\end{sideblock}
+\item A Mac based on either Apple silicon (the Apple M chips) or an
+Intel processor.
+\else
+\item A 64-bit version of \SYSTEM{} running on an Intel or AMD
+processor (often referred to as {\tt x86\_64}, {\tt x64} or {\tt
+amd64}).
 \fi
 
-\item A Java development kit (JDK) for 64 bit machines. 
-If your machine is based on the ARM processor, you must still use an
-Intel-based JDK.  See Section
+\item Java 21 or later. If you are using the Eclipse IDE, the version
+of Java that comes with Eclipse (Java 21 or later for Eclipse 2024-09
+and newer) is sufficient. Otherwise, you will need a Java development
+kit (JDK), which lets you compile Java code. See Section
 \ref{InstallingJava} for details.
 
 \begin{sideblock}
-You will need a Java development kit (JDK) that lets you actually compile Java
-code. A Java runtime environment (JRE) will not be sufficient.
-\end{sideblock}
-
-\begin{sideblock}
-If you are planning to use ArtiSynth with MATLAB, there are restrictions on
-which JDK you can use, as described in the guide
+If you are planning to use ArtiSynth with MATLAB, ArtiSynth should be
+run with Java 21, which is compatible with recent versions of MATLAB,
+as described in the guide
 \artisynthManual{matlab}{Interfacing ArtiSynth to MATLAB}.
 \end{sideblock}
 
@@ -150,8 +148,8 @@ which JDK you can use, as described in the guide
 \item A three-button mouse is useful for GUI interaction.
 
 \item A machine with a good graphics card and a decent amount of
-memory. We recommend 16 Gbytes, or more if you are doing FEM analysis
-with larger numbers of elements.
+system (RAM) memory. We recommend 16 Gbytes, or more if you are doing
+FEM analysis with larger numbers of elements.
 
 \end{itemize}
 
@@ -184,61 +182,116 @@ and \ArtHome[\SEP lib] denotes the sub-\directory{}
 
 \ifLinux\else % not linux
 \begin{sideblock}
-It recommended that ArtiSynth be installed in a location where none of
+It is recommended that ArtiSynth be installed in a location where none of
 the \directory{} names contain spaces (e.g., avoid placing it under
 {\tt Program Files}).  This will help ensure that all ArtiSynth
 utilities function correctly.
 \end{sideblock}
 \fi % end not Linux
 
-\section{Java JDK Requirements}
+\section{Java Requirements}
 \label{InstallingJava}
 
-ArtiSynth requires that you have a full 64-bit Java development kit
-(JDK) installed. A JDK comes with a Java compiler, whereas the simpler
-Java run time environment (JRE) does not.
+You should use Java 21 or later. While ArtiSynth is currently compiled
+to be compatible with Java 8, this will be raised to Java 21 in the
+near future.
+
+If you are using the Eclipse IDE (Section \ref{EclipseIDE}), the
+version of Java that comes with Eclipse (Java 21 or later for Eclipse
+2024-09 and newer) meets this requirement and is used by default to
+compile and run ArtiSynth. You will then need to install a separate
+Java development kit (JDK) only if
+\begin{itemize}
+
+\item you want to compile or run ArtiSynth from a terminal window,
+outside of Eclipse; or
+
+\item you need a specific version of Java. In particular, if you plan
+to use ArtiSynth with MATLAB, ArtiSynth should be run with Java 21,
+which is compatible with recent versions of MATLAB (see
+\artisynthManual{matlab}{Interfacing ArtiSynth to MATLAB}), whereas
+newer versions of Eclipse come with later versions of Java.
+
+\end{itemize}
+If you are not using Eclipse, you will need a JDK.
+A JDK includes a Java compiler, whereas a simple Java runtime
+environment (JRE) does not.
+
+Any JDK of version 21 or later will work. Free builds of the JDK are
+available from several sources; we suggest Eclipse Temurin, available
+from
+
+\href{https://adoptium.net/temurin/releases/}%
+{adoptium.net/temurin/releases}.
 
 \begin{sideblock}
-Important: on ARM-based machines, you must still install a 64-bit {\it
-Intel-based} JDK which must then execute through an Intel
-compatibility layer. Invocation of the compatibility layer should
-generally be invisible to the user.  64-bit Intel-based JDKs
-contain the string {\tt x64} in their download names, whereas
-ARM-based JDKs contain {\tt aarch64} or {\tt arm32}.
+JDKs are also available from Oracle at 
+\href{https://www.oracle.com/java/technologies/downloads/}%
+{www.oracle.com/java/technologies/downloads} 
+but may be subject to certain licensing restrictions.
 \end{sideblock}
 
-You will require JDK version 8 or higher. The most recent JDK with long term
-support is version 21. If you are planning to use
-ArtiSynth with MATLAB, there are restrictions on which JDK you can use, as
-described in the guide
-\artisynthManual{matlab}{Interfacing ArtiSynth to MATLAB}.
-
-If you need a JDK, we recommend installing one from Oracle.  At the time of
-this writing, the download page is at:
-
-\href{https://www.oracle.com/java/technologies/downloads/}%
-{www.oracle.com/java/technologies/downloads}.
-
-Download tabs for JDK 22, 21 and 17 are located near the top.  Tabs for
-downloading JDK 8 and 11 are located further down the page.
-Downloads are available for all systems ({\sf Linux}, {\sf macOS} and
-{\sf Windows}); be sure to choose the link appropriate to yours.
+Select your operating system and architecture, the package type {\sf
+JDK}, and the desired version (21, or later).
 \ifWindows
-For \SYSTEM{}, the easiest option may be to choose ``{\sf x64 Installer}''.
+For \SYSTEM{}, choose the architecture {\sf x64}; the easiest option
+is then the {\tt .msi} installer.
 \fi
 \ifMacOS
-For \SYSTEM{}, you must choose one of the {\sf x64} options,
-{\it even if your system uses an Apple M chip}, to ensure
-that Java runs in Intel compatibility mode. The
-easiest install option may be ``{\sf x64 DMG Installer}''.
+For \SYSTEM{}, choose the architecture {\sf aarch64} if your Mac uses
+Apple silicon, or {\sf x64} if it uses an Intel processor. (To check,
+choose {\sf About This Mac} from the Apple menu: the {\sf Chip} entry
+will say ``Apple M\ldots'' for Apple silicon.) The easiest option is
+then the {\tt .pkg} installer.
+\fi
+\ifLinux
+For \SYSTEM{}, choose the architecture {\sf x64}, and then unpack the
+{\tt .tar.gz} archive into a location of your choice, such as {\tt
+/opt/java}. This will create the JDK home \directory{}, with a name like
+{\tt /opt/java/jdk-21.0.8+9}.  Many Linux distributions also provide JDKs
+as packages (e.g., {\tt openjdk-21-jdk} on Ubuntu), which will install
+into locations such as {\tt /usr/lib/jvm/java-21-openjdk-amd64}.
+\fi
+
+\ifWindows
+The home \directory{} for a JDK install, referred to below as {\tt
+<JDK\_HOME>}, is usually something like
+\begin{verbatim}
+ C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot
+\end{verbatim}
+for Temurin and 
+\begin{verbatim}
+  C:\Program Files\Java\jdk-21
+\end{verbatim}
+for Oracle.
+\fi
+\ifMacOS
+The home \directory{} for a JDK install is usually something like 
+\begin{verbatim}
+  /Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home
+\end{verbatim}
+for Temurin and 
+\begin{verbatim}
+  /Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home
+\end{verbatim}
+for Oracle.
+\fi
+
+\ifMacOS
+\begin{sideblock}
+Previous versions of these instructions asked that an Intel-based
+({\sf x64}) JDK be installed on Macs with Apple silicon, so that
+ArtiSynth would run under Rosetta. This is no longer necessary, as
+ArtiSynth now runs natively on Apple silicon.
+\end{sideblock}
 \fi
 
 \subsection{Ensuring the JDK is visible to your system}
 \label{MakingJDKVisible}
 
-After the JDK has been installed, it is important to ensure that it is
-visible to your system and that it supersedes any other Java
-installations. One test for this is to open a
+To compile or run ArtiSynth from a terminal window, the {\tt java} and
+{\tt javac} commands of your JDK must be visible there, and must
+supersede any other Java installations. To check this, open a
 \ifWindows
 {\tt CMD} window
 \else
@@ -248,8 +301,11 @@ and run the command
 \begin{verbatim}
  > javac -version
 \end{verbatim}
-The output should match the version of the installed JDK. If it does
-not, or if the command {\tt javac} is not found,
+The output should match the version of the installed JDK.
+\ifWindows
+The JDK installer usually takes care of this.
+\fi
+If it does not, or if the command {\tt javac} is not found,
 \ifMacOS % IF MacOS
 then you can set the ``default'' JDK by setting the {\tt JAVA\_HOME}
 environment variable.  This can be done inside the
@@ -259,15 +315,17 @@ that your home \directory{} is {\tt <HOMEDIR>}.
 
 \begin{itemize}
 
-\item If your command line shell is {\tt bash} (which
-it will be by default), then the initialization file is {\tt
-<HOMEDIR>/.bashrc}. Use a plain text editor to edit (or create) this file and
-insert a line of the form
+\item If your command line shell is {\tt zsh} (which it will be by
+default), then the initialization file is {\tt <HOMEDIR>/.zshrc}. Use a
+plain text editor to edit (or create) this file and insert a line of
+the form
 %
 \begin{lstlisting}[]
   export JAVA_HOME=`/usr/libexec/java_home -v 21`
 \end{lstlisting}
 %
+The same line can be used if your shell is {\tt bash}, in which case
+the initialization file is {\tt <HOMEDIR>/.bashrc}.
 
 \item If you have changed your shell to {\tt csh} or {\tt tcsh},
 then the initialization file is {\tt <HOMEDIR>/.cshrc}. Use a plain text editor
@@ -281,8 +339,7 @@ to edit or create this file and insert a line of the form
 \end{itemize}
 
 Note that in both examples above, the left quote character "{\tt \`{}}" is used
-instead of the more common right quote "{\tt '}".  Also, for JDK 8, it may be
-necessary to specify the argument {\tt -v 1.8.0} to {\tt java\_home}.
+instead of the more common right quote "{\tt '}".
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -290,22 +347,9 @@ so each time a new terminal window is opened.
 \else % ELSE not MacOS
 then one fix is to add the \directory{} {\tt <JDK\_HOME>\SEP bin} to
 your system Path, as described in Section \ref{SettingPath},
-where {\tt <JDK\_HOME>} is the JDK installation directory.
-\ifWindows
-On \SYSTEM{}, your JDK is likely to be installed under {\tt
-Program Files\SEP Java}. For example, if your JDK is 21, 
-then {\tt <JDK\_HOME>} will likely be
-\begin{verbatim}
-  C:\Program Files\Java\jdk-21
-\end{verbatim}
-JDK 8 is named a little differently, and is likely to be located in
-\begin{verbatim}
-  C:\Program Files\Java\jdk-1.8
-\end{verbatim}
-\fi
-When adding {\tt <JDK\_HOME>\SEP bin} to your Path, it should be added {\it
-ahead} of any other Java installations that might be specified. To
-see the current contents of the Path, open a
+where {\tt <JDK\_HOME>} is the JDK home \directory{} described above.
+It should be added {\it ahead} of any other Java installations that
+might be specified. To see the current contents of the Path, open a
 \ifWindows
 {\tt CMD} window
 \else
@@ -325,10 +369,10 @@ and run the command
 
 \begin{sideblock}
 If you are using an integrated development environment (IDE), such as
-Eclipse (Section \ref{EclipseIDE}), for compiling and running
-ArtiSynth programs, you should also ensure that this IDE is configured
-to use the installed JDK. Instructions on how to do this for Eclipse
-are given in Section \ref{EclipseJDK:sec}.
+Eclipse (Section \ref{EclipseIDE}), and want it to use your JDK
+instead of its own version of Java, you should also configure it to
+do so. Instructions for Eclipse are given in Section
+\ref{EclipseJDK:sec}.
 \end{sideblock}
 
 \section{Installing a Precompiled Release}
@@ -387,7 +431,7 @@ run the command {\tt bin\SEP artisynth}:
 \ifWindows
 \begin{verbatim}
  > cd <ARTISYNTH_HOME>
- > bin\artsiynth
+ > bin\artisynth
 \end{verbatim}
 \else
 \begin{verbatim}
@@ -431,7 +475,7 @@ ArtiSynth is available from GitHub at the URL
 \end{verbatim}
 After installation, users can continually update the ArtiSynth
 codebase to the latest version using {\it pull} operations
-(Section \ref{UpdatingArtiSynth}).  In some cases, developers we work
+(Section \ref{UpdatingArtiSynth:sec}).  In some cases, developers we work
 with closely can also obtain, by mutual arrangement, write access to
 our GitHub repository, allowing them to also commit changes.
 
@@ -500,8 +544,9 @@ Click {\sf Next}.
 %\label{SourceGitRepoDialog:fig}
 %\end{figure}
 
-\item A {\sf Branch Selection} dialog will appear; uncheck {\tt svn}, so
-that only {\tt master} is selected. Click {\sf Next}. 
+\item A {\sf Branch Selection} dialog will appear. If multiple
+branches are available, make sure that only {\tt master} is
+selected. Click {\sf Next}.
 
 \item A {\sf Local Destination} dialog will appear as shown
 below,
@@ -534,7 +579,7 @@ home} \directory{}, and will be referred to later in this document as
 
 \item ArtiSynth will now be downloaded; this may take a few minutes,
 depending on your network connection speed. Another dialog will
-appear, asking you to select to project import wizard.  Leave the
+appear, asking you to select a project import wizard.  Leave the
 default (``{\sf Import existing Eclipse projects}'') selected, and
 click {\sf Next}.
 
@@ -548,75 +593,76 @@ click {\sf Finish}.
 %\pagebreak
 %\fi
 
-{\tt artisynth\_core} has now been imported into Eclipse as a
-project. However, we are not quite done. Eclipse will try to compile
-{\tt artisynth\_core}, but will fail because some Java and native
-libraries are missing. (These libraries are not included in the GitHub
-repository because they are quite large.) The compile failure will be
-indicated by a red exclamation mark to the left of the {\tt
-artisynth\_core} project entry in the Package Explorer:
+{\tt artisynth\_core} has now been imported into Eclipse as a project,
+and Eclipse will begin to build it, first by automatically downloading
+the Java and native libraries that ArtiSynth needs. (These are not
+included in the GitHub repository because they are quite large.) The
+download can be on the order of 200 Mbytes, and so may take up to
+several minutes, depending on network speed. Its progress is shown in
+Eclipse's {\sf Console} view, at the bottom of the Eclipse window:
+
 \begin{center}
 \iflatexml
-   \includegraphics[]{images/artisynthBuildError}
+  \includegraphics[]{images/EclipseLibInstall}
 \else
-   \includegraphics[width=0.35\textwidth]{images/artisynthBuildError}
+  \includegraphics[width=0.75\textwidth]{images/EclipseLibInstall}
 \fi
 \end{center}
-
-The Java and native libraries must be downloaded separately, {\it
-outside} of Eclipse.  
-\ifWindows
-Open a file explorer, navigate to the {\tt
-<ARTISYNTH\_HOME>} \directory{} (described above), open the {\tt bin}
-\directory{}, and click on the {\tt updateArtisynthLibs} batch file
-(Figure \ref{UpdateArtisynthLibs:fig}).
-This will load the libraries, temporarily displaying a terminal window
-while doing so.
-\else
-Open a terminal window, change directories to {\tt <ARTISYNTH\_HOME>},
-and run the command {\tt bin/updateArtisynthLibs}:
-\begin{verbatim}
- > cd /path/to/ARTISYNTH_HOME
- > bin/updateArtisynthLibs
-\end{verbatim}
-\fi
-The process may take a few minutes, depending on network speed.
-
-\ifWindows
-\begin{figure}[h]
-\begin{center}
-\iflatexml
-   \includegraphics[]{images/UpdateArtisynthLibs}
-\else
-   \includegraphics[width=0.6\textwidth]{images/UpdateArtisynthLibs}
-\fi
-\end{center}
-\caption{%
-{\tt updateArtisynthLibs} batch file in {\tt <ARTISYNTH\_HOME>\SEP bin}.}
-\label{UpdateArtisynthLibs:fig}
-\end{figure}
-\fi
-
-When the libraries are loaded, return to Eclipse, click on the {\tt
-artisynth\_core} project to select it, then ``refresh'', either by
-right clicking and selecting {\sf Refresh}, or by hitting the {\sf F5}
-key. Eclipse should now find the libraries and compile ArtiSynth; a
-green progress bar will appear at the lower right while compilation is
-in progress.
 
 \begin{sideblock}
-Regardless of the JDK version, ArtiSynth is compiled to be compliant with Java
-8, to ensure compatibility with MATLAB.  The Eclipse settings supplied in {\tt
-artisynth\_core\SEP .settings} will ensure Java 8 compliance.
+On some versions of Eclipse, the console view may need to be opened
+explicitly, by selecting {\sf Window > Show View > Console} from the
+main menu.
 \end{sideblock}
 
-After compilation is complete, ArtiSynth can be run by simply choosing
-{\sf Run > Run} from the main menu. This works by invoking a
-predefined {\it launch configuration} named ArtiSynth.  In some cases,
-one may wish to adjust this launch configuration to set environment
-variables, command line arguments, or Java JVM arguments that affect
-how ArtiSynth behaves.  Instructions for doing so are contained in
-Sections
+When the download is complete, the console will display the message
+{\tt LIBRARIES UPDATED SUCCESSFULLY}:
+
+\begin{center}
+\iflatexml
+  \includegraphics[]{images/EclipseLibInstallDone}
+\else
+  \includegraphics[width=0.75\textwidth]{images/EclipseLibInstallDone}
+\fi
+\end{center}
+
+Eclipse will then compile ArtiSynth, with the progress bar at the
+lower right showing compilation progress.
+
+\begin{sideblock}
+If some libraries could not be downloaded (e.g., because of a network
+problem), the console will say so, and the {\tt artisynth\_core} project
+will be marked with errors.  After checking your network connection,
+you can retry the download by selecting {\sf Run > External Tools >
+UpdateArtisynthLibs} from the main menu, or {\sf Project > Clean...}.
+\end{sideblock}
+
+\begin{sideblock}
+ArtiSynth is currently compiled to be compliant with Java 8, regardless
+of the Java version. The Eclipse settings supplied in {\tt
+artisynth\_core\SEP .settings} ensure this. This will be raised to
+Java 21 in the near future.
+\end{sideblock}
+
+After compilation is complete, ArtiSynth can be run by selecting {\tt
+artisynth\_core} in the {\sf Package Explorer} and choosing {\sf Run >
+Run} from the main menu:
+
+\begin{center}
+\iflatexml
+  \includegraphics[]{images/EclipseRunArtiSynth}
+\else
+  \includegraphics[width=0.7\textwidth]{images/EclipseRunArtiSynth}
+\fi
+\end{center}
+
+Alternatively, you can click the small arrow beside the
+green {\sf Run} button in the Eclipse toolbar and choose {\sf
+ArtiSynth}. Either way works by invoking a predefined {\it launch
+configuration} named ArtiSynth.  In some cases, one may wish to adjust
+the launch configuration to set environment variables, command line
+arguments, or Java JVM arguments that affect how ArtiSynth behaves.
+Instructions for doing so are contained in Sections
 \ref{EclipseEnvironmentVariables} and \ref{EclipseCommandArguments}.
 
 \ifLinux
@@ -627,7 +673,7 @@ It is also possible to run ArtiSynth from either a file browser or a
 terminal window, as described in Sections \ref{runningFileBrowser}
 and \ref{artisynthCommandLine}, respectively.
 \fi
-Detail on how to load and run demo models are given in
+Details on how to load and run demo models are given in
 Section \ref{Running}.
 
 \ifWindows
@@ -670,7 +716,10 @@ is\pdfbreak {\tt /path/to/install/artisynth\_core}. The {\tt
 updateArtisynthLibs} command fetches additional libraries that are not included
 in the GitHub repository for space reasons, and the {\tt bin/compile} command
 on the last line is an ArtiSynth-supplied utility that compiles all {\tt .java}
-files located under the current folder.
+files located under the current folder. The {\tt updateArtisynthLibs} and
+{\tt compile} commands use the {\tt java} and {\tt javac} commands of your
+JDK, which must be visible from the command window
+(Section \ref{MakingJDKVisible}).
 
 If you have {\tt GNU make} installed on your system, then you can use that
 instead of the {\tt compile} command, replacing
@@ -685,20 +734,22 @@ with
  $ make
 \end{lstlisting}
 %
+{\tt make} also downloads any missing libraries automatically, so when
+using it, the {\tt updateArtisynthLibs} step can be omitted.
 
 \begin{sideblock}
-Regardless of the JDK version, ArtiSynth is compiled to be compliant with Java
-8, to ensure compatibility with MATLAB.  The {\tt make} or {\tt compile}
-commands described above are configured to ensure Java 8 compliance.
+ArtiSynth is currently compiled to be compliant with Java 8, regardless
+of the JDK version. The {\tt make} and {\tt compile} commands described
+above ensure this. This will be raised to Java 21 in the near future.
 \end{sideblock}
 
 \begin{sideblock}
-The {\tt compile} (or {\tt make}) command automatically determines the Java
-classpath needed to compile ArtiSynth.  However, if you have explicitly set the
-{\tt CLASSPATH} environment variable, then that will be used to define the
-classpath instead, in which case it must contain both the ArtiSynth {\tt classes}
-folder and {\tt
-.jar} files in the {\tt lib} folder. See Sections \ref{CommandLineDevel}
+The {\tt make} and {\tt compile} commands automatically determine the
+Java classpath needed to compile ArtiSynth, consisting of the {\tt
+classes} \directory{} plus the {\tt .jar} files listed in {\tt
+lib\SEP LIBRARIES}. If you have set the {\tt CLASSPATH} environment
+variable, its entries are appended to this, except for any that refer
+to the {\tt lib} \directory{}. See Sections \ref{CommandLineDevel}
 and \ref{EnvironmentVariables}.
 \end{sideblock}
 
@@ -753,7 +804,11 @@ to a folder named {\tt artisynth\_core}, so that the ArtiSynth
 installation directory (or {\tt <ARTISYNTH\_HOME>}) is {\tt
 /path/to/install/artisynth\_core}. The {\tt updateArtisynthLibs}
 command fetches additional libraries that are not included in the
-GitHub repository for space reasons.
+GitHub repository for space reasons. (If you compile with {\tt make},
+as described below, this step can be omitted, since {\tt make}
+downloads any missing libraries automatically.) These commands use
+the {\tt java} and {\tt javac} commands of your JDK, which must be
+visible from the terminal window (Section \ref{MakingJDKVisible}).
 \ifMacOS
 
 If your system has {\tt make} installed (usually via XCode or
@@ -769,13 +824,12 @@ which in this situation compiles all the {\tt .java} files under {\tt
 artisynth\_core}. 
 
 \begin{sideblock}
-The {\tt make} command and the associated {\tt Makefile} automatically
-determine the Java classpath needed to compile ArtiSynth.  However, if
-you have explicitly set the {\tt CLASSPATH} environment variable, then
-that will be used to define the classpath instead, in which case it
-must contain the {\tt classes} folder (located under the {\tt
-artisynth\_core} directory), as well as the {\tt .jar} files in the
-{\tt lib} directory. See Sections \ref{CommandLineDevel}
+The {\tt make} and {\tt compile} commands automatically determine the
+Java classpath needed to compile ArtiSynth, consisting of the {\tt
+classes} \directory{} plus the {\tt .jar} files listed in {\tt
+lib\SEP LIBRARIES}. If you have set the {\tt CLASSPATH} environment
+variable, its entries are appended to this, except for any that refer
+to the {\tt lib} \directory{}. See Sections \ref{CommandLineDevel}
 and \ref{EnvironmentVariables}.
 \end{sideblock}
 
@@ -800,13 +854,12 @@ ArtiSynth can then be compiled using the command
 within the {\tt artisynth\_core} directory. 
 
 \begin{sideblock}
-The {\tt make} command and the associated {\tt Makefile} automatically
-determine the Java classpath needed to compile ArtiSynth.  However, if
-you have explicitly set the {\tt CLASSPATH} environment variable, then
-that will be used to define the classpath instead, in which case it
-must contain the {\tt classes} folder (located under the {\tt
-artisynth\_core} directory), as well as the {\tt .jar} files in the
-{\tt lib} directory. See Sections \ref{CommandLineDevel}
+The {\tt make} and {\tt compile} commands automatically determine the
+Java classpath needed to compile ArtiSynth, consisting of the {\tt
+classes} \directory{} plus the {\tt .jar} files listed in {\tt
+lib\SEP LIBRARIES}. If you have set the {\tt CLASSPATH} environment
+variable, its entries are appended to this, except for any that refer
+to the {\tt lib} \directory{}. See Sections \ref{CommandLineDevel}
 and \ref{EnvironmentVariables}.
 \end{sideblock}
 
@@ -822,9 +875,9 @@ As an alternative to {\tt make}, one can also compile ArtiSynth using the
 \fi % end Linux
 
 \begin{sideblock}
-Regardless of the JDK version, ArtiSynth is compiled to be compliant with Java
-8, to ensure compatibility with MATLAB.  The {\tt make} or {\tt compile}
-commands described above are configured to ensure Java 8 compliance.
+ArtiSynth is currently compiled to be compliant with Java 8, regardless
+of the JDK version. The {\tt make} and {\tt compile} commands described
+above ensure this. This will be raised to Java 21 in the near future.
 \end{sideblock}
 
 Once compiled, ArtiSynth can be run from the command line as described
@@ -851,12 +904,13 @@ project}, as described in Section \ref{importingExternalProjects}.
 \subsection{Getting past MacOS security}
 
 \begin{sideblock}
-On recent versions of {\tt MacOS}, a problem that may occur when trying to run
-ArtiSynth models is that MacOS may complain about using a nonvalidated external
-library. This may take the form of a console error that looks like this:
+On some MacOS systems, a problem that {\it may} occur when trying to
+run ArtiSynth models is that MacOS complains about using a
+nonvalidated external library. If it does, it may take the form of a
+console error that looks like this:
 \begin{verbatim}
  ...
- /Users/lloyd/git/artisynth_core/lib/MacOS64/libPardisoJNI.11.1.2.1.dylib)
+ /Users/roger/git/artisynth_core/lib/MacOSArm64/libMumpsJNI.5.9.1.dylib
  not valid for use in process using Library Validation: library load disallowed
  by system policy 
  ...
@@ -873,12 +927,12 @@ The problem here is that one or more of the native libraries are not ``known''
 to Apple and are therefore not trusted. Clicking the "?" on the popup will
 open a window containing more information about what to do.
 
-The short version is to immediately open your Security and Privacy
-settings after the error occurs, and then, near the bottom of the {\sf
-General} tab, you should see a notification about the blocked
-application with a button to the right labeled {\sf Open
-Anyway}. Clicking that button will grant the application a security
-exception. You will then need to exit and restart ArtiSynth.
+The short version is to immediately open {\sf System Settings > Privacy
+\& Security} after the error occurs. Near the bottom, under {\sf
+Security}, you should see a notification about the blocked library with
+a button to the right labeled {\sf Open Anyway}. Clicking that button
+will grant the library a security exception. You will then need to exit
+and restart ArtiSynth.
 \end{sideblock}
 
 \fi
@@ -1108,7 +1162,7 @@ of the source tree.
 The source code tree for ArtiSynth is rooted at {\tt
 <ARTISYNTH\_HOME>\SEP src}. It already contains a large number of
 model classes located in packages such as {\tt
-artisynth.demo.mech}, whose source code is therefore located at
+artisynth.demos.mech}, whose source code is therefore located at
 
 {\tt <ARTISYNTH\_HOME>\SEP src\SEP artisynth\SEP demos\SEP mech}
 
@@ -1185,7 +1239,7 @@ in the main menu bar.
 
 By default, the model menu locates all models in the packages
 (and subpackages) of {\tt artisynth.demos} and\pdfbreak {\tt
-artisynth.model}, and makes then available under the entries {\sf All
+artisynth.models}, and makes them available under the entries {\sf All
 demos >} and {\sf All models >}, respectively. Therefore, if your
 model is located in one of these packages, it will automatically
 appear in the {\sf Models} menu. If your model is located in a
@@ -1193,7 +1247,7 @@ different package, you can load it either by directly specifying its
 class path, or by customizing the {\sf Models} menu.  These options
 are described in the sections ``Loading by class path'' and
 ``Customizing the Model Menu'' of the
-\artisynthManual{uiguide}{ArtiSynth User Interface Guide},
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
 
 \section{Settings and the user configuration folder}
 \label{UserConfigFolder:sec}
@@ -1215,7 +1269,7 @@ While it is easiest to add a model to ArtiSynth by simply placing its
 source code under {\tt <ARTISYNTH\_HOME>\SEP src}, as described in
 Section \ref{AddingModels}, it is usually best practice to keep model
 source code separate from ArtiSynth. This is largely to avoid
-conflicts when ArtiSynth is updated (Section \ref{UpdatingArtiSynth})
+conflicts when ArtiSynth is updated (Section \ref{UpdatingArtiSynth:sec})
 or reinstalled.
 
 When model source code is external to ArtiSynth, one must manage two
@@ -1292,7 +1346,7 @@ class path entries,
 \end{verbatim}
 \else
 \begin{verbatim}
-<ARTISYNTH_HOME>/classes;<ARTISYNTH_HOME>/lib/*
+<ARTISYNTH_HOME>/classes:<ARTISYNTH_HOME>/lib/*
 \end{verbatim}
 \fi
 where as usual {\tt <ARTISYNTH\_HOME>} should be expanded to the path
@@ -1308,7 +1362,10 @@ functions as a wildcard to specify all the JAR files in
 When running ArtiSynth under Eclipse, you can make {\tt myproject}'s
 models visible by adding {\tt myproject} to the ArtiSynth launch
 configuration, as described in Section
-\ref{AddingProjectsToLaunch}. 
+\ref{AddingProjectsToLaunch}. As noted in that section, be sure
+to use a {\it copy} of the launch configuration, to avoid possible
+pull refusals when ArtiSynth is updated
+(Section \ref{UpdatingArtiSynth:sec}).
 
 \subsubsection{Using the external classpath}
 \label{ExternalClasspath:sec}
@@ -1385,7 +1442,7 @@ Section \ref{ExternalClasspath:sec}, we could instead add the following to
 \end{verbatim}
 \else
 \begin{verbatim}
-   /research/myproject/classes;/research/myproject/lib/dicom.jar
+   /research/myproject/classes:/research/myproject/lib/dicom.jar
 \end{verbatim}
 \fi
 Note that in this situation the ArtiSynth class files {\it do not}
@@ -1475,8 +1532,8 @@ enter\\
 {\tt https://github.com/artisynth/artisynth\_models.git}\\
 in the {\sf URI} field at the top, and click {\sf Next}.
 
-\item In the {\sf Branch Selection} dialog, uncheck {\tt svn}
-and click {\sf Next}.
+\item In the {\sf Branch Selection} dialog, make sure that only
+{\tt master} is selected, and click {\sf Next}.
 
 \item In the {\sf Local Destination} dialog,
 adjust the install location if desired, and click {\sf Next}.
@@ -1538,7 +1595,7 @@ that {\tt artisynth\_models\SEP classes} is visible to ArtiSynth, as
 described in Section \ref{MakingExternalModelsVisible}.
 
 \section{Updating ArtiSynth}
-\label{UpdatingArtiSynth}
+\label{UpdatingArtiSynth:sec}
 
 One reason to install ArtiSynth from GitHub is to be able to update
 the codebase to incorporate new features and bug fixes.  When a
@@ -1565,48 +1622,198 @@ Updating may also be done from a terminal window:
  > git pull
 \end{verbatim}
 \fi % end not Windows
-
-\begin{sideblock}
-If local changes have been made to {\tt artisynth\_core} that
-interfere with the changes made by the update, a Git pull operation
-may result in a {\it conflict}.  Conflict resolution is outside the
-scope of this document, but documentation on this is available online.
-Conflicts should not occur if local changes have not been made to {\tt
-artisynth\_core}.
-\end{sideblock}
+After pulling from the command line, ArtiSynth should be recompiled,
+using either {\tt make} or {\tt compile}.
 
 Other Git-based projects, such as {\tt artisynth\_models}, may be
 updated similarly.
 
 \subsection{Library updates}
 
-Occasionally, a software update will be accompanied by a change in the
-libraries located in \ArtHome[\SEP libs].  When this happens, it will
-be indicated on the ArtiSynth update log and appropriate instructions
-will be given. In these cases, one should also update the ArtiSynth
-libraries. 
+An update may also change the libraries that ArtiSynth needs, as
+listed in the file \ArtHome[\SEP lib\SEP LIBRARIES]. Such changes
+are normally handled automatically:
 
-The easiest way to do this is from within ArtiSynth, by selecting
-{\sf ``Update Libraries''} at the bottom of the {\sf File} menu.
+\begin{itemize}
 
-Libraries can
-also be updated using the command {\tt updateArtisynthLibs} located in
-{\tt <ARTISYNTH\_HOME>\SEP bin}. This can be done from a terminal
-window:
+\item In Eclipse, any new or changed libraries are downloaded the
+next time the project is built, as during installation
+(Section \ref{EclipseInstallation}).
+
+\item When compiling with {\tt make}, any new or changed libraries
+are downloaded before compilation begins.
+
+\item When ArtiSynth starts up, it checks that all the required
+libraries are present and downloads any that are missing.
+
+\end{itemize}
+
+In each case, older versions of the libraries, and libraries that are
+no longer needed, are removed from \ArtHome[\SEP lib].
+
+Libraries can also be updated explicitly using the command {\tt
+updateArtisynthLibs} located in {\tt <ARTISYNTH\_HOME>\SEP bin}, which
+can be run from a terminal window:
 \ifWindows
 \begin{verbatim}
  > cd <ARTISYNTH_HOME>
- > bin\updateArtisyntnLibs
+ > bin\updateArtisynthLibs
 \end{verbatim}
-It can also be done from a file browser, by navigating
-to {\tt <ARTISYNTH\_HOME>} and clicking on {\tt updateArtisynthLibs.bat}.
-(Figure \ref{UpdateArtisynthLibs:fig}).
 \else
 \begin{verbatim}
  > cd <ARTISYNTH_HOME>
  > bin/updateArtisynthLibs
 \end{verbatim}
 \fi
+or, from within Eclipse, by selecting {\sf Run > External Tools >
+UpdateArtisynthLibs} from the main menu. Selecting {\sf ``Update
+libraries''} from the ArtiSynth {\sf File} menu, or running ArtiSynth
+with the {\tt -updateLibs} option, will also check that the installed
+libraries match the latest versions on the ArtiSynth server.
+
+\subsection{Refused pulls}
+\label{PullRefused:sec}
+
+If you have modified files in {\tt artisynth\_core} (or another
+ArtiSynth-supported project such as {\tt artisynth\_models}) which are
+also changed by the update, Git will refuse the pull, and list the
+files concerned.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/pullProblemDetails}
+\else
+\includegraphics[width=4in]{images/pullProblemDetails}
+\fi
+\end{center}
+\caption{Eclipse {\sf Pull Problem} box, with the details exposed
+after clicking the {\sf Details} button.}%
+\label{pullProblem:fig}
+\end{figure}
+
+If the pull was attempted using {\sf Team > Pull} in Eclipse, then a
+{\sf Pull Problem} box will appear (Figure \ref{pullProblem:fig}).
+Clicking {\sf Details} will provide further information, with the
+conflicting files listed after the words ``Checkout conflict with
+files''.
+
+If the pull was attempted on the command line, then the pull will
+fail with a message similar to
+\begin{verbatim}
+ error: Your local changes to the following files would be overwritten by merge:
+         .classpath
+         .project
+         ArtiSynth.launch
+ Please commit your changes or stash them before you merge.
+\end{verbatim}
+
+Nothing is lost when this happens: your files and the codebase remain
+as they were. However, in order to proceed with the pull, you need to
+either discard the conflicting files, or attempt to merge them.
+
+\subsubsection{Discarding the conflicting files}
+
+If you do not need your changes to the listed files, the simplest
+remedy is to discard them and then pull again. This is especially
+recommended when the conflicting files are Eclipse project files, such
+as {\tt .project}, {\tt .classpath}, {\tt ArtiSynth.launch}, or files
+under {\tt .settings}. Ideally these files are not modified by the user at
+all (see the side block below), but if they are, it is usually easiest
+to remove them and re-apply your changes {\it after} the pull.
+
+Two ways to easily discard the files are:
+
+\begin{itemize}
+
+\item In a file browser or from a
+\ifWindows
+{\tt CMD} or {\tt GitBash} window,
+\else
+terminal window,
+\fi
+simply delete the given files, and then pull again; the pull
+will restore the files in their updated form. (You can also
+rename the files if you want to later try to merge back your local
+changes.)
+
+\begin{sideblock}
+Important: if you pull again in Eclipse, avoid refreshing the
+project before doing {\sf Team > Pull}, as this {\it might} cause
+certain project files (like {\tt .classpath}) to be rebuilt.
+\end{sideblock}
+
+\item From a 
+\ifWindows
+{\tt CMD} or {\tt GitBash} window, run
+\else
+terminal window, run
+\fi
+\begin{verbatim}
+ > git checkout -- <file1> <file2> ...
+ > git pull
+\end{verbatim}
+where {\tt <file1> <file2> ...} are the path names of the conflicting files.
+
+\end{itemize}
+
+\begin{sideblock}
+{\tt ArtiSynth.launch} is modified locally when a user edits the {\tt
+ArtiSynth} launch configuration to set environment variables
+or ArtiSynth/JVM arguments (Sections \ref{SettingEnvironmentVariables} and
+\ref{EclipseCommandArguments}), or to add external projects 
+(Section \ref{AddingProjectsToLaunch}), {\it without} first making a
+local copy of it (Section \ref{EclipseLaunchCopy}). A local launch
+configuration copy will avoid conflicts.
+
+{\tt .classpath} may get modified if the user adds extra {\tt .jar}
+files or external projects to the project build path. There is
+normally no need to do this: projects such as {\tt artisynth\_core}
+and {\tt artisynth\_models} are configured with the resources required
+to build them, and any new classes requiring additional resources
+should be placed in a separate project.
+
+{\tt .project} should not normally be modified, but might be to provide
+interoperability with other IDEs such as VS Code. 
+
+Files in {\tt .settings/} are modified when a user changes the project
+properties, such as via {\sf Project > Properties}.
+\end{sideblock}
+
+\subsubsection{Merge the conflicting files}
+
+If you want to try to {\it keep} your changes, two ways
+to do this are:
+
+\begin{itemize}
+
+\item Use a {\tt stash/pull/pop} sequence. From a
+\ifWindows
+{\tt CMD} or {\tt GitBash} window, run
+\else
+terminal window, run
+\fi
+\begin{verbatim}
+ > git stash
+ > git pull
+ > git stash pop
+\end{verbatim}
+If your changes conflict with those of the update, {\tt git stash pop}
+will report a {\it conflict}, which must then be resolved by editing
+the files concerned. Conflict resolution at the command
+line level is outside the scope of this document, but documentation
+is available online.
+
+\item Within Eclipse, you can commit your changes (using the
+{\sf Git Staging} view or {\sf Team > Commit}), and then choose {\sf
+Team > Pull}. Any conflicts can then be resolved using {\sf Team >
+Merge Tool}, as described in the section ``Resolving a merge
+conflict'' of the
+\href{https://github.com/eclipse-egit/egit/wiki/User-Guide\#resolving-a-merge-conflict}%
+{EGit User Guide}. Note that your local branch will then contain your
+own commit, so that subsequent pulls will also produce merges.
+
+\end{itemize}
 
 \section{The Eclipse IDE}
 \label{EclipseIDE}
@@ -1622,21 +1829,22 @@ Eclipse resources available online.
 \subsection{Installing Eclipse}
 \label{InstallingEclipse}
 
-This document describes specifically the installation of Eclipse
-2020-12; other versions should be similar.
+Eclipse is released quarterly, with versions named by year and month
+(e.g., {\tt 2026-09}). Any recent version should work; the
+instructions below use {\tt 2026-09} as an example.
 
 Eclipse can be downloaded from
 \href{https://www.eclipse.org/downloads/packages}%
 {www.eclipse.org/downloads/packages}. From this page, choose ``{\sf
 Eclipse IDE for Java Developers}'',
 \ifWindows
-{\sf Windows x86\_64}, which will download the file
+{\sf Windows x86\_64}, which will download a file named
 \begin{verbatim}
-  eclipse-java-2020-12-R-win32-x86_64.zip
+  eclipse-java-2026-09-R-win32-x86_64.zip
 \end{verbatim}
 Unzip this into a convenient \directory{}, such as for example:
 \begin{verbatim}
-  C:\eclipse\eclipse-2020-12
+  C:\eclipse\eclipse-2026-09
 \end{verbatim}
 Open this \directory{} with a file explorer, and you will see the eclipse
 application:
@@ -1648,19 +1856,23 @@ application:
 Click on this to open it. 
 \fi
 \ifMacOS
-{\sf macOS x86\_64}, which will download the file
+{\sf macOS AArch64} if your Mac uses Apple silicon, or {\sf macOS
+x86\_64} if it uses an Intel processor. This will download a file named
 \begin{verbatim}
-  eclipse-java-2020-12-R-macosx-cocoa-x86_64.dmg
+  eclipse-java-2026-09-R-macosx-cocoa-aarch64.dmg
 \end{verbatim}
-Open this file, click on the ``Eclipse Installer'',
-select ``Eclipse IDE for Java Developers'', and follow
-the install instructions. When the install is complete,
-click the {\sf Launch} button.
+or
+\begin{verbatim}
+  eclipse-java-2026-09-R-macosx-cocoa-x86_64.dmg
+\end{verbatim}
+Open this file, and drag the {\sf Eclipse} application into the
+{\sf Applications} folder as indicated. Then open {\sf Eclipse} from
+{\sf Applications}.
 \fi
 \ifLinux
-{\sf Linux x86\_64}, which will download the file
+{\sf Linux x86\_64}, which will download a file named
 \begin{verbatim}
-  eclipse-java-2020-12-R-linux-gtk-x86_64.tar.gz
+  eclipse-java-2026-09-R-linux-gtk-x86_64.tar.gz
 \end{verbatim}
 Untar this file into any desired install location,
 and then run the {\tt eclipse} executable in the
@@ -1669,7 +1881,7 @@ top-level directory.
 A dialog will appear, asking you to select a workspace \directory{}
 (Figure \ref{EclipseWorkspace:fig}).
 This is where Eclipse settings and project information will be
-stored. Unless you have a another Eclipse already installed, the
+stored. Unless you have another Eclipse already installed, the
 default location should be fine. (Remember also to check the ``{\sf
 Use this as the default ...}''  box so that this query won't appear
 every time you open Eclipse.) 
@@ -1697,16 +1909,6 @@ to Figure \ref{EmptyEclipse:fig}.
 \caption{Eclipse Workspace dialog.}
 \label{EclipseWorkspace:fig}
 \end{figure}
-%
-This is where Eclipse settings and project information will be
-stored. Unless you have a another Eclipse already installed, the
-default location should be fine. (Remember also to check the ``{\sf
-Use this as the default ...}''  box so that this query won't appear
-every time you open Eclipse.) 
-Next, click {\sf Launch}.  A welcome
-page will appear; close this. A ``donate'' panel may also appear;
-close this too.  You should then see an Emily Eclipse display, similar
-to Figure \ref{EmptyEclipse:fig}.
 
 \begin{figure}[ht]
 \begin{center}
@@ -1716,7 +1918,7 @@ to Figure \ref{EmptyEclipse:fig}.
    \includegraphics[width=0.7\textwidth]{images/EmptyEclipse}
 \fi
 \end{center}
-\caption{An empty, newly initialized Eclipse console.}
+\caption{An empty, newly initialized Eclipse window.}
 \label{EmptyEclipse:fig}
 \end{figure}
 
@@ -1727,55 +1929,41 @@ to make it easier to restart.
 \end{sideblock}
 \fi
 
-\subsubsection{Setting Eclipse to use the correct Java JDK}
+\subsubsection{Setting Eclipse to use a separate Java JDK}
 \label{EclipseJDK:sec}
 
-Newer versions of Eclipse come with their own version of Java. However, if we
-are using our own JDK (as described in Section \ref{InstallingJava}), we need
-to configure Eclipse to use that instead.
-
-\ifMacOS
-\begin{sideblock}
-If you are running newer ARM-based hardware (Apple M chip sets), then
-you {\it will} need to use an
-Intel-based JDK (as mentioned above) and will need to set Eclipse to
-use it, as described here.
-\end{sideblock}
-\fi
-
-Eclipse can be configured to use your JDK as follows:
+Eclipse comes with its own version of Java, which it uses by default
+and which is sufficient for compiling and running ArtiSynth. However,
+if you have installed a separate JDK and want Eclipse to use it
+instead (e.g., to use Java 21 with MATLAB; see
+Section \ref{InstallingJava}), configure Eclipse as follows:
 
 \begin{enumerate}
 
 \item From the main menu, select 
 \ifMacOS
-``{\sf Eclipse > Preferences ...}''.
+``{\sf Eclipse > Settings...}''.
 \else
 ``{\sf Window > Preferences}''.
 \fi
 
 \item A {\sf Preferences} dialog will open. In the left panel, select
 ``{\sf Java > Installed JREs}'', which will open an {\sf Installed JREs}
-panel.
-\ifMacOS % begin macOS
-On MacOS, all installed JDKs {\it should} appear in the panel
-(Figure \ref{InstalledJREs:fig}), including the Eclipse default and
-the JDK which you want to use.  Click on the box to the left of
-your JDK entry to select it; ignore warnings about Java 15
-compatibility.
-\else  % begin Not macOS
-Click the {\sf Add...} button at the right.
+panel. This will list Eclipse's own version of Java (named {\tt jre}),
+and possibly other JDKs that Eclipse has found on your system.
+If your JDK is listed, click on the box to the left of its entry to
+select it, and skip to the last step. Otherwise, click the {\sf Add...}
+button at the right.
 
 \item A {\sf JRE Type} dialog will appear. Leave ``Standard VM''
 selected in the dialog and click {\sf Next}.
 
 \item A {\sf JRE Definition} dialog will appear. In the ``{\sf JRE home}''
-field at the top, enter the installation \directory{} for your JDK.
+field at the top, enter the home \directory{} for your JDK
+(Section \ref{InstallingJava}).
 \ifWindows % begin Windows
-On Windows, this is likely to be a location like {\tt C:\BKS Program
-Files\BKS Java\BKS jdk-21}. Specifying the java
-home \directory{} will cause some other fields to fill in
-automatically, as seen in Figure \ref{JREDefinition:fig}.
+This will cause some other fields to fill in automatically, as seen
+in Figure \ref{JREDefinition:fig}.
 %
 \begin{figure}[ht]
 \begin{center}
@@ -1791,17 +1979,9 @@ automatically, as seen in Figure \ref{JREDefinition:fig}.
 \fi % end Windows
 
 \item Click {\sf Finish}. Your Java JDK will now show up in the list
-of installed JREs.
-\ifWindows % begin Windows
-Click on the left box to select it, as shown in
-Figure \ref{InstalledJREs:fig} (ignore any warnings about Java 15
-compatibility).
-\fi % end Windows
-\fi % end Not MacOS
-\ifLinux % begin Linux
-Click on the left box to select it; ignore any warnings about Java
-15 compatibility.
-\else % else NOT Linux
+of installed JREs. Click on the left box to select it, as shown in
+Figure \ref{InstalledJREs:fig}.
+%
 \begin{figure}[ht]
 \begin{center}
 \iflatexml
@@ -1821,7 +2001,6 @@ Click on the left box to select it; ignore any warnings about Java
 \caption{Eclipse Installed JREs dialog.}
 \label{InstalledJREs:fig}
 \end{figure}
-\fi % end NOT Linux
 
 \item Finish by clicking the ``{\sf Apply and Close}'' button at the
 bottom of the {\sf Preferences} dialog.
@@ -1845,7 +2024,7 @@ To prevent this copying:
 
 \item Choose
 \ifMacOS
-``{\sf Eclipse > Preferences...}''.
+``{\sf Eclipse > Settings...}''.
 \else
 ``{\sf Window > Preferences}''.
 \fi
@@ -2111,6 +2290,40 @@ then most likely the {\tt <PROJECT\_DIR>}
 %\fi % end MacOS
 %
 
+\subsection{Making a copy of the ArtiSynth launch configuration}
+\label{EclipseLaunchCopy}
+
+ArtiSynth is run from Eclipse using the launch configuration named
+{\sf ArtiSynth}, which is stored in the file {\tt ArtiSynth.launch}
+in {\tt artisynth\_core}. Since this file is part of the ArtiSynth
+codebase, editing it (to set arguments or add projects, as described
+in the following sections) may later cause a Git pull to be refused
+(Section \ref{PullRefused:sec}). It is therefore better to make a copy of
+the launch configuration and edit that instead:
+
+\begin{enumerate}
+
+\item From the main menu, choose ``{\sf Run > Run Configurations...}''
+to open the {\sf Run Configurations} dialog.
+
+\item In the left panel, under {\sf Java Application}, right click
+on {\sf ArtiSynth} and choose {\sf Duplicate}.
+
+\item In the right panel, change the {\sf Name} of the copy to
+something like {\sf MyArtiSynth}.
+
+\item Select the {\sf Common} tab, and make sure that {\sf Local
+file} is selected under {\sf Save as}, so that the copy is stored in
+your Eclipse workspace rather than in {\tt artisynth\_core}.
+
+\item Click {\sf Apply}.
+
+\end{enumerate}
+
+The copy can then be run from the {\sf Run Configurations} dialog, or
+by clicking the small arrow beside the green {\sf Run} button in the
+Eclipse toolbar and choosing it from the menu.
+
 \subsection{Configuring environment variables}
 \label{EclipseEnvironmentVariables}
 
@@ -2156,13 +2369,12 @@ To set environment variables within Eclipse:
 \item Open a java perspective if necessary by choosing
   {\sf Window > Open Perspective > Java}.
 
-\item Select the ArtiSynth project in the {\sf Package Explorer} form.
-
 \item Choose ``{\sf Run > Run Configurations...}'' to open the {\sf Run
   Configurations} window.
 
 \item In the left panel, under {\sf Java Application}, select 
-the launch configuration (the default is named {\sf ArtiSynth}).
+your launch configuration (preferably a copy of the default {\sf
+ArtiSynth} configuration; see Section \ref{EclipseLaunchCopy}).
 
 \item In the right panel, select the {\sf Environment} tab.
 
@@ -2197,9 +2409,11 @@ the launch configuration, as described below.
 
 Sometimes it may also be necessary to set JVM arguments, which control
 the Java virtual machine running ArtiSynth.  An example of such an
-argument is {\tt -Xmx}, which can be used to increase the maximum
-amount of memory available to the application.  For example, {\tt
--Xmx6g} sets the maximum amount of memory to 6 gigabytes.
+argument is {\tt -XX:MaxRAMPercentage=NN}, which sets the maximum
+amount of memory available to the application to {\tt NN} percent of
+the computer's memory.  For example, {\tt -XX:MaxRAMPercentage=50}
+allows ArtiSynth to use up to half of the computer's memory. The
+default value is 25.
 
 \subsubsection {Setting command line and JVM arguments}
 \label{SettingCommandLineArguments}
@@ -2211,13 +2425,12 @@ To set command line arguments for your Eclipse application:
 \item Open a java perspective if necessary by choosing
   {\sf Window > Open Perspective > Java}.
 
-\item Select the ArtiSynth project in the {\sf Package Explorer} form.
-
 \item Choose ``{\sf Run > Run Configurations...}'' to open the {\sf Run
   Configurations} window.
 
 \item In the left panel, under {\sf Java Application}, select
-the launch configuration (the default is named {\sf ArtiSynth}).
+your launch configuration (preferably a copy of the default {\sf
+ArtiSynth} configuration; see Section \ref{EclipseLaunchCopy}).
 
 \item In the right panel, select the {\sf Arguments} tab.
 
@@ -2280,8 +2493,8 @@ configuration.
 to open a {\sf Run Configurations} dialog.
 
 \item In the left panel, under {\sf Java Application}, select your
-ArtiSynth launch configuration (the default one is called {\sf
-ArtiSynth}). This may already be selected when you open the panel.
+ArtiSynth launch configuration (preferably a copy of the default {\sf
+ArtiSynth} configuration; see Section \ref{EclipseLaunchCopy}).
 
 \item In the right panel, select the {\sf Classpath} tab.
 
@@ -2313,8 +2526,6 @@ terminal window.
 
 \ifWindows
 
-\subsubsection{Windows 10}
-
 \begin{enumerate}
 
 \item Open the {\sf Start} search, enter ``{\tt env}'', and choose
@@ -2332,32 +2543,10 @@ and enter the full path name for each directory you wish to add.
 
 \end{enumerate}
 
-\subsubsection{Windows 8 and earlier}
-
-\begin{enumerate}
-
-\item Right-click {\sf My Computer}, and then click {\sf Properties}.
-
-\item Click the {\sf Advanced} tab.
-
-\item Click {\sf Environment variables}.
-
-\item In the top {\sf User variables} window, click on {\sf Path} and 
-then {\sf Edit}. If {\sf Path} does not exist, click {\sf New}.
-
-\item In the edit window, add the full path name for each new directory,
-separated by semi-colons `{\tt ;}'.
-
-\item Close each dialog by clicking {\sf OK}.
-
-\end{enumerate}
-
 For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
-artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
-Files\BKS Java\BKS jdk-21}, then we can add the {\tt bin}
-directories for both by setting the User path to
+artisynth\_core}, then you would add the directory
 \begin{verbatim}
-  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk-21\bin
+  C:\artisynth\artisynth_core\bin
 \end{verbatim}
 
 \fi % end Windows
@@ -2377,8 +2566,10 @@ by colons `{\tt :}'. The most direct way to do this is to redefine
 command line shell you are using.
 
 Assume that your home folder is {\tt <HOMEDIR>}. Then for the {\tt
-bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} (or create the file
-if it does not already exist) and insert a line of the form
+zsh} shell\ifMacOS{} (the default on MacOS)\fi, one can edit {\tt
+<HOMEDIR>/.zshrc}, or for the {\tt bash} shell\ifLinux{} (the usual
+default on Linux)\fi, {\tt <HOMEDIR>/.bashrc} (creating the file if it
+does not already exist), and insert a line of the form
 \begin{verbatim}
    export PATH=<DIR>:$PATH
 \end{verbatim}
@@ -2389,7 +2580,7 @@ while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
 \end{verbatim}
 
 \ifMacOS
-On MacOS 10.8 and greater, directories can also be added to the
+On MacOS, directories can also be added to the
 path by adding a text file containing the directories to {\tt
 /etc/paths.d}.  In particular, we can create a file called {\tt
 ArtiSynth} in {\tt /etc/paths.d} that contains the full path names of
@@ -2417,7 +2608,7 @@ window and enter the command: {\tt echo \$PATH}.
 \fi % end not Windows
 
 \begin{sideblock}
-Most most command windows and applications need to be restarted in
+Most command windows and applications need to be restarted in
 order to get them to notice changes to \PATH{}.
 \end{sideblock}
 
@@ -2496,32 +2687,11 @@ of {\tt ARTISYNTH\_HOME}.
 On Windows, a user can view, set, or change environment variables via
 the following steps:
 
-{\bf Windows 10:}
-
 \begin{enumerate}
 
 \item Open the {\sf Start} search, enter ``{\tt env}'', and choose
 {\sf ``Edit the system environment variables''}.
 \item Click on {\sf Environment Variables}.
-\item Choose one of the following options:
-
-\begin{itemize}
-\item Click {\sf New} to add a new variable name and value.
-\item Click an existing variable, and then {\sf Edit} to change its name or value.
-\item Click an existing variable, and then {\sf Delete} to remove it.
-\end{itemize}
-
-\item Close each dialog by clicking {\sf OK}.
-
-\end{enumerate}
-
-{\bf Windows 8 and earlier:}
-
-\begin{enumerate}
-
-\item Right-click {\sf My Computer}, and then click {\sf Properties}.
-\item Click the {\sf Advanced} tab.
-\item Click {\sf Environment variables}.
 \item Choose one of the following options:
 
 \begin{itemize}
@@ -2664,24 +2834,36 @@ current \directory{} from which the script is called.
 \fi % end not Windows
 
 \subsection{ArtiSynth Libraries}
+\label{ArtiSynthLibraries}
 
 ArtiSynth uses a set of libraries located under
 \ArtHome[\SEP lib].  These include a number of JAR
 files, plus native libraries located in architecture-specific
-sub-\directories{} ({\tt \ARCH{}} for \FULLSYSTEM{} systems).
+sub-\directories{} (such as {\tt \ARCH{}} for \FULLSYSTEM{} systems).
 
-As described in Section \ref{GitHubInstall}, these libraries
-need to be downloaded automatically if the system is obtained from the
-GitHub repository. The required libraries are listed in the file
-\ArtHome[\SEP lib\SEP LIBRARIES]. This file is checked
-into the repository, so that the system can always determine what
-libraries are needed for a particular checkout version.
+When ArtiSynth is installed from GitHub, these libraries are not part
+of the repository, but are downloaded from the ArtiSynth server. The
+required libraries are listed in the file \ArtHome[\SEP lib\SEP
+LIBRARIES]. This file is part of the repository, so that the system
+can always determine what libraries are needed for a particular
+version of the code. The classpath used to compile and run ArtiSynth
+is formed from the JAR files listed in {\tt LIBRARIES}, rather than
+from all the JAR files in \ArtHome[\SEP lib].
 
-Occasionally the libraries are changed or upgraded
-(Section \ref{UpdatingArtiSynth}).  If you run ArtiSynth with the {\tt
--updateLibs} command line option, the program will ensure that not
-only are all the required libraries present, but that they also match
-the latest versions on the ArtiSynth server.
+Libraries are downloaded automatically, by Eclipse when it builds {\tt
+artisynth\_core}, by {\tt make}, and by ArtiSynth itself when it
+starts up, as described in Section \ref{UpdatingArtiSynth:sec}. When a
+library is replaced by a newer version, the older version is removed,
+as are libraries that are no longer needed (which are listed in the
+file \ArtHome[\SEP lib\SEP OBSOLETE]).
+
+\begin{sideblock}
+Do not add your own JAR files to {\tt LIBRARIES}, or to \ArtHome[\SEP
+lib]. Changing {\tt LIBRARIES} may cause later Git pulls to be refused
+(Section \ref{PullRefused:sec}). Instead, add them to the build path of
+your own project, or to the external class path
+(Section \ref{ExternalClasspath:sec}).
+\end{sideblock}
 
 \subsection{The EXTCLASSPATH File}
 \label{EXTCLASSPATHFile}
@@ -2801,7 +2983,7 @@ and then commit them to your local repository using
 Note that you can also add modified files and commit them using the single
 command
 \begin{verbatim}
-  git commit -m -a "commit message"
+  git commit -a -m "commit message"
 \end{verbatim}
 
 To see the current status of the files in your working copy
@@ -2828,7 +3010,7 @@ resources that describe these in detail. Some current references
 include
 \begin{verbatim}
    https://git-scm.com/docs
-   http://rogerdudler.github.io/git-guide
+   https://rogerdudler.github.io/git-guide
 \end{verbatim}
 
 

@@ -426,15 +426,14 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
       MuscleMaterial old = myMuscleMat;
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
-      // issue change event in case solve matrix symmetry or state has changed:
+      // issue change event, in case solve matrix symmetry or state has
+      // changed, and to clear cached material data:
       MaterialChangeEvent mce = 
-         MaterialBase.symmetryOrStateChanged ("muscleMaterial", mat, old);
-      if (mce != null) {
-         if (mce.stateChanged()) {
-            notifyElementsOfMuscleMatStateChange();
-         }
-         componentChanged (mce);
+         MaterialBase.createChangeEvent ("muscleMaterial", mat, old);
+      if (mce.stateChanged()) {
+         notifyElementsOfMuscleMatStateChange();
       }
+      componentChanged (mce);
    }
 
    public void addMuscleBundle(MuscleBundle bundle) {

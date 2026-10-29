@@ -41,6 +41,8 @@ public class DicomHeader {
       transferSyntaxes.add(new DicomTransferSyntax("JPEG 2000 Image Compression", "1.2.840.10008.1.2.4.91", true, true, true));
       transferSyntaxes.add(new DicomTransferSyntax("JPEG 2000 Part 2 Multicomponent Image Compression (Lossless Only)", "1.2.840.10008.1.2.4.92", true, true, true));
       transferSyntaxes.add(new DicomTransferSyntax("JPEG 2000 Part 2 Multicomponent Image Compression", "1.2.840.10008.1.2.4.93", true, true, true));
+      // RLE
+      transferSyntaxes.add(new DicomTransferSyntax("RLE Lossless", "1.2.840.10008.1.2.5", true, true, true));
    }
 
    HashMap<Integer,DicomElement> headerMap;

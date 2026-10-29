@@ -993,11 +993,155 @@ public class FemFieldTest extends FieldTestBase {
 
    }
 
+   /**
+    * Checks that the integration point cache of a scalar nodal field has been
+    * filled for all volumetric and shell elements, with values that match
+    * those interpolated from the nodes.
+    */
+   void checkScalarNodalCache (String msg, ScalarNodalField field) {
+      FemModel3d fem = field.getFemModel();
+      checkEquals (
+         msg+": volumetric cache allocated",
+         field.myVolumetricValues != null, true);
+      checkEquals (
+         msg+": shell cache allocated", field.myShellValues != null, true);
+      checkEquals (msg+": cache filled flag", field.myCacheFilled, true);
+      for (int etype=0; etype<2; etype++) {
+         Iterable<? extends FemElement3dBase> elems =
+            (etype == 0 ? fem.getElements() : fem.getShellElements());
+         for (FemElement3dBase e : elems) {
+            double[] vals = (etype == 0 ?
+               field.myVolumetricValues.get(e.getNumber()) :
+               field.myShellValues.get(e.getNumber()));
+            check (msg+": cache filled for element "+e.getNumber(),
+                   vals != null);
+            IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
+            checkEquals (msg+": cache size", vals.length, ipnts.length);
+            FemNode3d[] nodes = e.getNodes();
+            for (int k=0; k<ipnts.length; k++) {
+               VectorNd N = ipnts[k].getShapeWeights();
+               double chk = 0;
+               for (int i=0; i<nodes.length; i++) {
+                  chk += N.get(i)*field.getValue (nodes[i]);
+               }
+               checkEquals (msg+": cached value", vals[k], chk, 1e-12);
+            }
+         }
+      }
+   }
+
+   /**
+    * Checks that the integration point cache of a Vector3d nodal field has
+    * been filled for all volumetric and shell elements, with values that
+    * match those interpolated from the nodes.
+    */
+   void checkVectorNodalCache (String msg, Vector3dNodalField field) {
+      FemModel3d fem = field.getFemModel();
+      checkEquals (
+         msg+": volumetric cache allocated",
+         field.myVolumetricValues != null, true);
+      checkEquals (
+         msg+": shell cache allocated", field.myShellValues != null, true);
+      checkEquals (msg+": cache filled flag", field.myCacheFilled, true);
+      for (int etype=0; etype<2; etype++) {
+         Iterable<? extends FemElement3dBase> elems =
+            (etype == 0 ? fem.getElements() : fem.getShellElements());
+         for (FemElement3dBase e : elems) {
+            // access the cache through an untyped list, since the cached
+            // arrays are allocated as VectorObject[] and not Vector3d[]
+            java.util.List<?> cache = (etype == 0 ?
+               field.myVolumetricValues : field.myShellValues);
+            Object[] vals = (Object[])cache.get(e.getNumber());
+            check (msg+": cache filled for element "+e.getNumber(),
+                   vals != null);
+            IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
+            checkEquals (msg+": cache size", vals.length, ipnts.length);
+            FemNode3d[] nodes = e.getNodes();
+            for (int k=0; k<ipnts.length; k++) {
+               VectorNd N = ipnts[k].getShapeWeights();
+               Vector3d chk = new Vector3d();
+               for (int i=0; i<nodes.length; i++) {
+                  chk.scaledAdd (N.get(i), field.getValue (nodes[i]));
+               }
+               checkEquals (
+                  msg+": cached value", (Vector3d)vals[k], chk, 1e-12);
+            }
+         }
+      }
+   }
+
+   /**
+    * Tests updateForConcurrentAccess() for scalar and vector nodal fields,
+    * which should fill the integration point caches for all elements, and
+    * checks that changing the field values clears the caches.
+    */
+   public void testNodalFieldConcurrentAccess (FemModel3d fem) {
+      ScalarNodalField sfield = new ScalarNodalField (fem, 1.0);
+      for (FemNode3d n : fem.getNodes()) {
+         sfield.setValue (n, RandomGenerator.nextDouble (-1, 1));
+      }
+      sfield.updateForConcurrentAccess();
+      checkScalarNodalCache ("scalar", sfield);
+      FemNode3d node0 = fem.getNodes().get(0);
+      sfield.setValue (node0, 10.0);
+      check ("scalar cache cleared by setValue",
+             sfield.myVolumetricValues == null && !sfield.myCacheFilled);
+      sfield.updateForConcurrentAccess();
+      checkScalarNodalCache ("scalar after setValue", sfield);
+      sfield.clearValue (node0);
+      check ("scalar cache cleared by clearValue",
+             sfield.myVolumetricValues == null && !sfield.myCacheFilled);
+      sfield.updateForConcurrentAccess();
+      checkScalarNodalCache ("scalar after clearValue", sfield);
+      sfield.setDefaultValue (3.0);
+      check ("scalar cache cleared by setDefaultValue",
+             sfield.myVolumetricValues == null && !sfield.myCacheFilled);
+      sfield.updateForConcurrentAccess();
+      checkScalarNodalCache ("scalar after setDefaultValue", sfield);
+      sfield.clearAllValues();
+      check ("scalar cache cleared by clearAllValues",
+             sfield.myVolumetricValues == null && !sfield.myCacheFilled);
+      sfield.updateForConcurrentAccess();
+      checkScalarNodalCache ("scalar after clearAllValues", sfield);
+
+      Vector3dNodalField vfield =
+         new Vector3dNodalField (fem, new Vector3d (1, 2, 3));
+      for (FemNode3d n : fem.getNodes()) {
+         Vector3d vec = new Vector3d();
+         vec.setRandom();
+         vfield.setValue (n, vec);
+      }
+      vfield.updateForConcurrentAccess();
+      checkVectorNodalCache ("vector", vfield);
+      vfield.setValue (node0, new Vector3d (10, 20, 30));
+      check ("vector cache cleared by setValue",
+             vfield.myVolumetricValues == null && !vfield.myCacheFilled);
+      vfield.updateForConcurrentAccess();
+      checkVectorNodalCache ("vector after setValue", vfield);
+      vfield.clearValue (node0);
+      check ("vector cache cleared by clearValue",
+             vfield.myVolumetricValues == null && !vfield.myCacheFilled);
+      vfield.updateForConcurrentAccess();
+      checkVectorNodalCache ("vector after clearValue", vfield);
+      vfield.setDefaultValue (new Vector3d (-1, 0, 1));
+      check ("vector cache cleared by setDefaultValue",
+             vfield.myVolumetricValues == null && !vfield.myCacheFilled);
+      vfield.updateForConcurrentAccess();
+      checkVectorNodalCache ("vector after setDefaultValue", vfield);
+      vfield.clearAllValues();
+      check ("vector cache cleared by clearAllValues",
+             vfield.myVolumetricValues == null && !vfield.myCacheFilled);
+      vfield.updateForConcurrentAccess();
+      checkVectorNodalCache ("vector after clearAllValues", vfield);
+   }
+
    public void test() {
       FemModel3d fem = createFem();
       testWithFixedFem (fem);
+      testNodalFieldConcurrentAccess (fem);
       fem.setOneBasedNodeElementNumbering (true);
       testWithFixedFem (fem);
+      testNodalFieldConcurrentAccess (fem);
       testWithChangingFem();
    }
 

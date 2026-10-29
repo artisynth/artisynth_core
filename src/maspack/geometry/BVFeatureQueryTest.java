@@ -1130,6 +1130,87 @@ public class BVFeatureQueryTest {
       nearestVertexAndEdge (mesh, aabbTree, X, center, diameter);
    }
 
+   /**
+   * Checks nearest vertex, edge and face queries that use the mesh's own
+   * BVTree (from getBVTree()) against brute force, for a mesh-to-world
+   * transform X set either before or after the tree is first created.
+   */
+   private void meshBVTreeTest (MeshBase mesh, RigidTransform3d X) {
+
+      BVFeatureQuery query = new BVFeatureQuery();
+      Point3d center = new Point3d();
+      double diameter = 2*RenderableUtils.getRadiusAndCenter (center, mesh);
+      double tol = EPS*(center.norm()+diameter);
+
+      int testcnt = 1000;
+      Point3d pnt = new Point3d();
+      NearestEdgeInfo einfo = new NearestEdgeInfo();
+      NearestFaceInfo finfo = new NearestFaceInfo();
+      for (int i=0; i<testcnt; i++) {
+         pnt.setRandom();
+         pnt.scale (2*diameter);
+         pnt.add (center);
+         pnt.transform (X, pnt);
+
+         Vertex3d vtx = query.nearestVertexToPoint (mesh, pnt);
+         if (!getNearestVerticesToPoint (mesh, pnt).contains (vtx)) {
+            throw new TestException (
+               "Vertex "+vtx.getIndex()+" computed as nearest using "+
+               "getBVTree() does not match brute force calculation");
+         }
+         if (!(mesh instanceof PointMesh)) {
+            einfo.myEdge = query.nearestEdgeToPoint (
+               einfo.myNear, einfo.myCoord, mesh, pnt);
+            if (einfo.myEdge == null ||
+                !einfo.edgeFaceIsContained (
+                   getNearestEdgesToPoint (mesh, pnt, tol), tol)) {
+               throw new TestException (
+                  "Edge computed as nearest using getBVTree() "+
+                  "does not match brute force calculation");
+            }
+         }
+         if (mesh instanceof PolygonalMesh) {
+            PolygonalMesh pmesh = (PolygonalMesh)mesh;
+            finfo.myFace = query.nearestFaceToPoint (
+               finfo.myNear, finfo.myCoords, pmesh, pnt);
+            if (!finfo.pointFaceIsContained (
+                   getNearestFacesToPoint (pmesh, pnt, tol), tol)) {
+               throw new TestException (
+                  "Face computed as nearest using getBVTree() "+
+                  "does not match brute force calculation");
+            }
+         }
+      }
+   }
+
+   private void meshBVTreeTest (MeshBase mesh) {
+      RigidTransform3d X = new RigidTransform3d();
+
+      // transform set before the tree is created
+      MeshBase mcopy = mesh.copy();
+      X.setRandom();
+      mcopy.setMeshToWorld (X);
+      meshBVTreeTest (mcopy, X);
+
+      // transform set after the tree is created
+      mcopy = mesh.copy();
+      mcopy.getBVTree();
+      X.setRandom();
+      mcopy.setMeshToWorld (X);
+      meshBVTreeTest (mcopy, X);
+      // and changed again, after the tree has been used
+      X.setRandom();
+      mcopy.setMeshToWorld (X);
+      meshBVTreeTest (mcopy, X);
+   }
+
+   private void meshBVTreeTests() {
+      meshBVTreeTest (MeshFactory.createBox (1.0, 1.5, 2.0));
+      meshBVTreeTest (myComplexMesh);
+      meshBVTreeTest (MeshFactory.createRandomPointMesh (100, 5));
+      meshBVTreeTest (myLineMesh);
+   }
+
    public void test() {
       nearestFaceTest (MeshFactory.createBox (1.0, 1.5, 2.0));
       nearestFaceTest (MeshFactory.createSphere (1.0, 7));
@@ -1141,6 +1222,7 @@ public class BVFeatureQueryTest {
       nearestVertexAndEdgeTest (MeshFactory.createRandomPointMesh (100, 5));
       nearestVertexAndEdgeTest (myLineMesh);
       pointInsideTests();
+      meshBVTreeTests();
    }
 
    public void timing() {

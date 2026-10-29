@@ -299,7 +299,7 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
     * between the points at indices <code>(idx, idx+1)</code>. If
     * <code>idx</code> equals <code>size()-1</code> (i.e., the last point),
     * then the method returns the face between the indices <code>(size()-1,
-    * 0)</code> if the contour is closes, and <code>null</code> otherwise.
+    * 0)</code> if the contour is closed, and <code>null</code> otherwise.
     */
    Face findSegmentFace (int idx, PolygonalMesh mesh) {
       IntersectionPoint p0, p1;

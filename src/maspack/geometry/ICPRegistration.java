@@ -13,7 +13,7 @@ import maspack.util.*;
 import maspack.geometry.ICPRegistration.Prealign;
 
 /**
- * Class to perform interative closest point (ICP) registration of one mesh
+ * Class to perform Iterative Closest Point (ICP) registration of one mesh
  * onto another.
  */
 public class ICPRegistration {

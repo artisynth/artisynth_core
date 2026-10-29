@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "mumps.h"
+#include "hybridSolveJNI.h"
 #include "maspack_solvers_MumpsSolver.h"
 
 JNIEXPORT jlong JNICALL Java_maspack_solvers_MumpsSolver_doInit (
@@ -48,6 +49,14 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetNumThreads (
    JNIEnv *env, jobject obj, jlong handle)
 {
    return ((Mumps*)handle)->getNumThreads();
+}
+
+// static (no handle): a machine property, not a per-solver one; see
+// hybridSolve.h/.cc.
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetPhysicalCoreCount (
+   JNIEnv *env, jclass cls)
+{
+   return hybridGetPhysicalCoreCount();
 }
 
 /* --- statistics --- */
@@ -203,16 +212,16 @@ Java_maspack_solvers_MumpsSolver_doGetNullPivotThreshold (
    return ((Mumps*)handle)->getNullPivotThreshold();
 }
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doSetApplyScaling (
-   JNIEnv *env, jobject obj, jlong handle, jint apply)
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doSetScaling (
+   JNIEnv *env, jobject obj, jlong handle, jint value)
 {
-   return ((Mumps*)handle)->setApplyScaling (apply);
+   return ((Mumps*)handle)->setScaling (value);
 }
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetApplyScaling (
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doGetScaling (
    JNIEnv *env, jobject obj, jlong handle)
 {
-   return ((Mumps*)handle)->getApplyScaling();
+   return ((Mumps*)handle)->getScaling();
 }
 
 JNIEXPORT jint JNICALL
@@ -371,4 +380,39 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doSolve__J_3D_3DI (
    env->ReleaseDoubleArrayElements (jxvec, xvec, 0);
    env->ReleaseDoubleArrayElements (jbvec, bvec, JNI_ABORT);
    return retcode;
+}
+
+/* --- iterative solves --- */
+
+JNIEXPORT jint JNICALL Java_maspack_solvers_MumpsSolver_doIterativeSolve (
+   JNIEnv *env, jobject obj, jlong handle, jdoubleArray jvals,
+   jdoubleArray jxvec, jdoubleArray jbvec, jdouble tol, jint method,
+   jint maxSolves, jint restart, jboolean critical)
+{
+   return hybridSolveJNI (
+      env, (Mumps*)handle, jvals, jxvec, jbvec, tol, method, maxSolves,
+      restart, critical);
+}
+
+JNIEXPORT jint JNICALL
+Java_maspack_solvers_MumpsSolver_doGetLastIterativeSolves (
+   JNIEnv *env, jobject obj, jlong handle)
+{
+   return ((Mumps*)handle)->getLastIterativeSolves();
+}
+
+JNIEXPORT jdouble JNICALL
+Java_maspack_solvers_MumpsSolver_doGetLastIterativeResidual (
+   JNIEnv *env, jobject obj, jlong handle)
+{
+   return ((Mumps*)handle)->getLastIterativeResidual();
+}
+
+JNIEXPORT void JNICALL
+Java_maspack_solvers_MumpsSolver_doGetLastIterativeTimes (
+   JNIEnv *env, jobject obj, jlong handle, jdoubleArray jtimes)
+{
+   double times[3];
+   ((Mumps*)handle)->getLastIterativeTimes (times);
+   env->SetDoubleArrayRegion (jtimes, 0, 3, times);
 }

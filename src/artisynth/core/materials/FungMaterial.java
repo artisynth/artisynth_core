@@ -41,8 +41,6 @@ public class FungMaterial extends IncompressibleMaterialBase {
    private double myL31 = DEFAULT_L31; 
    private double myCC  = DEFAULT_CC; 
 
-   private double[]   mu = new double[3]; 
-   private double[][] lam = new double[3][3]; 
 
    PropertyMode myMU1Mode = PropertyMode.Inherited;
    PropertyMode myMU2Mode = PropertyMode.Inherited;
@@ -66,9 +64,6 @@ public class FungMaterial extends IncompressibleMaterialBase {
    ScalarFieldComponent myL31Field = null;
    ScalarFieldComponent myCCField  = null;
 
-   private SymmetricMatrix3d myB;
-   private SymmetricMatrix3d myC;
-   private SymmetricMatrix3d myC2;
 
    static {
       myProps.addInheritableWithField (
@@ -98,9 +93,6 @@ public class FungMaterial extends IncompressibleMaterialBase {
    }
 
    public FungMaterial () {
-      myB   = new SymmetricMatrix3d();
-      myC   = new SymmetricMatrix3d();
-      myC2  = new SymmetricMatrix3d();
    }
 
    public FungMaterial (double MU1, double MU2, double MU3, double L11, double L22, 
@@ -500,7 +492,13 @@ public class FungMaterial extends IncompressibleMaterialBase {
 
    public void computeDevStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
-      Matrix3d Q, double excitation, MaterialStateObject state) {   
+      Matrix3d Q, double excitation, MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
+      SymmetricMatrix3d C = new SymmetricMatrix3d();
+      SymmetricMatrix3d C2 = new SymmetricMatrix3d();
+      double[] mu = new double[3];
+      double[][] lam = new double[3][3];   
 
       sigma.setZero();
 
@@ -548,13 +546,13 @@ public class FungMaterial extends IncompressibleMaterialBase {
       double J = def.getDetF();
 
       // Calculate deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);
+      computeDevLeftCauchyGreen(B,def);
 
       // Calculate deviatoric right Cauchy-Green tensor
-      computeDevRightCauchyGreen(myC,def);
+      computeDevRightCauchyGreen(C,def);
 
       // calculate square of C
-      myC2.mulTransposeLeft (myC);
+      C2.mulTransposeLeft (C);
 
       Matrix3d mydevF = new Matrix3d(def.getF());
       mydevF.scale(Math.pow(J,-1.0 / 3.0));
@@ -565,10 +563,10 @@ public class FungMaterial extends IncompressibleMaterialBase {
          a0[i].y = Q.get(1,i);
          a0[i].z = Q.get(2,i);
 
-         vtmp.mul(myC,a0[i]);
+         vtmp.mul(C,a0[i]);
          K[i] = a0[i].dot(vtmp);
 
-         vtmp.mul(myC2,a0[i]);
+         vtmp.mul(C2,a0[i]);
          L[i] = a0[i].dot(vtmp);
 
          a[i].mul(mydevF,a0[i]);
@@ -590,7 +588,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
 
       // Evaluate the stress
       SymmetricMatrix3d bmi = new SymmetricMatrix3d(); 
-      bmi.sub(myB,SymmetricMatrix3d.IDENTITY);
+      bmi.sub(B,SymmetricMatrix3d.IDENTITY);
       for (int i=0; i<3; i++) {
          //       s += mu[i]*K[i]*(A[i]*bmi + bmi*A[i]);
          tmpMatrix.mul(A[i], bmi);
@@ -626,7 +624,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
          D.setZero();
       
          for (int i=0; i<3; i++) {
-            addTensorProduct4(D, mu[i]*K[i], A[i], myB);
+            addTensorProduct4(D, mu[i]*K[i], A[i], B);
             for (int j=0; j<3; j++) {
                TensorUtils.addSymmetricTensorProduct (
                   D, lam[i][j]*K[i]*K[j]/2.0, A[i], A[j]);
@@ -650,6 +648,11 @@ public class FungMaterial extends IncompressibleMaterialBase {
    public double computeDevStrainEnergy (
       DeformedPoint def, Matrix3d Q, double excitation, 
       MaterialStateObject state) {
+      // temporaries allocated locally for thread safety
+      SymmetricMatrix3d C = new SymmetricMatrix3d();
+      SymmetricMatrix3d C2 = new SymmetricMatrix3d();
+      double[] mu = new double[3];
+      double[][] lam = new double[3][3];
 
       double[] K = new double[3];
       double[] L = new double[3];
@@ -672,10 +675,10 @@ public class FungMaterial extends IncompressibleMaterialBase {
       double CC = getCC(def);
       
       // Calculate deviatoric right Cauchy-Green tensor
-      computeDevRightCauchyGreen(myC,def);
+      computeDevRightCauchyGreen(C,def);
 
       // calculate square of C
-      myC2.mulTransposeLeft (myC);
+      C2.mulTransposeLeft (C);
 
       Vector3d a = new Vector3d();
       Vector3d vtmp = new Vector3d();
@@ -685,10 +688,10 @@ public class FungMaterial extends IncompressibleMaterialBase {
          a.y = Q.get(1,i);
          a.z = Q.get(2,i);
 
-         vtmp.mul(myC,a);
+         vtmp.mul(C,a);
          K[i] = a.dot(vtmp);
 
-         vtmp.mul(myC2,a);
+         vtmp.mul(C2,a);
          L[i] = a.dot(vtmp);
       }
 
@@ -728,7 +731,6 @@ public class FungMaterial extends IncompressibleMaterialBase {
 
    public FungMaterial clone() {
       FungMaterial mat = (FungMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
       return mat;
    }
 
@@ -917,5 +919,11 @@ public class FungMaterial extends IncompressibleMaterialBase {
 
       c.m55 += 0.5*(a22*b00 + 2.0*a02*b02 + a00*b22);
 
+   }
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == FungMaterial.class;
    }
 }

@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# prints out of ArtiSynth's full required classpath consisting of its classes/
+# folder plus all the .jar files listed in lib/LIBRARIES, in a format
+# compatible with the current platform. Jar files preceded by a system
+# specifier in LIBRARIES (which contain only native libraries) are omitted.
+#
+# On Windows (Cygwin, MSYS2 or Git Bash), the classpath uses Windows path
+# names and ';' as a separator, as required by java and javac. From the
+# native Windows command shell, use makeClasspath.bat instead.
+#
+# The ArtiSynth home folder is assumed to be '..' relative to this file; the
+# environment variable ARTISYNTH_HOME is not used.
+#
+# With the option -addEnv, the entries of the CLASSPATH environment variable
+# are appended, except for those that refer to ArtiSynth's lib folder (i.e.,
+# lib/* or jar files in lib/), since these may include older versions of
+# the libraries that are not listed in LIBRARIES.
+ADD_ENV=
+for arg in "$@" ; do
+   case "$arg" in
+      -addEnv) ADD_ENV=yes ;;
+      *) echo "Usage: makeClasspath [-addEnv]" >&2 ; exit 1 ;;
+   esac
+done
+AH="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+LIBDIR="$(cd "$AH/lib" 2>/dev/null && pwd -P)"
+LIBFILE="$AH/lib/LIBRARIES"
+if [ ! -r "$LIBFILE" ] ; then
+   echo "makeClasspath: can't read $LIBFILE" >&2
+   exit 1
+fi
+case "$(uname -s)" in
+   CYGWIN*|MINGW*|MSYS*)
+      WINDOWS=yes
+      # Windows paths are case-insensitive
+      shopt -s nocasematch
+      AH="$(cygpath -w "$AH")"
+      SEP=";"
+      FSEP="\\"
+      ;;
+   *)
+      SEP=":"
+      FSEP="/"
+      ;;
+esac
+# Paths are passed through the environment because awk -v would interpret
+# backslashes in Windows paths as escape sequences. The '\r' is removed in
+# case LIBRARIES was checked out with Windows line endings.
+CP_HOME="$AH" CP_SEP="$SEP" CP_FSEP="$FSEP" CP_NO_NEWLINE="$ADD_ENV" awk '
+   BEGIN {
+      h = ENVIRON["CP_HOME"]; s = ENVIRON["CP_SEP"]; f = ENVIRON["CP_FSEP"]
+      printf "%s%s%s", h, f, "classes"
+   }
+   { sub(/\r$/, "") }
+   $1 ~ /\.jar$/ { printf "%s%s%slib%s%s", s, h, f, f, $1 }
+   END { if (ENVIRON["CP_NO_NEWLINE"] == "") printf "\n" }' "$LIBFILE"
+
+if [ -n "$ADD_ENV" ] ; then
+   # read -a splits CLASSPATH at SEP without expanding wildcards
+   IFS="$SEP" read -r -a ENTRIES <<< "$CLASSPATH"
+   for e in "${ENTRIES[@]}" ; do
+      d=
+      if [[ "$e" == *[/\\]\* ]] ; then
+         d="${e%??}"           # wildcard entry: folder is the prefix
+      elif [[ "$e" == *[/\\]*.jar ]] ; then
+         d="${e%[/\\]*}"       # jar file entry: folder is its parent
+      fi
+      if [ -n "$d" ] ; then
+         if [ -n "$WINDOWS" ] ; then
+            d="$(cygpath -u "$d")"
+         fi
+         if [[ "$(cd "$d" 2>/dev/null && pwd -P)" == "$LIBDIR" ]] ; then
+            continue
+         fi
+      fi
+      if [ -n "$e" ] ; then
+         printf "%s%s" "$SEP" "$e"
+      fi
+   done
+   printf "\n"
+fi

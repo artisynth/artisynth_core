@@ -220,15 +220,14 @@ public class AuxMaterialBundle extends CompositeComponentBase
       myMat = newMat;
       FemModel3d fem = getAncestorFem(this);
       if (fem != null) {
-         // issue change event in case solve matrix symmetry or state has changed:
+         // issue change event, in case solve matrix symmetry or state has
+         // changed, and to clear cached material data:
          MaterialChangeEvent mce = 
-            MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
-         if (mce != null) {
-            if (mce.stateChanged()) {
-               notifyElementsOfMaterialStateChange();
-            }
-            notifyParentOfChange (mce);
-         }      
+            MaterialBase.createChangeEvent ("material", newMat, oldMat);
+         if (mce.stateChanged()) {
+            notifyElementsOfMaterialStateChange();
+         }
+         notifyParentOfChange (mce);
          fem.invalidateStressAndStiffness();
          fem.invalidateRestData();
       }
@@ -403,9 +402,8 @@ public class AuxMaterialBundle extends CompositeComponentBase
             if (mce.stateChanged() && e.getHost() == getMaterial()) {
                notifyElementsOfMaterialStateChange();
             }
-            if (mce.stateOrSymmetryChanged()) {
-               notifyParentOfChange (new MaterialChangeEvent (this, mce));  
-            }
+            // always notify, so that FemModel can clear cached material data
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
          }
       }
    }

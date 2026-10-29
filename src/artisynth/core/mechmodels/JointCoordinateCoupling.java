@@ -170,6 +170,7 @@ public class JointCoordinateCoupling
       gi.dist = (coord0-fval);
       gi.compliance = 0;
       gi.damping = 0;
+      gi.stepDamping = 0;
       gi.force = 0;
       idx++;      
       return idx;

@@ -237,12 +237,19 @@ dorun()
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
 mech.writePrintStateHeader ("RollingFem Trapezoidal");
 dorun()
+mech.getCollisionManager().setForceBehavior(AreaCompliantContact(2.5e7))
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("RollingFem AreaCompliantContact");
+dorun()
 
 loadModel ("artisynth.demos.tutorial.SlidingFem")
 mech = setModelOpts (1.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("SlidingFem ConstrainedBackwardEuler");
+dorun()
+mech.getCollisionManager().setForceBehavior(AreaCompliantContact(1e8))
+mech.writePrintStateHeader ("SlidingFem AreaCompliantContact");
 dorun()
 
 loadModel ("artisynth.demos.tutorial.FemSelfCollide")

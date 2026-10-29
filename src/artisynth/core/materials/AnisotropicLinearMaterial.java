@@ -162,7 +162,7 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
          return false;
       }
       AnisotropicLinearMaterial linm = (AnisotropicLinearMaterial)mat;
-      if (!myC.equals(linm)) {
+      if (!myC.equals (linm.myC)) {
          return false;
       }
       else {
@@ -192,4 +192,10 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
       }
    }
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == AnisotropicLinearMaterial.class;
+   }
 }

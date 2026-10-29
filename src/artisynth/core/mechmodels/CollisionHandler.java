@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.awt.Color;
 
 import artisynth.core.mechmodels.CollisionBehavior.Method;
 import artisynth.core.mechmodels.CollisionBehavior.VertexPenetrations;
@@ -27,6 +28,7 @@ import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.util.ScalarRange;
 import maspack.collision.ContactInfo;
+//import maspack.collision.VertexContactType;
 import maspack.collision.ContactPlane;
 import maspack.collision.EdgeEdgeContact;
 import maspack.collision.IntersectionContour;
@@ -174,6 +176,14 @@ public class CollisionHandler extends RenderableConstrainerBase
          }
       }
       return scale;
+   }
+
+   Color getNegativeForceColor() {
+      Color color = null;
+      if (myManager != null) {
+         color = myManager.getNegativeForceColor();
+      }
+      return color;
    }
 
    public ContactInfo getLastContactInfo() {
@@ -546,6 +556,18 @@ public class CollisionHandler extends RenderableConstrainerBase
       CollidableBody collidable0, CollidableBody collidable1) {
 
       PolygonalMesh mesh1 = collidable1.getCollisionMesh();
+      // if (myBehavior.getVertexContactType() == 
+      //     VertexContactType.VERTEX_NORMAL_RAY) {
+      //    // normal was computed by the ray cast and is already in world
+      //    // coordinates; no smoothing is applied
+      //    cons.myNormal.set (cpp.getNormal());
+      //    cons.myContactArea = cons.myCpnt0.computeContactArea (cons.myNormal);
+      //    cons.assignMasters (collidable0, collidable1);
+
+      //    Vector3d disp = new Vector3d();
+      //    disp.sub(cons.myCpnt0.getPosition(), cons.myCpnt1.getPosition());
+      //    return disp.dot(cons.myNormal);
+      // }
       if (myBehavior.getSmoothVertexContacts() &&
           mesh1.numNormals() == mesh1.numVertices()) {
          if (myNagata == null) {
@@ -570,7 +592,7 @@ public class CollisionHandler extends RenderableConstrainerBase
             npnt.transform (mesh1.getMeshToWorld());
          }
 
-         cons.myContactArea = cpp.getContactArea();
+         cons.myContactArea = cons.myCpnt0.computeContactArea (cons.myNormal);
          cons.assignMasters (collidable0, collidable1);
 
          Vector3d disp = new Vector3d();
@@ -586,7 +608,7 @@ public class CollisionHandler extends RenderableConstrainerBase
       if (!mesh1.meshToWorldIsIdentity()) {
          cons.myNormal.transform (mesh1.getMeshToWorld());
       }
-      cons.myContactArea = cpp.getContactArea();
+      cons.myContactArea = cons.myCpnt0.computeContactArea (cons.myNormal);
       cons.assignMasters (collidable0, collidable1);
 
       // This should be -cpp.distance - do we need to compute this?
@@ -602,7 +624,7 @@ public class CollisionHandler extends RenderableConstrainerBase
 
       // get the normal directly from the penetrating point
       cons.myNormal.set (cpp.getNormal());
-      cons.myContactArea = -1;      
+      cons.myContactArea = cons.myCpnt0.computeContactArea (cons.myNormal);
       cons.assignMasters (collidable0, collidable1);
 
       // This should be -cpp.distance - do we need to compute this?
@@ -619,7 +641,11 @@ public class CollisionHandler extends RenderableConstrainerBase
 
       cons.myNormal.negate (eecs.point1ToPoint0Normal);
       cons.assignMasters (collidable0, collidable1);
-      cons.myContactArea = eecs.getContactArea();
+      // Note: the edge's area (1/3 of each adjacent face) may overlap with
+      // the areas of vertex contacts at the edge's end points, if those
+      // vertices are also penetrating, so the total area can be overcounted.
+      // This is currently ignored, since edge-edge contacts are sparse.
+      cons.myContactArea = cons.myCpnt0.computeContactArea (cons.myNormal);
       return -eecs.displacement;
    }
 
@@ -880,6 +906,7 @@ public class CollisionHandler extends RenderableConstrainerBase
          }
          case AUTO: {
             return (!hasLowDOF (myCollidable0) && !hasLowDOF (myCollidable1));
+            //return false;
          }
          default:{
             throw new InternalErrorException (
@@ -1186,18 +1213,33 @@ public class CollisionHandler extends RenderableConstrainerBase
       }
    }
 
+   /**
+    * Returns the contact area to be passed to a contact force behavior for a
+    * specific constraint. For two-way contact, the area of vertex contacts is
+    * halved, since vertex contacts are then generated for both collidables
+    * over the same contact patch. Edge-edge and contour region contacts are
+    * generated once per contact and so are not scaled.
+    */
+   private double getEffectiveContactArea (
+      ContactConstraint c, boolean twoWay) {
+      if (twoWay && c.myCpnt0.numVertices() == 1) {
+         return 0.5*c.myContactArea;
+      }
+      else {
+         return c.myContactArea;
+      }
+   }
+
    @Override
    public int getBilateralInfo (
       ConstraintInfo[] ginfo, int idx) {
       
-      double[] fres = new double[] { 
-         0, myCompliance, myDamping };
+      double[] fres = new double[4];
 
       ContactForceBehavior forceBehavior = getForceBehavior();
       double penTol = myBehavior.myPenetrationTol;
       
-      int flags = 
-         (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
+      boolean twoWay = usingTwoWayContact();
       for (ContactConstraint c : getOrderedBilaterals()) {
          ConstraintInfo gi = ginfo[idx];
          if (c.getDistance() < -penTol) {
@@ -1207,13 +1249,21 @@ public class CollisionHandler extends RenderableConstrainerBase
             gi.dist = 0;
          }
          if (forceBehavior != null) {
+            fres[0] = fres[1] = fres[2] = fres[3] = 0;
             forceBehavior.computeResponse (
                fres, c.myDistance, c.myCpnt0, c.myCpnt1, 
-               c.myNormal, c.myContactArea, flags);
+               c.myNormal, getEffectiveContactArea (c, twoWay), /*flags=*/0);
+            gi.force =       fres[0];
+            gi.compliance =  fres[1];
+            gi.damping =     fres[2];
+            gi.stepDamping = fres[3];
          }
-         gi.force =      fres[0];
-         gi.compliance = fres[1];
-         gi.damping =    fres[2];
+         else {
+            gi.force = 0;
+            gi.compliance = myCompliance;
+            gi.damping = myDamping;
+            gi.stepDamping = 0;
+         }
          gi.motionType = MotionType.LINEAR;
          idx++;
       }
@@ -1275,14 +1325,12 @@ public class CollisionHandler extends RenderableConstrainerBase
    @Override
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
 
-      double[] fres = new double[] {
-         0, myCompliance, myDamping };
+      double[] fres = new double[4];
 
       ContactForceBehavior forceBehavior = getForceBehavior();
        double penTol = myBehavior.myPenetrationTol;
       
-      int flags = 
-         (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
+      boolean twoWay = usingTwoWayContact();
       for (ContactConstraint c : getUnilaterals()) {
          ConstraintInfo ni = ninfo[idx];
          if (c.getDistance() < -penTol) {
@@ -1292,13 +1340,21 @@ public class CollisionHandler extends RenderableConstrainerBase
             ni.dist = 0;
          }
          if (forceBehavior != null) {
+            fres[0] = fres[1] = fres[2] = fres[3] = 0;
             forceBehavior.computeResponse (
                fres, c.myDistance, c.myCpnt0, c.myCpnt1, 
-               c.myNormal, c.myContactArea, flags);
+               c.myNormal, getEffectiveContactArea (c, twoWay), /*flags=*/0);
+            ni.force =       fres[0];
+            ni.compliance =  fres[1];
+            ni.damping =     fres[2];
+            ni.stepDamping = fres[3];
          }
-         ni.force =      fres[0];
-         ni.compliance = fres[1];
-         ni.damping =    fres[2];
+         else {
+            ni.force = 0;
+            ni.compliance = myCompliance;
+            ni.damping = myDamping;
+            ni.stepDamping = 0;
+         }
          ni.motionType = MotionType.LINEAR;
          idx++;
       }

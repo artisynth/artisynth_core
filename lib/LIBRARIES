@@ -17,27 +17,50 @@
 # but in some cases there are system-specific jar files that contain native
 # libraries; this is the case for the JOGL2.
 #
+# Jar file names should have the form <name>[-<version>][-<classifier>].jar,
+# where <version> consists solely of digits and '.' (e.g., jsoup-1.11.2.jar or
+# jogl-all-2.6.0-natives-macosx-universal.jar), which is the Maven convention.
+# When a jar file is replaced by a new version, the old one is removed once
+# the new one is present, provided that their names match with the versions
+# removed. Old jar files whose names don't match (e.g., because the library
+# was renamed) should be listed in lib/OBSOLETE.
+#
 # Native library names can contain a suffix of the form (.n)+, where n
 # is a non-negative integer, which gives version number
-# information. If version information is present, the first number is
-# the major version number, the second number (if present) is the
-# minor version number, and other numbers indicate revision
-# numbers. When checking for native libraries, it is assumed that a
-# library with the indicated base name plus major version number must
-# be present on the system. Other version numbers are allowed to
-# differ as long as the minor version number is greater than or equal
-# to the one specified in this file.
+# information. Versions are ordered by comparing the numbers from left
+# to right. The specified version is downloaded if it is not present.
+# If it cannot be downloaded, a present library whose version starts
+# with the specified numbers, followed by additional ones, is used
+# instead (e.g., foo.1.2.3 for foo.1.2). Code that loads a library can
+# then request it using a shorter version (e.g., foo.1.2), and will get
+# the version specified here.
 #
 # Native library names are transformed into system-specific names
 # appropriate for the current native system. For instance,
 # TetgenJNI.1.0 gets transformed into libTetgenJNI.so.1.0 on Linux and
 # TetgenJNI.1.0.dll on Windows.
 #
+# Once the specified version of a native library is present, files for
+# lower versions of the same library are removed.
+#
 # Native libraries can also be specified using a system-specific
 # specfic format; e.g., libgomp.so.1 (Linux). If this is done, the
 # indicated library is sought only if the indicated system matches the
 # current native system. This allows different libraries to be
 # specified for different systems.
+#
+# A native library entry can end with an attribute link=<name>, where <name>
+# is a system-specific file name. The library file is then also made
+# available under that name, as a symbolic link (or a copy on Windows):
+#
+#   libiomp5.so.2026.1 link=libiomp5.so
+#
+# This lets support libraries be versioned on the server while other native
+# libraries still reference them by their fixed, unversioned names. Link
+# names should not be listed in lib/OBSOLETE.
+#
+# Libraries that are no longer required should be listed in lib/OBSOLETE, so
+# that they are removed. Wildcards ('*') are not allowed in this file.
 #
 argparser.jar
 jass.jar
@@ -51,7 +74,7 @@ vclipx.jar
 vfs2.jar
 jsoup-1.11.2.jar
 matconsolectl-4.4.4.jar
-gdcm.jar
+gdcm-3.0.22.1.jar
 flatlaf-1.5.jar
 gpcj-2.2.0-full.jar
 slf4j-simple-1.7.25.jar
@@ -60,27 +83,41 @@ poly2tri-core-0.1.1-SNAPSHOT.jar
 #
 # JOGL native libraries are bundled into jar files that are extracted
 # into and loaded from a temporary directory:
-gluegen-rt-2.4.0.jar
-jogl-all-2.4.0.jar
-Linux64 gluegen-rt-2.4.0-natives-linux-amd64.jar
-Linux64 jogl-all-2.4.0-natives-linux-amd64.jar
-MacOS gluegen-rt-2.4.0-natives-macosx-universal.jar
-MacOS jogl-all-2.4.0-natives-macosx-universal.jar
-Windows32 gluegen-rt-2.4.0-natives-windows-i586.jar
-Windows32 jogl-all-2.4.0-natives-windows-i586.jar
-Windows64 gluegen-rt-2.4.0-natives-windows-amd64.jar
-Windows64 jogl-all-2.4.0-natives-windows-amd64.jar
+#
+gluegen-rt-2.6.0.jar
+jogl-all-2.6.0.jar
+Linux64 gluegen-rt-2.6.0-natives-linux-amd64.jar
+Linux64 jogl-all-2.6.0-natives-linux-amd64.jar
+MacOS gluegen-rt-2.6.0-natives-macosx-universal.jar
+MacOS jogl-all-2.6.0-natives-macosx-universal.jar
+Windows64 gluegen-rt-2.6.0-natives-windows-amd64.jar
+Windows64 jogl-all-2.6.0-natives-windows-amd64.jar
 #
 # Native Libraries
-PardisoJNI.2021.1.1
+# (Pardiso relies on Intel MKL, which does not exist for MacOSArm64)
+#
+Linux PardisoJNI.2026.1.1
+Linux MumpsJNI.5.9.1
+Windows PardisoJNI.2026.1.1
+Windows MumpsJNI.5.9.1
+MacOS64 PardisoJNI.2021.1.1.1
 RobustPreds.1.1
 TetgenJNI.1.5.1.1
+# Accelerate and MUMPS are the solvers on MacOSArm64, where there is no Pardiso
+MacOSArm64 AccelerateJNI.1.0.0
+MacOSArm64 MumpsJNI.5.9.1
 # OpenMP libraries for Pardiso
-libiomp5.dylib
-#libgomp.so.1
-libiomp5.so
-libiomp5md.dll
+MacOS64 libiomp5.2021.1.dylib link=libiomp5.dylib
+# Windows support native for Pardiso and Mumps
+libiomp5.so.2026.1 link=libiomp5.so
+libiomp5md.2026.1.dll link=libiomp5md.dll
+libifcoremd.2026.1.dll link=libifcoremd.dll
+libmmd.2026.1.dll link=libmmd.dll
+svml_dispmd.2026.1.dll link=svml_dispmd.dll
 # GDCM library for Dicom images
-gdcmjni.dll
-libgdcmjni.so   
-libgdcmjni.dylib
+gdcmjni.3.0.22.1.dll
+libgdcmjni.so.3.0.22.1
+libgdcmjni.3.0.22.1.dylib
+#
+# End of libraries
+#

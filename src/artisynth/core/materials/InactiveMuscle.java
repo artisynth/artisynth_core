@@ -42,4 +42,10 @@ public class InactiveMuscle extends MuscleMaterial {
       return mat;
    }
 
+
+   @Override
+   public boolean isThreadSafe() {
+      // subclasses must explicitly declare themselves thread safe
+      return getClass() == InactiveMuscle.class;
+   }
 }

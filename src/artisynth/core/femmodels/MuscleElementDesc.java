@@ -473,7 +473,7 @@ public class MuscleElementDesc
       }
    }
 
-   private MuscleMaterial getEffectiveMuscleMaterial () {
+   MuscleMaterial getEffectiveMuscleMaterial () {
 //      if (myMuscleMat != null) {
 //         return myMuscleMat;
 //      }

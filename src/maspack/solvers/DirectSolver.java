@@ -188,9 +188,40 @@ public interface DirectSolver {
    public void solve (double[] x, double[] b);
 
    /**
+    * Describes the methods available for {@link #iterativeSolve}, each of
+    * which uses the most recent factorization as a preconditioner.
+    */
+   public enum IterativeMethod {
+      /**
+       * Restarted GMRES with right preconditioning. Uses one preconditioner
+       * solve per iteration and minimizes the residual. This is the default.
+       */
+      GMRES,
+
+      /**
+       * Sonneveld's Conjugate Gradients Squared, with right preconditioning.
+       * Uses two preconditioner solves per iteration.
+       */
+      CGS
+   };
+
+   /**
+    * Default relative residual tolerance for iterative solves.
+    */
+   public static final double DEFAULT_ITERATIVE_TOLERANCE = 1e-10;
+
+   /**
+    * Default maximum number of preconditioner solves for iterative solves.
+    */
+   public static final int DEFAULT_ITERATIVE_MAX_SOLVES = 50;
+
+   /**
     * Returns true if this solver supports iterative solving, using a recent
-    * directly-factored matrix as a preconditioner.
-    * 
+    * directly-factored matrix as a preconditioner. If it does, all the
+    * methods described by {@link IterativeMethod} are available, as are the
+    * settings {@link #setIterativeMethod}, {@link #setIterativeMaxSolves} and
+    * {@link #setIterativeTolerance}.
+    *
     * @return true if iterative solving is available
     */
    default public boolean hasIterativeSolves() {
@@ -198,8 +229,89 @@ public interface DirectSolver {
    }
 
    /**
+    * Sets the method used by {@link #iterativeSolve}. The default is {@link
+    * IterativeMethod#GMRES}. Has no effect if {@link #hasIterativeSolves}
+    * returns <code>false</code>.
+    *
+    * @param method iterative method
+    */
+   default public void setIterativeMethod (IterativeMethod method) {
+   }
+
+   /**
+    * Queries the method used by {@link #iterativeSolve}.
+    *
+    * @return iterative method
+    */
+   default public IterativeMethod getIterativeMethod() {
+      return IterativeMethod.GMRES;
+   }
+
+   /**
+    * Sets the maximum number of preconditioner solves allowed for {@link
+    * #iterativeSolve}, beyond which it fails. The default is {@link
+    * #DEFAULT_ITERATIVE_MAX_SOLVES}. Has no effect if {@link
+    * #hasIterativeSolves} returns <code>false</code>.
+    *
+    * @param max maximum number of preconditioner solves
+    */
+   default public void setIterativeMaxSolves (int max) {
+   }
+
+   /**
+    * Queries the maximum number of preconditioner solves allowed for {@link
+    * #iterativeSolve}.
+    *
+    * @return maximum number of preconditioner solves
+    */
+   default public int getIterativeMaxSolves() {
+      return DEFAULT_ITERATIVE_MAX_SOLVES;
+   }
+
+   /**
+    * Sets the tolerance for {@link #iterativeSolve}: the iteration succeeds
+    * when the relative residual {@code ||b - M x||/||b||} is at most
+    * <code>tol</code>. The default is {@link #DEFAULT_ITERATIVE_TOLERANCE}.
+    * Has no effect if {@link #hasIterativeSolves} returns <code>false</code>.
+    *
+    * @param tol relative residual tolerance
+    */
+   default public void setIterativeTolerance (double tol) {
+   }
+
+   /**
+    * Queries the tolerance for {@link #iterativeSolve}.
+    *
+    * @return relative residual tolerance
+    */
+   default public double getIterativeTolerance() {
+      return DEFAULT_ITERATIVE_TOLERANCE;
+   }
+
+   /**
+    * Returns the number of preconditioner solves performed by the most recent
+    * call to {@link #iterativeSolve}, or -1 if this is not available.
+    *
+    * @return number of preconditioner solves
+    */
+   default public int getLastIterativeSolves() {
+      return -1;
+   }
+
+   /**
+    * Returns the relative residual {@code ||b - M x||/||b||} obtained by the
+    * most recent call to {@link #iterativeSolve}, or -1 if this is not
+    * available.
+    *
+    * @return relative residual of the most recent iterative solve
+    */
+   default public double getLastIterativeResidual() {
+      return -1;
+   }
+
+   /**
     * Solves the system
-    * 
+    *
     * <pre>
     *  M x = b
     * </pre>
@@ -208,7 +320,10 @@ public interface DirectSolver {
     * the matrix values supplied by <code>vals</code>. If the current values
     * are close to those associated with the factorization, this can be
     * considerably faster than an explicit {@link #factor(double[]) factor()}
-    * and {@link #solve(double[],double[]) solve()}.
+    * and {@link #solve(double[],double[]) solve()}. The method, maximum number
+    * of preconditioner solves and tolerance are set by {@link
+    * #setIterativeMethod}, {@link #setIterativeMaxSolves} and {@link
+    * #setIterativeTolerance}.
     *
     * <p>This method is only available if {@link #hasIterativeSolves} returns
     * <code>true</code>; otherwise, it returns 0 and the caller should fall
@@ -219,13 +334,38 @@ public interface DirectSolver {
     * #analyze(double[],int[],int[],int,int) analyze()}
     * @param x vector in which the result is returned
     * @param b right hand vector of the matrix equation
-    * @param tolExp (negative) exponent of the desired relative residual
     * @return number of iterations performed, or a value {@code <= 0} if the
     * iterative solve was not performed or did not succeed
     */
+   default public int iterativeSolve (double[] vals, double[] x, double[] b) {
+      return 0;
+   }
+
+   /**
+    * Performs an iterative solve with a relative residual tolerance of
+    * {@code 10^-tolExp}, leaving the tolerance set by {@link
+    * #setIterativeTolerance} unchanged.
+    *
+    * @param vals current values of the non-zero matrix elements
+    * @param x vector in which the result is returned
+    * @param b right hand vector of the matrix equation
+    * @param tolExp (negative) exponent of the desired relative residual
+    * @return number of iterations performed, or a value {@code <= 0} if the
+    * iterative solve was not performed or did not succeed
+    * @deprecated use {@link #setIterativeTolerance} and {@link
+    * #iterativeSolve(double[],double[],double[])} instead
+    */
+   @Deprecated
    default public int iterativeSolve (
       double[] vals, double[] x, double[] b, int tolExp) {
-      return 0;
+      double tol = getIterativeTolerance();
+      setIterativeTolerance (Math.pow (10.0, -tolExp));
+      try {
+         return iterativeSolve (vals, x, b);
+      }
+      finally {
+         setIterativeTolerance (tol);
+      }
    }
 
    /**

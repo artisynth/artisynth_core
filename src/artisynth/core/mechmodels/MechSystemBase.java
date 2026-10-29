@@ -101,10 +101,9 @@ public abstract class MechSystemBase extends RenderableModelBase
    SparseBlockMatrix myMassMatrix;   
 
    public static PosStabilization DEFAULT_STABILIZATION =
-      PosStabilization.GlobalMass;
+      PosStabilization.GlobalStiffness;
    protected static PosStabilization myDefaultStabilization =
       DEFAULT_STABILIZATION;
-   //protected PosStabilization myStabilization = myDefaultStabilization;
 
    protected boolean myDynamicsEnabled = DEFAULT_DYNAMICS_ENABLED; 
    protected boolean myProfilingP = DEFAULT_PROFILING;
@@ -114,8 +113,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       Integrator.ConstrainedBackwardEuler;
    protected Integrator myIntegrator = DEFAULT_INTEGRATOR;
 
+   // Pardiso where available, otherwise MUMPS (e.g., on Arm-based MacOS)
    protected static SparseSolverId DEFAULT_MATRIX_SOLVER =
-      SparseSolverId.Pardiso;
+      SparseSolverId.getDefaultDirectSolver();
    // define a separate default matrix solver that can be overridden
    protected static SparseSolverId myDefaultMatrixSolver =
       DEFAULT_MATRIX_SOLVER;
@@ -253,8 +253,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       myProps.add (
          "warmStartLCPs", "use warm starting for LCPs when possible",
          DEFAULT_WARM_START_LCPS);
-         
-
    }
 
    public void setPenetrationLimit (double lim) {
@@ -305,7 +303,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       else {
          mySolver = new MechSystemSolver (this);
-         mySolver.setStabilization (getStabilization());
+         mySolver.setStabilization (myDefaultStabilization);
          mySolver.setUpdateForcesAtStepEnd (getUpdateForcesAtStepEnd());
          mySolver.setIntegrator (getIntegrator());
          mySolver.setMatrixSolver (getMatrixSolver());
@@ -1659,10 +1657,14 @@ public abstract class MechSystemBase extends RenderableModelBase
       return myDefaultMatrixSolver;
    }
 
-   public void setMatrixSolver (SparseSolverId method) {
-      myMatrixSolver = method;
+   public void setMatrixSolver (SparseSolverId solverId) {
+      myMatrixSolver = solverId;
+      if (!SparseSolverId.isDirectSolverAvailable(solverId)) {
+         throw new IllegalArgumentException (
+            "Solver '"+solverId+"' not available on this platform");
+      }
       if (mySolver != null) {
-         mySolver.setMatrixSolver (method);
+         mySolver.setMatrixSolver (solverId);
          myMatrixSolver = mySolver.getMatrixSolver();
       }
    }
@@ -1673,9 +1675,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public Range getMatrixSolverRange() {
       return new EnumRange<SparseSolverId>(
-         SparseSolverId.class, new SparseSolverId[] {
-            SparseSolverId.Pardiso,
-            SparseSolverId.Mumps });
+         SparseSolverId.class, SparseSolverId.getAvailableDirectSolvers());
    }
 
    public void setIntegrator (Integrator integrator) {

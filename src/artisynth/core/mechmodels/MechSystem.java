@@ -45,7 +45,11 @@ public interface MechSystem {
       // an impulse that moves the system back towards the constraint surface.
       public double dist;      // distance to the constraint surface.
       public double compliance;// inverse stiffness; 0 implies rigid constraint
-      public double damping;   // damping; only used if compliance > 0
+      // compliance damping is applied only if compliance > 0, with the 
+      // effective damping value d being given by 
+      // d = max(damping, h*stepDamping/compliance)
+      public double damping;   // constant damping term
+      public double stepDamping; // h and compliance dependent damping term
       public double force;     // used for computing non-linear compliance
       public boolean coordLimit; // is limit constraint for a joint coordinate
       

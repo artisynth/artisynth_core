@@ -693,20 +693,27 @@ public class ScanWriteUtils {
    
    public static void recursivelyConnectComponents (ModelComponent comp) throws
       IOException {
+      // updateAllInheritedProperties() is itself recursive, so call it once
+      // for the whole subtree rather than at every level
+      PropertyUtils.updateAllInheritedProperties (comp);
+      doRecursivelyConnectComponents (comp);
+   }
+
+   private static void doRecursivelyConnectComponents (ModelComponent comp)
+      throws IOException {
       try {
          comp.connectToHierarchy (comp.getParent());
       }
       catch (Exception e) {
-         e.printStackTrace(); 
+         e.printStackTrace();
          throw new IOException (
-            "Cannot connect component to hierarchy: " + 
+            "Cannot connect component to hierarchy: " +
             ComponentUtils.getPathName(comp));
       }
-      PropertyUtils.updateAllInheritedProperties (comp);
       if (comp instanceof CompositeComponent) {
          CompositeComponent ccomp = (CompositeComponent)comp;
          for (int i=0; i<ccomp.numComponents(); i++) {
-            recursivelyConnectComponents (ccomp.get(i));
+            doRecursivelyConnectComponents (ccomp.get(i));
          }
       }
    }

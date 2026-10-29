@@ -207,6 +207,8 @@ sub fixMethodRef {
     my $methodName = $_[1];
     my $methodArgs = $_[2];
 
+    # sometime $ might have been turned into %24; if so, set it back:
+    $className =~ s/\%24/\$/g;
     # this appears instead of a dollar sign in postscript output:
     $className =~ s/\\\\protect\\040\\\\T1\\\\textdollar\\040/\$/g;
     my $classFile = $className;

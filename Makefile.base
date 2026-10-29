@@ -3,14 +3,6 @@ ifndef ARTISYNTH_WEB_ACCOUNT
    ARTISYNTH_WEB_ACCOUNT = $(USER)
 endif
 
-# Artisynth home directory
-ifndef ARTISYNTH_HOME
-   ARTISYNTH_HOME := $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
-   ifeq ($(OS),Windows_NT)
-      ARTISYNTH_HOME := $(subst /,\,$(ARTISYNTH_HOME))
-   endif
-endif
-
 # variable related to accessing the artisynth web server, where we
 # keep online documentation, library files, etc.
 WEBSERVER = research.hct.ece.ubc.ca
@@ -70,24 +62,49 @@ else
 endif
 JAVA_VERSION := $(shell $(JAVAC) -version 2>&1)
 JAVA_VERSION_8 = javac 1.8
+JAVA_RELEASE = 8
 # If Java release is > 8, we can use the --release option:
 ifeq ($(findstring $(JAVA_VERSION_8),$(JAVA_VERSION)),$(JAVA_VERSION_8))
-   JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.8 -target 1.8 -encoding UTF-8
+   JAVACFLAGS = -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.8 -target 1.8 -encoding UTF-8
 else
-   JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src --release 8 -encoding UTF-8 -Xlint:-options
+   JAVACFLAGS = -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src --release $(JAVA_RELEASE) -encoding UTF-8 -Xlint:-options
 endif
 JAVAH = javah
 JAVAHFLAGS = -jni -force
 
-# Classpath
-ifndef CLASSPATH
-   ifeq ($(OS),Windows_NT)
-      CLASSPATH=$(ARTISYNTH_HOME)\classes;$(ARTISYNTH_HOME)\lib\*
+# Classpath: ArtiSynth's classes folder plus the jars listed in lib/LIBRARIES,
+# followed by any existing CLASSPATH entries (minus those for ArtiSynth's lib
+# folder; see bin/makeClasspath). makeClasspath finds the ArtiSynth home
+# folder from its own location, so we only need ROOT_DIR (relative) to find
+# it. CLASSPATH is exported so that any java or javac commands run by recipes
+# inherit it. ARTISYNTH_MAKE_CLASSPATH marks it as already built, so that
+# sub-makes inherit it unchanged instead of appending it to a new copy.
+ifndef ARTISYNTH_MAKE_CLASSPATH
+   ENV_CLASSPATH := $(CLASSPATH)
+   ifeq ($(SYSTEM),Windows)
+      # native Windows command shell
+      CLASSPATH := $(shell $(subst /,\,$(ROOT_DIR))\bin\makeClasspath.bat -addEnv)
    else
-      CLASSPATH=$(ARTISYNTH_HOME)/classes:$(ARTISYNTH_HOME)/lib/*
+      # 'bash' is given explicitly since a native Windows make (e.g., with
+      # Git Bash) may otherwise try to run the script without a shell
+      CLASSPATH := $(shell bash $(ROOT_DIR)/bin/makeClasspath -addEnv)
    endif
-   JAVACFLAGS := -classpath "$(CLASSPATH)" $(JAVACFLAGS)
+   ifeq ($(strip $(CLASSPATH)),)
+      # CURDIR is used instead of abspath since it is not split at spaces
+      $(warning Can't build classpath from lib/LIBRARIES; using lib/*)
+      ifeq ($(OS),Windows_NT)
+         CLASSPATH := $(subst /,\,$(CURDIR)/$(ROOT_DIR))\classes;$(subst /,\,$(CURDIR)/$(ROOT_DIR))\lib\*$(if $(ENV_CLASSPATH),;$(ENV_CLASSPATH))
+      else
+         CLASSPATH := $(CURDIR)/$(ROOT_DIR)/classes:$(CURDIR)/$(ROOT_DIR)/lib/*$(if $(ENV_CLASSPATH),:$(ENV_CLASSPATH))
+      endif
+   endif
+   export ARTISYNTH_MAKE_CLASSPATH := yes
 endif
+export CLASSPATH
+
+# Stamp file recording when the libraries in lib/LIBRARIES were last
+# installed; see the rule at the end of this file.
+LIBS_STAMP = $(ROOT_DIR)/lib/.LIBRARIES_installed
 
 LD = ld
 LD_FLAGS = 
@@ -108,7 +125,7 @@ define RUN_MAKE_IN_SUBDIRS
 	@for dd in $^ _XX_STOP_XX_ ; do \
            if [ -d $$dd ] ; then \
               echo Running $(MAKE) $(MFLAGS) $@ in $$dd -- ; \
-              if (cd $$dd; $(MAKE) $(MFLAGS) $@) ; then true ; else \
+              if (cd $$dd; "$(MAKE)" $(MFLAGS) $@) ; then true ; else \
 		 if echo $(MFLAGS) | grep -q -v k ; then exit 1; fi ; \
               fi ; \
            fi ; \
@@ -123,7 +140,7 @@ endef
 define RUN_SILENT_MAKE_IN_SUBDIRS
 	@for dd in $^ _XX_STOP_XX_ ; do \
            if [ -d $$dd ] ; then \
-              if (cd $$dd; $(MAKE) -s $(MFLAGS) $@ ); then true ; else \
+              if (cd $$dd; "$(MAKE)" -s $(MFLAGS) $@ ); then true ; else \
 	         if echo $(MFLAGS) | grep -q -v k ; then exit 1; fi ; \
 	      fi ; \
            fi ; \
@@ -158,7 +175,7 @@ klean:
 	find -L . -name "*.class" -exec rm {} \;
 
 .PHONY: build
-build: $(ROOT_DIR)/classes
+build: $(ROOT_DIR)/classes $(LIBS_STAMP)
 	$(call FIND_CALL,"*.java") > _sources_.txt
 	"$(JAVAC)" $(JAVACFLAGS) @_sources_.txt
 	$(call RM_CALL, _sources_.txt)
@@ -279,3 +296,23 @@ check-syntax:
 
 $(ROOT_DIR)/classes:
 	$(call MKDIR_CALL,$(ROOT_DIR)/classes)
+
+# Download any libraries listed in lib/LIBRARIES that are missing from lib/
+# (and remove old and obsolete ones), but only when LIBRARIES or lib/OBSOLETE
+# is newer than the stamp file. The stamp is updated only if the installer
+# succeeds, so failed downloads are retried next time.
+# The '-' keeps a failure (e.g., no network) from stopping the build; javac
+# will report any jars that are actually missing.
+ifeq ($(OS),Windows_NT)
+   LIBS_CPATH = $(ROOT_DIR)/lib/vfs2.jar;$(ROOT_DIR)/bin/libraryInstaller.jar
+else
+   LIBS_CPATH = $(ROOT_DIR)/lib/vfs2.jar:$(ROOT_DIR)/bin/libraryInstaller.jar
+endif
+ifeq ($(SYSTEM),Windows)
+   LIBS_STAMP_FILE = $(subst /,\,$(LIBS_STAMP))
+else
+   LIBS_STAMP_FILE = $(LIBS_STAMP)
+endif
+
+$(LIBS_STAMP): $(ROOT_DIR)/lib/LIBRARIES $(wildcard $(ROOT_DIR)/lib/OBSOLETE)
+	-java -cp "$(LIBS_CPATH)" artisynth.core.driver.LibraryInstaller && echo installed> "$(LIBS_STAMP_FILE)"

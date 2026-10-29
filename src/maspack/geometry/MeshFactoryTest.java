@@ -50,6 +50,56 @@ public class MeshFactoryTest {
                  MeshFactory.createQuadSphere (1.0, /* nslices= */6, 0, 0, 0));
    }
    
+   void checkVolume (String name, PolygonalMesh mesh, double vol, double tol) {
+      double v = mesh.computeVolume();
+      if (Math.abs(v-vol) > tol) {
+         throw new TestException (
+            name + ": volume is " + v + ", expected " + vol);
+      }
+   }
+
+   public void testBand() {
+      PolygonalMesh mesh;
+      double[] line = new double[] { 0, 0, 10, 0 };
+      double[] square = new double[] { 0, 0, 10, 0, 10, 10, 0, 10 };
+      int np = 100;
+      double[] circle = new double[2*np];
+      for (int i=0; i<np; i++) {
+         double ang = 2*Math.PI*i/np;
+         circle[2*i] = 5*Math.cos(ang);
+         circle[2*i+1] = 5*Math.sin(ang);
+      }
+      double[] arc = Arrays.copyOf (circle, np);
+
+      // straight line, capped: volume = len*wy*wz
+      mesh = MeshFactory.createQuadBand (line, 0.7, 1, 2, 0.3, false, true);
+      checkVolume ("createQuadBand(line)", mesh, 20, 1e-10);
+      checkMesh ("createQuadBand(line)", mesh);
+      // square loop centered on the curve
+      mesh = MeshFactory.createQuadBand (square, 10, 1, 2, 0, true, false);
+      checkVolume ("createQuadBand(square)", mesh, 80, 1e-10);
+      checkMesh ("createQuadBand(square)", mesh);
+      // square loop with offset; y points inward for a CCW curve
+      mesh = MeshFactory.createQuadBand (square, 10, 1, 2, 0.5, true, false);
+      checkVolume ("createQuadBand(square,offset)", mesh, 72, 1e-10);
+      checkMesh ("createQuadBand(square,offset)", mesh);
+      // circular loop
+      mesh = MeshFactory.createQuadBand (circle, 0.5, 1, 2, 0, true, false);
+      checkVolume ("createQuadBand(circle)", mesh, 2*Math.PI*5*2, 0.1);
+      checkMesh ("createQuadBand(circle)", mesh);
+      // open arc (49/100 of the circle), capped
+      mesh = MeshFactory.createQuadBand (arc, 0.5, 1, 2, 0, false, true);
+      checkVolume ("createQuadBand(arc)", mesh, 0.49*2*Math.PI*5*2, 0.1);
+      checkMesh ("createQuadBand(arc)", mesh);
+      // triangulated version
+      mesh = MeshFactory.createBand (circle, 0.5, 1, 2, 0, true, false);
+      if (!mesh.isTriangular()) {
+         throw new TestException ("createBand returns non-triangular mesh");
+      }
+      checkVolume ("createBand(circle)", mesh, 2*Math.PI*5*2, 0.1);
+      checkMesh ("createBand(circle)", mesh);
+   }
+
    public void testMaxMin() {
       PolygonalMesh mesh = new PolygonalMesh();
       //mesh = MeshFactory.createSphere (10, 10);
@@ -87,6 +137,7 @@ public class MeshFactoryTest {
       try {
          tester.test();
          tester.testMaxMin();
+         tester.testBand();
       }
       catch (Exception e) {
          e.printStackTrace();

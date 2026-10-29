@@ -57,9 +57,6 @@ public abstract class ElasticContactBase extends ContactForceBehavior {
    protected static boolean DEFAULT_USE_LOG_DISTANCE = true;
    boolean myUseLogDistance = DEFAULT_USE_LOG_DISTANCE;
 
-   protected static boolean DEFAULT_USE_LOCAL_CONTACT_AREA = true;
-   boolean myUseLocalContactArea = DEFAULT_USE_LOCAL_CONTACT_AREA;
-
    public static FieldPropertyList myProps =
    new FieldPropertyList (ElasticContactBase.class, MaterialBase.class);
 
@@ -84,10 +81,6 @@ public abstract class ElasticContactBase extends ContactForceBehavior {
       myProps.add (
          "useLogDistance", "generate force using log(1-d/thickness)",
          DEFAULT_USE_LOG_DISTANCE);
-      myProps.add (
-         "useLocalContactArea",
-         "compute contact area locally to each vertex",
-         DEFAULT_USE_LOCAL_CONTACT_AREA);
    }
 
    /**
@@ -246,31 +239,6 @@ public abstract class ElasticContactBase extends ContactForceBehavior {
    }
 
    /**
-    * Queries whether local contact areas are used for computing
-    * contact pressure. See {@link #setUseLocalContactArea}.
-    * 
-    * @return {@code true} if local contact areas are used for
-    * computing pressure
-    */
-   public boolean getUseLocalContactArea() {
-      return myUseLocalContactArea;
-   }
-
-   /**
-    * Queries whether local contact areas are used for computing contact
-    * pressure. If enabled, then within {@link #computeResponse}, the system
-    * will attempt to determine the area around each contact using local vertex
-    * information for that contact. Otherwise, it will use the value of the
-    * {@code contactArea} argument.
-    * 
-    * @param enable if {@code true}, enables using local contact areas for
-    * computing pressure
-    */
-   public void setUseLocalContactArea (boolean enable) {
-      myUseLocalContactArea = enable;
-   }
-
-   /**
     * {@inheritDoc}
     */
    public ElasticContactBase clone() {
@@ -305,35 +273,6 @@ public abstract class ElasticContactBase extends ContactForceBehavior {
       }
    }
 
-   /**
-    * Convenience method to estimate the area of a contact, given the first
-    * contact point, the contact normal, the value of the {@code contactArea}
-    * argument to [@link #computeResponse}, and the current setting of the
-    * property {@code useLocalContactArea}.
-    */
-   protected double getContactArea (
-      ContactPoint cpnt, Vector3d normal, double contactArea) {
-     
-      double area;
-      if (myUseLocalContactArea) {
-         area = cpnt.computeContactArea (normal);
-         if (area == -1) {
-            throw new IllegalArgumentException (
-               "LinearElasticContact: no vertex associated with contact point."+
-               "Make sure the contact method is set to VERTEX_PENETRATION.");
-         }
-      }
-      else {
-         if (contactArea == -1) {
-            throw new IllegalArgumentException (
-               "LinearElasticContact: contactArea undefined. Make sure the "+
-               "collider type is set to AJL_CONTOUR.");
-         }
-         area = contactArea;
-      }
-      return area;
-   }
-   
    protected double getScalarFieldValue (
       ScalarFieldComponent field, ContactPoint cpnt0, ContactPoint cpnt1) {
       if (field instanceof ScalarMeshField) {

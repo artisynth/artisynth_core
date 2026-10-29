@@ -296,6 +296,8 @@ public class ReaderTokenizer {
    private int myLineNum = 1;
 
    private boolean myEolIsSignificantP = false;
+   // true if a token other than EOL has been read on the current line
+   private boolean myTokenOnLine = false;
    private boolean mySlashSlashCommentsP = false;
    private boolean mySlashStarCommentsP = false;
    private boolean myLowerCaseModeP = false;
@@ -1342,6 +1344,7 @@ public class ReaderTokenizer {
          sb.append ((char)c);
       }
       myTokenPushedBack = false;
+      myTokenOnLine = false;
       return sb.toString();
    }
 
@@ -1368,6 +1371,7 @@ public class ReaderTokenizer {
          }
       }
       myTokenPushedBack = false;
+      myTokenOnLine = false;
    }
 
    private boolean infinityParsed() throws IOException {
@@ -1866,6 +1870,12 @@ public class ReaderTokenizer {
          myTokenPushedBack = false;
          return ttype;
       }
+      int type = readToken();
+      myTokenOnLine = (type != TT_EOL && type != TT_EOF);
+      return type;
+   }
+
+   private int readToken() throws IOException {
 
       myTokenIsInteger = false;
       myTokenIsHex = false;
@@ -1915,9 +1925,13 @@ public class ReaderTokenizer {
                buf.append ((char)c);
             }
             myLastCommentLine = buf.toString();
-            // skip EOL as well, otherwise we get EOL after EOL after EOL 
-            // for a bunch of comments if EOL is significant
-            c = getc();
+            // If the comment is the only thing on its line, skip the EOL as
+            // well, otherwise we get EOL after EOL after EOL for a bunch of
+            // comments if EOL is significant. If the comment follows other
+            // tokens, the EOL is kept, so that it ends their line.
+            if (!myEolIsSignificantP || !myTokenOnLine) {
+               c = getc();
+            }
          }
          else if ((type & C_WHITESPACE) != 0) {
             c = getc();
@@ -1989,6 +2003,7 @@ public class ReaderTokenizer {
    public void setReader (Reader reader) {
       myReader = reader;
       ungetIdx = 0;
+      myTokenOnLine = false;
       myLineNum = 1;
       myBufNext = 0;
       myBufMax = 0;

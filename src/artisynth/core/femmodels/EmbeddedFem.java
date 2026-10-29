@@ -28,7 +28,9 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.matrix.VectorNd;
 import maspack.solvers.DirectSolver;
+import maspack.solvers.MumpsSolver;
 import maspack.solvers.PardisoSolver;
+import maspack.solvers.SparseSolverId;
 import maspack.util.FunctionTimer;
 import maspack.util.Logger;
 
@@ -39,7 +41,9 @@ import maspack.util.Logger;
 public class EmbeddedFem {
    
    public static int DEFAULT_SAMPLES = 1000;
-   private static Class<? extends DirectSolver> mySolverClass = PardisoSolver.class;
+   // null means use the platform's default direct solver (see
+   // SparseSolverId.getDefaultDirectSolver())
+   private static Class<? extends DirectSolver> mySolverClass = null;
    
    /**
     * Set sparse matrix solver for use in computing best-fitting node values
@@ -54,7 +58,15 @@ public class EmbeddedFem {
     * @return solver class type
     */
    public static Class<? extends DirectSolver> getSolverClass() {
-      return mySolverClass;
+      if (mySolverClass != null) {
+         return mySolverClass;
+      }
+      else if (SparseSolverId.getDefaultDirectSolver() == SparseSolverId.Mumps) {
+         return MumpsSolver.class;
+      }
+      else {
+         return PardisoSolver.class;
+      }
    }
    
    /**
@@ -64,7 +76,12 @@ public class EmbeddedFem {
    private static DirectSolver createSolver() {
       DirectSolver solver = null;
       try {
-         solver = mySolverClass.newInstance ();
+         if (mySolverClass == null) {
+            solver = SparseSolverId.getDefaultDirectSolver().createDirectSolver();
+         }
+         else {
+            solver = mySolverClass.newInstance ();
+         }
       } catch (Exception e) {
          e.printStackTrace();
       }

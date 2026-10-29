@@ -201,14 +201,6 @@ public class ScalarSubElemField extends ScalarFemField {
       setName (name);
    }
 
-   protected double[] initValueArray (FemElement3dBase elem) {
-      double[] varray = new double[elem.numAllIntegrationPoints()];
-      for (int i=0; i<varray.length; i++) {
-         varray[i] = myDefaultValue;
-      }
-      return varray;
-   }
-
    private void checkElemNum (int elemNum) {
       int maxNum = myFem.getElements().getNumberLimit();
       if (elemNum >= maxNum) {

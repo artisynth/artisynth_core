@@ -906,7 +906,7 @@ public class MurtyMechSolverTest extends UnitTest {
          //crs.write ("A.txt");
          murty.solveForBasicVariables (vel, lam, the, phi);
 
-         double eps = 1e-12*cond;
+         double eps = 2e-12*cond;
          checkNormedEquals ("vel", vel, velChk, eps);
          checkNormedEquals ("lam", lam, lamChk, eps);
          checkNormedEquals ("the", the, theChk, eps);

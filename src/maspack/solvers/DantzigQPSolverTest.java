@@ -225,9 +225,150 @@ public class DantzigQPSolverTest extends UnitTest {
       }
    }
 
+   /**
+    * Checks that a warm started solve produced the same result as a cold
+    * started one. Warm starting changes only the pivot sequence, and so must
+    * not change the solution for problems with a unique minimum.
+    */
+   private void checkWarmAgainstCold (
+      Status coldStatus, VectorNd xcold,
+      Status warmStatus, VectorNd xwarm, String msg) {
+
+      if (coldStatus != Status.SOLVED || warmStatus != Status.SOLVED) {
+         throw new TestException (
+            "Unexpected status ("+msg+"): cold=" + coldStatus +
+            ", warm=" + warmStatus);
+      }
+      if (!xwarm.epsilonEquals (xcold, 1e-10)) {
+         throw new TestException (
+            "Warm started solution ("+msg+"):\n" + xwarm +
+            "\nDiffers from cold started solution:\n" + xcold);
+      }
+   }
+
+   private MatrixNd createSPD (int size) {
+      MatrixNd B = new MatrixNd (size, size);
+      B.setRandom();
+      MatrixNd H = new MatrixNd (size, size);
+      H.mulTransposeLeft (B, B);
+      // add to the diagonal to keep H well conditioned
+      for (int i=0; i<size; i++) {
+         H.add (i, i, 1.0);
+      }
+      return H;
+   }
+
+   /**
+    * Tests warm starting, as controlled by {@link
+    * DantzigQPSolver#setWarmStartEnabled}. Solutions are compared against
+    * those produced by a second, cold started solver.
+    */
+   public void warmStartTest() {
+      int size = 10;    // problem size
+      int nineq = 6;    // number of inequality constraints
+      int neq = 2;      // number of equality constraints
+
+      DantzigQPSolver cold = new DantzigQPSolver();
+      DantzigQPSolver warm = new DantzigQPSolver();
+
+      check ("warm starts should be disabled by default",
+             !cold.getWarmStartEnabled());
+      warm.setWarmStartEnabled (true);
+      check ("getWarmStartEnabled() should return true",
+             warm.getWarmStartEnabled());
+
+      MatrixNd H = createSPD (size);
+      VectorNd f = new VectorNd (size);
+      MatrixNd A = new MatrixNd (nineq, size);
+      VectorNd b = new VectorNd (nineq);
+      MatrixNd Aeq = new MatrixNd (neq, size);
+      VectorNd beq = new VectorNd (neq);
+      f.setRandom();
+      A.setRandom();
+      b.setRandom();
+      Aeq.setRandom();
+      beq.setRandom();
+
+      VectorNd xcold = new VectorNd (size);
+      VectorNd xwarm = new VectorNd (size);
+      VectorNd df = new VectorNd (size);
+
+      // A sequence of slowly varying problems, as arises when a QP is solved
+      // at each step of a simulation. This is the case warm starting is
+      // intended for, so also check that it reduces the pivot count.
+      int coldPivots = 0;
+      int warmPivots = 0;
+      for (int k=0; k<100; k++) {
+         df.setRandom (-0.02, 0.02);
+         f.add (df);
+
+         Status cstat = cold.solve (xcold, H, f, A, b);
+         coldPivots += cold.myLcp.getPivotCount();
+         Status wstat = warm.solve (xwarm, H, f, A, b);
+         warmPivots += warm.myLcp.getPivotCount();
+         checkWarmAgainstCold (cstat, xcold, wstat, xwarm, "inequalities only");
+
+         cstat = cold.solve (xcold, H, f, A, b, Aeq, beq);
+         wstat = warm.solve (xwarm, H, f, A, b, Aeq, beq);
+         checkWarmAgainstCold (cstat, xcold, wstat, xwarm, "with equalities");
+      }
+      check ("warm starting should reduce the pivot count, but cold=" +
+             coldPivots + " and warm=" + warmPivots, warmPivots < coldPivots);
+
+      // Changing the number of inequality constraints invalidates the retained
+      // state, which must then be discarded instead of being used to seed the
+      // solve. The retained state is checked directly, since a stale state
+      // still yields the right answer: the LCP solver falls back to a cold
+      // solve when a warm start fails.
+      for (int nc : new int[] { 6, 3, 9, 0, 5, 6 }) {
+         MatrixNd Anc = new MatrixNd (nc, size);
+         VectorNd bnc = new VectorNd (nc);
+         Anc.setRandom();
+         bnc.setRandom();
+
+         Status cstat = cold.solve (xcold, H, f, Anc, bnc);
+         Status wstat = warm.solve (xwarm, H, f, Anc, bnc);
+         checkWarmAgainstCold (cstat, xcold, wstat, xwarm, "nineq=" + nc);
+         if (nc > 0) {
+            // nc == 0 is solved without an LCP, and so leaves the state alone
+            checkEquals (
+               "retained state size for nineq=" + nc,
+               warm.myLcpState.size(), nc);
+         }
+
+         cstat = cold.solve (xcold, H, f, Anc, bnc, Aeq, beq);
+         wstat = warm.solve (xwarm, H, f, Anc, bnc, Aeq, beq);
+         checkWarmAgainstCold (
+            cstat, xcold, wstat, xwarm, "nineq=" + nc + " with equalities");
+         if (nc > 0) {
+            checkEquals (
+               "retained state size for nineq=" + nc + " with equalities",
+               warm.myLcpState.size(), nc);
+         }
+      }
+
+      // disabling warm starts should restore cold start behavior
+      warm.setWarmStartEnabled (false);
+      check ("getWarmStartEnabled() should return false",
+             !warm.getWarmStartEnabled());
+      checkEquals ("retained state size after disabling warm starts",
+                   warm.myLcpState.size(), 0);
+      Status cstat = cold.solve (xcold, H, f, A, b);
+      Status wstat = warm.solve (xwarm, H, f, A, b);
+      checkWarmAgainstCold (cstat, xcold, wstat, xwarm, "warm starts disabled");
+   }
+
    public void test() {
-      simpleCubeTest();
-      matlabTests();
+      // Run the tests both cold and warm started. Each problem here has a
+      // unique minimum, so enabling warm starts must not change any solution,
+      // even though the state is being carried over between unrelated problems.
+      for (boolean warmStart : new boolean[] { false, true }) {
+         mySolver.setWarmStartEnabled (warmStart);
+         simpleCubeTest();
+         matlabTests();
+      }
+      mySolver.setWarmStartEnabled (false);
+      warmStartTest();
    }
 
    public static void main (String[] args) {

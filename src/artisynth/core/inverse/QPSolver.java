@@ -22,18 +22,35 @@ import maspack.solvers.DantzigQPSolver.Status;
  *
  * <p>Optionally the solver also checks the point it gets back against the
  * program it handed over, and re-solves without the equality constraints when
- * the two disagree. Two conditions trigger that retry:
+ * the two disagree. The check is on the point rather than on the status,
+ * because the status alone is not enough: the equality-constrained path
+ * reduces to a linear complementarity problem whose matrix is built from the
+ * KKT system {@code [Q Aeq'; Aeq 0]}. That system is a saddle point and
+ * therefore indefinite, while the complementarity solver assumes a positive
+ * semidefinite matrix, so a solve can terminate on a basis that satisfies
+ * neither the equalities nor the bounds and still report
+ * {@link Status#SOLVED}. Two conditions trigger a retry:
  *
  * <OL>
- * <LI>a solve that did not succeed, or returned a point containing NaN</LI>
- * <LI>a solve that returned a point far enough outside the inequality set</LI>
+ * <LI>a solve that returned nothing. The underlying solver leaves its
+ * solution at zero when it finds no answer, and an incremental controller
+ * then adds zero, so the excitations freeze while the model keeps moving.
+ * Zero respects the bounds, so a bounds test cannot see this; what gives it
+ * away is that the equalities still want something the solution does not
+ * deliver. A reported failure and a point containing NaN count here too.</LI>
+ * <LI>a solve that returned a point far enough outside the inequality set to
+ * do damage - and only far enough. Where the controller is incremental the
+ * box shifts with the value already reached, so a small excursion leaves a
+ * feasible interval pointing back inwards and the next step pulls it in
+ * unaided. See {@link #getBoundsThreshold}.</LI>
  * </OL>
  *
- * Far enough means above {@link #getBoundsThreshold}, since a small excursion
- * is pulled back by the next step on its own and only a large one does not.
- * The retry demotes every equality term to a cost term, so its targets are
- * approached rather than met, and {@link #getFallbackCount} and
- * {@link #getFallbackTimes} record where that happened.
+ * A large equality residual on a point that is otherwise admissible does
+ * <i>not</i> trigger a retry: such a step tracks its targets poorly once and
+ * recovers, which is the cheaper failure. The retry demotes every equality
+ * term to a cost term, so its targets are approached rather than met, and
+ * {@link #getFallbackCount} and {@link #getFallbackTimes} record where that
+ * happened.
  *
  * <p>The retry is off by default, leaving the behaviour of an existing model
  * unchanged. It matters once the targets are equality constraints rather than
@@ -60,9 +77,22 @@ public class QPSolver {
    public static final boolean DEFAULT_FALLBACK_ENABLED = false;
    /**
     * How far outside the inequality set a returned point has to be before the
-    * step is retried.
+    * step is retried. A magnitude, not a tolerance: where the controller is
+    * incremental the box shifts with the value already reached, so a small
+    * excursion is pulled back by the next step unaided and is cheaper left
+    * alone than repaired.
     */
    public static final double DEFAULT_BOUNDS_THRESHOLD = 1.0;
+   /**
+    * Relative tolerance on the equality right hand side, which separates a
+    * solve that returned nothing from one whose equalities wanted nothing.
+    */
+   public static final double DEFAULT_EQUALITY_TOLERANCE = 1e-9;
+   /**
+    * Below this the solution counts as identically zero, which is what the
+    * underlying solver leaves behind when it finds nothing.
+    */
+   public static final double DEFAULT_ZERO_TOLERANCE = 1e-12;
    /**
     * Absolute tolerance on the inequality constraints, used to decide whether
     * a retry repaired the step.
@@ -84,6 +114,8 @@ public class QPSolver {
    protected boolean myFallbackEnabled = DEFAULT_FALLBACK_ENABLED;
    protected double myBoundsThreshold = DEFAULT_BOUNDS_THRESHOLD;
    protected double myBoundsTol = DEFAULT_BOUNDS_TOLERANCE;
+   protected double myEqTol = DEFAULT_EQUALITY_TOLERANCE;
+   protected double myZeroTol = DEFAULT_ZERO_TOLERANCE;
    protected double myFallbackCostScale = DEFAULT_FALLBACK_COST_SCALE;
    protected int myMaxReports = DEFAULT_MAX_REPORTS;
 
@@ -146,10 +178,15 @@ public class QPSolver {
          return x;
       }
 
-      // A solve that did not succeed leaves x untouched, so the zeros it
-      // carries are not an answer. NaN is checked separately because an
-      // infinity norm skips it rather than propagating it.
-      boolean frozen = (myStatus != Status.SOLVED) || containsNaN (x);
+      // The point, not the status: a solve that found nothing leaves x at
+      // zero, and what gives that away is that the equalities still want
+      // something. A reported failure and a NaN are taken as well - the
+      // first cannot leave a usable point, and an infinity norm skips NaN
+      // rather than propagating it - but neither is relied on alone.
+      boolean frozen =
+         (x.infinityNorm () <= myZeroTol
+          && myBeq.infinityNorm () > myEqTol * Math.max (1.0, myBeq.infinityNorm ()))
+         || myStatus != Status.SOLVED || containsNaN (x);
       double boundsRes = inequalityViolation (x);
       // A small excursion recovers on its own; only a large one does not.
       boolean inadmissible = boundsRes > myBoundsThreshold;
@@ -572,6 +609,40 @@ public class QPSolver {
     */
    public void setBoundsTolerance (double tol) {
       myBoundsTol = tol;
+   }
+
+   /**
+    * @return relative tolerance on the equality right hand side. See
+    * {@link #DEFAULT_EQUALITY_TOLERANCE}.
+    */
+   public double getEqualityTolerance () {
+      return myEqTol;
+   }
+
+   /**
+    * Sets the relative tolerance on the equality right hand side.
+    *
+    * @param tol relative tolerance
+    */
+   public void setEqualityTolerance (double tol) {
+      myEqTol = tol;
+   }
+
+   /**
+    * @return magnitude below which a solution counts as identically zero.
+    * See {@link #DEFAULT_ZERO_TOLERANCE}.
+    */
+   public double getZeroTolerance () {
+      return myZeroTol;
+   }
+
+   /**
+    * Sets the magnitude below which a solution counts as identically zero.
+    *
+    * @param tol zero tolerance
+    */
+   public void setZeroTolerance (double tol) {
+      myZeroTol = tol;
    }
 
    /**

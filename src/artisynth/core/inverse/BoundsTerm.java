@@ -68,6 +68,12 @@ public class BoundsTerm extends QPConstraintTermBase {
       }
       
       int numex = controller.myExciters.size();
+      // Computed incrementally the variable is the change in excitation, so
+      // each bound shifts by the value already reached. Applied as each row is
+      // written, since only there is the row index of a given exciter known:
+      // an exciter with an unbounded side contributes no row, and rowoff may
+      // already be past the rows of an earlier inequality term.
+      boolean incremental = controller.getComputeIncrementally();
 
       // get lower bounds first, then upper bounds, just to ensure numeric
       // repeatability with legacy code
@@ -83,6 +89,9 @@ public class BoundsTerm extends QPConstraintTermBase {
                else {
                   A.set (rowoff, j, 0.0);
                }
+            }
+            if (incremental) {
+               lower -= controller.getExcitation(i);
             }
             b.set (rowoff++, lower);
          }
@@ -100,15 +109,10 @@ public class BoundsTerm extends QPConstraintTermBase {
                   A.set (rowoff, j, 0.0);
                }
             }
+            if (incremental) {
+               upper -= controller.getExcitation(i);
+            }
             b.set (rowoff++, -upper);
-         }
-      }
-
-      if (controller.getComputeIncrementally()) {
-         for (int i=0; i<numex; i++) {
-            double ex = controller.getExcitation(i);
-            b.add (i, -ex);
-            b.add (i+numex, ex);
          }
       }
       return rowoff;

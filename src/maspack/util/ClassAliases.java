@@ -7,6 +7,8 @@
 package maspack.util;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -198,9 +200,50 @@ public class ClassAliases {
             + classId + " not a subclass of " + superclass.getName());
          }
       }
-      return cls.newInstance();
+      return newInstance (cls);
    }
-   
+
+   /**
+    * Creates an instance of a class using its no-args constructor. Unlike
+    * {@code Class.newInstance()}, the constructor need not be public.
+    * Exceptions thrown by the constructor itself are propagated if they are
+    * unchecked, or wrapped in an InstantiationException otherwise.
+    *
+    * @param cls class to instantiate
+    * @return new instance of the class
+    */
+   public static <T> T newInstance (Class<T> cls)
+      throws InstantiationException, IllegalAccessException {
+      Constructor<T> ctor;
+      try {
+         ctor = cls.getDeclaredConstructor();
+      }
+      catch (NoSuchMethodException e) {
+         String msg = "class " + cls.getName() + " has no no-args constructor";
+         if (cls.isMemberClass() && !Modifier.isStatic (cls.getModifiers())) {
+            msg += " (it is a non-static inner class)";
+         }
+         throw new InstantiationException (msg);
+      }
+      ctor.setAccessible (true);
+      try {
+         return ctor.newInstance();
+      }
+      catch (InvocationTargetException e) {
+         Throwable cause = e.getCause();
+         if (cause instanceof RuntimeException) {
+            throw (RuntimeException)cause;
+         }
+         else if (cause instanceof Error) {
+            throw (Error)cause;
+         }
+         InstantiationException ie = new InstantiationException (
+            "constructor for " + cls.getName() + " threw " + cause);
+         ie.initCause (cause);
+         throw ie;
+      }
+   }
+
    public static Object newInstance (
       String classId, Class<?> superclass, Object... args)
       throws InstantiationException, IllegalAccessException {

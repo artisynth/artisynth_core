@@ -1130,7 +1130,7 @@ public class ScanWriteUtils {
          }
          Scannable comp = null;
          try {
-            comp = (Scannable)compClass.newInstance();
+            comp = (Scannable)ClassAliases.newInstance (compClass);
          }
          catch (Exception e) {
             throw new IOException (
@@ -1340,7 +1340,7 @@ public class ScanWriteUtils {
          return (C)ctor.newInstance (cinfo.typeParam);
       }
       else {
-         return (C)cinfo.compClass.newInstance();
+         return (C)ClassAliases.newInstance (cinfo.compClass);
       }
    }
 

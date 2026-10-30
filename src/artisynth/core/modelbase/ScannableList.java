@@ -415,7 +415,7 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
                ancestor = ancestor.getParent();
             }
          }
-         return (C)baseClass.newInstance();
+         return (C)ClassAliases.newInstance (baseClass);
       }
    }
 

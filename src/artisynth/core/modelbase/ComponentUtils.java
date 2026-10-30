@@ -1045,10 +1045,10 @@ public class ComponentUtils {
          }
          T comp;
          try {
-            comp = (T)cls.newInstance();
+            comp = (T)ClassAliases.newInstance (cls);
          }
          catch (Exception e) {
-            throw new IOException ("cannot create instance of " + cls);
+            throw new IOException ("cannot create instance of " + cls, e);
          }
          if (ancestor == null && comp instanceof CompositeComponent) {
             ancestor = (CompositeComponent)comp;

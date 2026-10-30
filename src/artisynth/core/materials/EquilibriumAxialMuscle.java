@@ -597,11 +597,15 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       if (myMuscleLengthPrev == 0) {
          return 0;
       }
-      else if (ltprev <= T+eps || denom == 0) {
+      else if (ltprev <= T+eps || !(denom > 0)) {
+         // slack tendon, or muscle stiffness so negative (descending limb)
+         // that the series split is undefined: muscle takes all of ldot
          return ldot;
       }
       else {
-         return myDt*ldot/denom;
+         // the muscle's share Dt/(Dm+Dt) lies in [0,1] for Dm >= 0; clip it
+         // for Dm < 0, where it would exceed 1 and blow up as denom -> 0
+         return Math.min (myDt/denom, 1.0)*ldot;
       }
    }
 
@@ -609,7 +613,9 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       int numIters = 3;
       double vm = 0;
       double lmprev = 0;
-      double lprev = l - ldot*myH;
+      // myH <= 0 means no step has been taken yet (the constructor sets it
+      // to -1), so there is no meaningful previous length to extrapolate to
+      double lprev = (myH > 0 ? l - ldot*myH : l);
       for (int k=0; k<numIters; k++) {
          //vm = computeVmFromLdot (ldot);
          lmprev = computeLmWithConstantVm (lprev, vm, a);
@@ -711,7 +717,9 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       double lm;
       double vm;
       //double deltalm = estimateDeltaLm (l-lprev, ldot, lmprev);
-      if (myComputeLmDotFromLDot) {
+      if (myComputeLmDotFromLDot || myH <= 0) {
+         // Before the first step (myH <= 0), vm = (lm-lmprev)/h is undefined,
+         // so estimate vm from ldot, as done for initialization.
          vm = computeVmFromLdot (ldot);
          lm = computeLmWithConstantVm (l, vm, excitation);
          computeDerivs (l, lm, vm, excitation);
@@ -762,7 +770,10 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       double dfa = computeActiveForceLengthDeriv(ln)*dln;
       double dfp = computePassiveForceLengthDeriv(ln)*dln;
       double vterm = myDamping;
-      if (!myIgnoreForceVelocity && vn != 0) {
+      if (!myIgnoreForceVelocity) {
+         // include the slope at vn = 0 too, as computeFm() does; otherwise
+         // the damping is underestimated whenever vm is exactly 0, e.g. in
+         // static holds with computeLmDotFromLDot
          double dfv = computeForceVelocityDeriv (vn, a);
          vterm += a*fa*dfv;
       }
@@ -924,17 +935,39 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
             updateMuscleLength (l, ldot, excitation);
             myLengthValid = true;
          }
-         double denom = myDm + myDt;
-         if (vmFromTendon) {
-            denom += myDv/myH;
-         }
-         if (denom != 0) {
+         double denom = computeStiffnessDenom();
+         if (denom > 0) {
             return myMaxIsoForce*myDm*myDt/denom;
          }
          else {
             return 0;
          }
       }
+   }
+
+   /**
+    * Returns true if muscle velocity is computed as {@code (lm-lmprev)/h},
+    * which makes the muscle force depend on lm through the force velocity
+    * curve and damping, as well as through the force length curves.
+    */
+   private boolean vmDependsOnLm() {
+      return myH > 0 && (vmFromTendon || !myComputeLmDotFromLDot);
+   }
+
+   /**
+    * Returns d(fm - ft)/d lm, normalized by maxIsoForce, for the most recent
+    * muscle length solve. This is the denominator of the series stiffness and
+    * damping of the muscle-tendon unit. When the muscle velocity is computed
+    * from the change in lm, it includes Dv/h; without that term the
+    * denominator is wrong and can reach 0 on the descending limb of the
+    * active force length curve, where Dm < 0.
+    */
+   private double computeStiffnessDenom() {
+      double denom = myDm + myDt;
+      if (vmDependsOnLm()) {
+         denom += myDv/myH;
+      }
+      return denom;
    }
    
    /**
@@ -990,15 +1023,18 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
             updateMuscleLength (l, ldot, excitation);
             myLengthValid = true;
          }
-         double denom = myDm + myDt;
-         if (vmFromTendon) {
-            denom += myDv/myH;
+         double denom = computeStiffnessDenom();
+         if (!(denom > 0)) {
+            return 0;
          }
-         if (denom != 0) {
+         else if (vmDependsOnLm()) {
             return myMaxIsoForce*myDv*myDt/denom;
          }
          else {
-            return 0;
+            // vm = s*ldot with s from computeVmFromLdot(), so the force
+            // depends on ldot through vm, with dvm/dldot = s
+            double s = computeVmFromLdot (1.0);
+            return myMaxIsoForce*myDv*myDt*s/denom;
          }
       }
    }

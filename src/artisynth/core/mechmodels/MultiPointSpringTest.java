@@ -12,6 +12,7 @@ import java.io.*;
 import artisynth.core.modelbase.ScanTest;
 import artisynth.core.mechmodels.MultiPointSpring.*;
 import maspack.matrix.*;
+import maspack.render.RenderObject;
 import maspack.util.*;
 import maspack.spatialmotion.*;
 
@@ -497,11 +498,157 @@ public class MultiPointSpringTest extends UnitTest {
       }
    }
 
+   /**
+    * Calls prerender for the spring's points and the spring itself, and
+    * returns the spring's resulting render object.
+    */
+   RenderObject prerender (MultiPointSpring spr, Point... pnts) {
+      for (Point p : pnts) {
+         p.prerender (null);
+      }
+      spr.prerender (null);
+      return spr.myRenderObj;
+   }
+
+   /**
+    * Checks that the positions of a spring's render object match the current
+    * positions of its segment points and knots.
+    */
+   void checkRenderPositions (MultiPointSpring spr, RenderObject robj) {
+      ArrayList<Point3d> expected = new ArrayList<>();
+      ArrayList<Segment> segs = spr.getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
+         expected.add (seg.myPntB.getPosition());
+         if (seg instanceof WrapSegment) {
+            WrapSegment wseg = (WrapSegment)seg;
+            for (int k=0; k<wseg.myNumKnots; k++) {
+               expected.add (wseg.myKnots[k].myPos);
+            }
+         }
+         if (i == segs.size()-1) {
+            expected.add (seg.myPntA.getPosition());
+         }
+      }
+      checkEquals ("number of render positions",
+                   robj.numPositions(), expected.size());
+      for (int i=0; i<expected.size(); i++) {
+         float[] pos = robj.getPosition (i);
+         Point3d chk = expected.get(i);
+         Vector3d err = new Vector3d (pos[0]-chk.x, pos[1]-chk.y, pos[2]-chk.z);
+         if (err.norm() > 1e-6) {
+            throw new TestException (
+               "render position "+i+" is "+pos[0]+" "+pos[1]+" "+pos[2]+
+               ", expected " + chk.toString ("%g"));
+         }
+      }
+   }
+
+   void checkRenderObjectReused (
+      String msg, RenderObject robj, RenderObject prev, boolean reused) {
+      if (reused && robj != prev) {
+         throw new TestException (msg + ": render object was rebuilt");
+      }
+      else if (!reused && robj == prev) {
+         throw new TestException (msg + ": render object was not rebuilt");
+      }
+   }
+
+   /**
+    * Tests that the render object is reused when the spring's structure is
+    * unchanged, and rebuilt when the structure or the knot contact
+    * configuration changes. Rebuilding on every render would allocate new
+    * graphics resources each time.
+    */
+   void testRenderObjectUpdating() {
+      MechModel mech = new MechModel();
+      Point p0 = new Point (new Point3d (0, 0, 0));
+      Point p1 = new Point (new Point3d (1, 0, 0));
+      TestCondPoint cp = new TestCondPoint (new Point3d (1.5, 0.5, 0), false);
+      Point p2 = new Point (new Point3d (2, 0, 0));
+      Point p3 = new Point (new Point3d (3, 0, 0));
+      mech.addPoint (p0);
+      mech.addPoint (p1);
+      mech.addPoint (cp);
+      mech.addPoint (p2);
+      mech.addPoint (p3);
+
+      // one wrappable and two straight segments, one of them with a
+      // conditional point
+      MultiPointSpring spr = new MultiPointSpring();
+      mech.addMultiPointSpring (spr);
+      spr.addPoint (p0);
+      spr.setSegmentWrappable (10);
+      spr.addPoint (p1);
+      spr.addPoint (cp);
+      spr.addPoint (p2);
+      Point[] pnts = new Point[] { p0, p1, cp, p2, p3 };
+
+      RenderObject robj = prerender (spr, pnts);
+      checkRenderPositions (spr, robj);
+
+      // nothing changed: same render object
+      RenderObject prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused ("unchanged spring", robj, prev, true);
+      checkRenderPositions (spr, robj);
+
+      // points and knots moved: same render object, updated positions
+      p1.setPosition (new Point3d (1, 0.2, 0.1));
+      p2.setPosition (new Point3d (2, -0.3, 0));
+      WrapSegment wseg = (WrapSegment)spr.getSegments().get(0);
+      for (int k=0; k<wseg.myNumKnots; k++) {
+         wseg.myKnots[k].myPos.set (0.1*(k+1), 0.05, 0);
+      }
+      prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused ("moved points and knots", robj, prev, true);
+      checkRenderPositions (spr, robj);
+
+      // knot contact changed: rebuilt
+      wseg.myKnots[3].setWrappableIdx (0);
+      prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused ("knot contact added", robj, prev, false);
+      checkRenderPositions (spr, robj);
+      prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused ("unchanged contact", robj, prev, true);
+      wseg.myKnots[3].setWrappableIdx (-1);
+      prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused ("knot contact removed", robj, prev, false);
+      checkRenderPositions (spr, robj);
+
+      // conditional point becomes active: rebuilt
+      cp.setActive (true);
+      spr.maybeUpdateForConditionals();
+      prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused ("conditional point activated", robj, prev, false);
+      checkRenderPositions (spr, robj);
+      cp.setActive (false);
+      spr.maybeUpdateForConditionals();
+      prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused (
+         "conditional point deactivated", robj, prev, false);
+      checkRenderPositions (spr, robj);
+
+      // point added: rebuilt
+      spr.addPoint (p3);
+      prev = robj;
+      robj = prerender (spr, pnts);
+      checkRenderObjectReused ("point added", robj, prev, false);
+      checkRenderPositions (spr, robj);
+   }
+
    public void test() {
       //tester.test(0); // force and Jacobians should be 0
       //tester.test(1); // force and Jacobians should be 0
 
       testSpecEditting();
+      testRenderObjectUpdating();
 
       // test(2);
       // test(3);

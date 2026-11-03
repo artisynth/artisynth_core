@@ -218,6 +218,10 @@ public class MultiPointSpring extends PointSpringBase
    protected RenderProps myABRenderProps;
    protected RenderObject myRenderObj; // used to render the strands
    protected boolean myRenderObjValidP = false;
+   // position arrays (stored by reference in myRenderObj) and their roles,
+   // used to detect when the render object structure must be rebuilt
+   private ArrayList<float[]> myRenderObjPositions = new ArrayList<>();
+   private DynamicIntArray myRenderObjPositionTypes = new DynamicIntArray();
 
    /* === Property declarations and accessors === */
 
@@ -2300,11 +2304,29 @@ public class MultiPointSpring extends PointSpringBase
    private static int WRAPPED_SEGS = 1;
    private static int DISPLACEMENTS = 2;
 
+   // roles of the positions in the render object, used to detect structure
+   // changes
+   private static final int STRAIGHT_POS = 0;
+   private static final int WRAPPED_POS = 1;
+   private static final int FREE_KNOT_POS = 2;
+   private static final int CONTACTING_KNOT_POS = 3;
+
+   private static int renderPosType (int lineGroup, WrapKnot knot) {
+      if (knot != null) {
+         return knot.inContact() ? CONTACTING_KNOT_POS : FREE_KNOT_POS;
+      }
+      else {
+         return lineGroup == WRAPPED_SEGS ? WRAPPED_POS : STRAIGHT_POS;
+      }
+   }
+
    /**
     * Adds the information to a render object needed to render a specific knot.
     */
    private void addRenderPos (
-      RenderObject robj, float[] pos, WrapKnot knot) {
+      RenderObject robj, int lineGroup, float[] pos, WrapKnot knot) {
+      myRenderObjPositions.add (pos);
+      myRenderObjPositionTypes.add (renderPosType (lineGroup, knot));
       int vidx = robj.vertex (pos);
       if (knot != null) {
          if (knot.inContact()) {
@@ -2332,25 +2354,30 @@ public class MultiPointSpring extends PointSpringBase
       robj.createLineGroup();
       robj.createLineGroup();
       robj.createLineGroup();
+      myRenderObjPositions.clear();
+      myRenderObjPositionTypes.clear();
       ArrayList<Segment> segs = getSegments();
       for (int i=0; i<segs.size(); i++) {
          Segment seg = segs.get(i);
+         int lineGroup;
          if (seg instanceof WrapSegment) {
-            robj.lineGroup (WRAPPED_SEGS);
-            addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
+            lineGroup = WRAPPED_SEGS;
+            robj.lineGroup (lineGroup);
+            addRenderPos (robj, lineGroup, seg.myPntB.getRenderCoords(), null);
             WrapSegment wrapSeg = (WrapSegment)seg;
             for (int k=0; k<wrapSeg.myNumKnots; k++) {
                WrapKnot knot = wrapSeg.myKnots[k];
-               addRenderPos (robj, knot.updateRenderPos(), knot);
-               
+               addRenderPos (robj, lineGroup, knot.updateRenderPos(), knot);
+
             }
          }
          else {
-            robj.lineGroup (STRAIGHT_SEGS);
-            addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
+            lineGroup = STRAIGHT_SEGS;
+            robj.lineGroup (lineGroup);
+            addRenderPos (robj, lineGroup, seg.myPntB.getRenderCoords(), null);
          }
          if (i == segs.size()-1) {
-            addRenderPos (robj, seg.myPntA.getRenderCoords(), null);
+            addRenderPos (robj, lineGroup, seg.myPntA.getRenderCoords(), null);
          }
       }
       if (myDrawDisplacements > 0) {
@@ -2378,8 +2405,67 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Updates the render object for this spring. Not currently used because
-    * render objects are always rebuilt from scratch.
+    * Checks whether the render object for this spring can be reused, i.e.,
+    * whether the current segments, knots and knot contact states would
+    * produce the same positions (by reference) with the same roles as those
+    * used to build it.
+    */
+   protected boolean renderObjectStructureMatches() {
+      if (myDrawDisplacements > 0) {
+         // displacement tips are not stored by reference
+         return false;
+      }
+      int idx = 0;
+      int npos = myRenderObjPositions.size();
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
+         int lineGroup;
+         if (seg instanceof WrapSegment) {
+            lineGroup = WRAPPED_SEGS;
+            WrapSegment wrapSeg = (WrapSegment)seg;
+            if (idx+1+wrapSeg.myNumKnots > npos ||
+                !renderPosMatches (
+                   idx++, seg.myPntB.getRenderCoords(), lineGroup, null)) {
+               return false;
+            }
+            for (int k=0; k<wrapSeg.myNumKnots; k++) {
+               WrapKnot knot = wrapSeg.myKnots[k];
+               if (!renderPosMatches (
+                      idx++, knot.myRenderPos, lineGroup, knot)) {
+                  return false;
+               }
+            }
+         }
+         else {
+            lineGroup = STRAIGHT_SEGS;
+            if (idx >= npos ||
+                !renderPosMatches (
+                   idx++, seg.myPntB.getRenderCoords(), lineGroup, null)) {
+               return false;
+            }
+         }
+         if (i == segs.size()-1) {
+            if (idx >= npos ||
+                !renderPosMatches (
+                   idx++, seg.myPntA.getRenderCoords(), lineGroup, null)) {
+               return false;
+            }
+         }
+      }
+      return idx == npos;
+   }
+
+   private boolean renderPosMatches (
+      int idx, float[] pos, int lineGroup, WrapKnot knot) {
+      return (myRenderObjPositions.get(idx) == pos &&
+              myRenderObjPositionTypes.get(idx) ==
+                 renderPosType (lineGroup, knot));
+   }
+
+   /**
+    * Updates the render object for this spring, for the case where its
+    * structure has not changed.
     */
    protected void updateRenderObject (RenderObject robj) {
       // updating the render object involves updating the knot render positions
@@ -2404,10 +2490,13 @@ public class MultiPointSpring extends PointSpringBase
       // points are rendered using basic point primitives on a per-segment list
       // of current AB points.
 
-      // Ideally, we want to rebuilt the object when the strand structure
-      // changes *or* the knot contact configuration changes. But since we
-      // can't currently tell the latter, just rebuild every time:
-      myRenderObjValidP = false;
+      // Rebuild the object only when the strand structure or the knot contact
+      // configuration changes. Rebuilding every frame creates new GL
+      // resources each time, which are only released once the old object is
+      // garbage collected; with GL3 and many springs, these pile up quickly.
+      if (myRenderObj == null || !renderObjectStructureMatches()) {
+         myRenderObjValidP = false;
+      }
       if (!myRenderObjValidP) {
          RenderObject robj = buildRenderObject();
          myRenderObj = robj;
@@ -2977,6 +3066,11 @@ public class MultiPointSpring extends PointSpringBase
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       MultiPointSpring comp = (MultiPointSpring)super.copy (flags, copyMap);
+
+      comp.myRenderObj = null;
+      comp.myRenderObjValidP = false;
+      comp.myRenderObjPositions = new ArrayList<>();
+      comp.myRenderObjPositionTypes = new DynamicIntArray();
 
       // copying not currently supported. This method must be completed
       // if that changes.

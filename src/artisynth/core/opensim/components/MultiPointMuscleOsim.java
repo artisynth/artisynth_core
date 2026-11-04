@@ -229,15 +229,4 @@ public class MultiPointMuscleOsim extends MultiPointMuscle
       TransformGeometryContext context, int flags) {
       context.addTransformableDescendants (this, flags);
    }
-
-   // public void getState (DataBuffer data) {
-   //    System.out.println ("getState");
-   //    super.getState (data);
-   // } 
-
-   // public void setState (DataBuffer data) {
-   //    System.out.println ("setState");
-   //    super.setState (data);
-   // }
-
 }

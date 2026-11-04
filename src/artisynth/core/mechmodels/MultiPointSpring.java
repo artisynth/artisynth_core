@@ -124,7 +124,6 @@ public class MultiPointSpring extends PointSpringBase
    public static boolean myDrawWrapPoints = true;
    protected boolean myUpdateContactsP = true;
    protected boolean updateContactsAtUpdateWrapStrandStart = true;
-   protected int myStateVersion = 0;
    
    /* === segment, wrappable and solve block information === */
 
@@ -3455,17 +3454,6 @@ public class MultiPointSpring extends PointSpringBase
    /**
     * {@inheritDoc}
     */
-   public int getStateVersion() {
-      int version = myStateVersion;
-      if (myStateMat != null) {
-         version += myStateMat.getStateVersion();
-      }
-      return version;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
    public void getState (DataBuffer data) {
       super.getState (data);
       ArrayList<Segment> segs = getSegments();
@@ -3545,10 +3533,6 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
    }
-
-   // public void notifyStateVersionChanged() {
-   //    myStateVersion++;
-   // }
 
    /**
     * Sets the knot positions for a wrappable current segment

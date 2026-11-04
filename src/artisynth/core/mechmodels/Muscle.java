@@ -36,16 +36,13 @@ import artisynth.core.materials.LinearAxialMuscle;
 import artisynth.core.materials.EquilibriumAxialMuscle;
 import artisynth.core.materials.PeckAxialMuscle;
 import artisynth.core.materials.SimpleAxialMuscle;
-import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.PropertyChangeListener;
-import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScanToken;
 
 public class Muscle extends AxialSpring
-   implements MuscleComponent, RequiresInitialize, PropertyChangeListener {
+   implements MuscleComponent, RequiresInitialize {
 
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;
@@ -456,17 +453,6 @@ public class Muscle extends AxialSpring
 //   public void setMuscleType (MuscleType muscleType) {
 //      myType = muscleType;
 //   }
-
-  // PropertyChangeListener interface:
-
-   public void propertyChanged (PropertyChangeEvent e) {
-      if (e instanceof MaterialChangeEvent) {
-         MaterialChangeEvent mce = (MaterialChangeEvent)e;
-         if (mce.stateOrSymmetryChanged()) {
-            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
-         }
-      }     
-   }
 
    public void getSoftReferences (List<ModelComponent> refs) {
       super.getSoftReferences (refs);

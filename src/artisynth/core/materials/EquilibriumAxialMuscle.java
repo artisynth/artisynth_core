@@ -35,7 +35,8 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
 
    public static boolean useNewtonSolver = false;
    public static boolean useFindLm = true;
-   public boolean vmFromTendon = false;
+   // upper clipping limit for the muscle velocity ratio Rm
+   public static double maxRm = 10.0;
 
    // Generic muscle properties
 
@@ -77,25 +78,53 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    public static boolean DEFAULT_COMPUTE_LMDOT_FROM_LDOT = false;
    protected boolean myComputeLmDotFromLDot = DEFAULT_COMPUTE_LMDOT_FROM_LDOT;
 
-   // cached quantities:
-   protected double myHeight; // "height" of the pennated muscle
-   // cached derivatives
-   double myDm; // normalized muscle force wrt overall length
-   double myDv; // normalized muscle force wrt overall length velocity
-   double myDt; // normalized tendon force wrt overall length
+   // "height" of muscle, precomputed from opt fibre length and pennation angle
+   protected double myHeight;
 
-   double myH; // most recent time step size
-
-   // muscle length variables
-
+   // The class keeps track of the both muscle length and the overall length
+   // for which the muscle length was derived. One reason we keep both is to
+   // compute the tendon length from myLength - myMuscleLength.
    public static double DEFAULT_MUSCLE_LENGTH = 0;
    double myMuscleLength = DEFAULT_MUSCLE_LENGTH;
    double myLength;
-   double myLengthPrev;
-   boolean myLengthValid = false;
+
+   // ======== Attributes used by the compliant tendon case ========
+
+   // Muscle length determined by the previous time step (or before simulation
+   // starts), and used to estimate muscle velocity estimate if
+   // computeLmDotFromLDot is {@code false}.
    double myMuscleLengthPrev;
-   double myMuscleVel; // cached value of muscle velocity
+   double myH; // most recent time step size
+
+   // Muscle length and associated overall length for the solve performed
+   // whenever myStepValid is false. This will be the solve performed either by
+   // the integrator, or before simulation starts. We keep track of this
+   // because any subsequent solves that happen *after* the integrator has
+   // updated positions needs to use myMuscleLengthStep in place of
+   // myMuscleLengthPrev in order to maintain an accurate muscle velocity
+   // estimate if computeLmDotFromLDot is {@code false}.
+   double myMuscleLengthStep;
+   double myLengthStep;
+   // whether or not 'step' quantities are valid. 
+   boolean myStepValid = false;
+
+   // cached quantities computed during muscle length computation
+   boolean myCacheValid = false; // true if cached quantities are valid
+   double myDm; // derivative of normalized muscle force wrt overall length
+   double myDv; // derivative of normalized muscle force wrt overall velocity
+   double myDt; // derivative of normalized tendon force wrt overall length
+   double myMuscleVel; // muscle velocity
+
+   // The muscle velocity ratio Rm is nominally Dt/(Dt+Dm), with clipping
+   // applied to keep it well conditioned, used to estimate muscle velocity vm
+   // from vm = Rm ldot. It is used to when computeLmDotFromLDot is true,
+   // and three versions are kept:
+   double myRm;           // used by the most recent solve (Rm0 in the notes)
+   double myRmPrev = 1.0; // for the previous solve step
+   double myRmStep;       // for integrator solve, or before simulation starts
    boolean myMuscleLengthValid = false;
+
+   // ======== end compliant tendon attributes ========
    
    int myStateVersion; // changes when we switch to/from rigidTendoon 
    
@@ -487,14 +516,11 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          return fm;
       }
       else {
-         // Compute length regardless of whether length is valid. This ensures
-         // that length will be recomputed if updateForces() is called multiple
-         // times the same time step (e.g., by the inverse controller). without
-         // having to call adbvancestate again.
-         //if (!myLengthValid) {
+         // Compute length regardless of whether the cache is valid. This
+         // ensures that length will be recomputed if updateForces() is called
+         // multiple times the same time step (e.g., by the inverse
+         // controller), without having to call advanceState again.
          updateMuscleLength (l, ldot, excitation);
-         myLengthValid = true;
-         //}
          return getTendonForce (myLength-myMuscleLength);
       }
    }
@@ -506,9 +532,8 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          return computeF (l, ldot, l0, 0);
       }
       else {
-         if (!myLengthValid) {
+         if (!myCacheValid || l != myLength) {
             updateMuscleLength (l, ldot, excitation);
-            myLengthValid = true;
          }
          // solve for passive force given muscle length
          double lm = myMuscleLength;
@@ -589,23 +614,35 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       }
    }
 
-   public double computeVmFromLdot (double ldot) {
+   /**
+    * Returns the ratio vm/ldot used to estimate the muscle velocity from
+    * ldot, given the tendon length lt and the current values of Dm and Dt.
+    */
+   double computeRm (double lt) {
       double T = myTendonSlackLength;
       double eps = T*1e-8;
-      double denom = myDm + myDt;
-      double ltprev = myLengthPrev - myMuscleLengthPrev;
-      if (myMuscleLengthPrev == 0) {
-         return 0;
-      }
-      else if (ltprev <= T+eps || !(denom > 0)) {
-         // slack tendon, or muscle stiffness so negative (descending limb)
-         // that the series split is undefined: muscle takes all of ldot
-         return ldot;
+      if (lt <= T+eps) {
+         // slack tendon: muscle takes all of ldot
+         return 1.0;
       }
       else {
-         // the muscle's share Dt/(Dm+Dt) lies in [0,1] for Dm >= 0; clip it
-         // for Dm < 0, where it would exceed 1 and blow up as denom -> 0
-         return Math.min (myDt/denom, 1.0)*ldot;
+         return computeClippedRm();
+      }
+   }
+
+   /**
+    * Returns Dt/(Dm+Dt), computed from the current values of Dm and Dt and
+    * clipped to [0, maxRm]. Dm+Dt <= 0 gives maxRm. Dm+Dt > 0 and Dm < 0
+    * gives a ratio above 1, which blows up as Dm+Dt -> 0. A slack tendon
+    * (Dt = 0) gives 0.
+    */
+   double computeClippedRm() {
+      double denom = myDm + myDt;
+      if (!(denom > 0)) {
+         return maxRm;
+      }
+      else {
+         return Math.min (myDt/denom, maxRm);
       }
    }
 
@@ -613,19 +650,16 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       int numIters = 3;
       double vm = 0;
       double lmprev = 0;
-      // myH <= 0 means no step has been taken yet (the constructor sets it
-      // to -1), so there is no meaningful previous length to extrapolate to
-      double lprev = (myH > 0 ? l - ldot*myH : l);
+      double lprev = l - ldot*myH;
       for (int k=0; k<numIters; k++) {
-         //vm = computeVmFromLdot (ldot);
          lmprev = computeLmWithConstantVm (lprev, vm, a);
          myMuscleLengthPrev = lmprev;
-         myLengthPrev = lprev;
          computeDerivs (lprev, lmprev, vm, a);     
          if (k < numIters-1) {
-            vm = computeVmFromLdot (ldot);
+            vm = computeRm (lprev-lmprev)*ldot;
          }
       }
+      myRmPrev = computeRm (lprev-lmprev);
       return lmprev;
    }
 
@@ -700,17 +734,36 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    }
 
    private double computeVmFromLm (double l, double ldot, double lm) {
-      if (vmFromTendon) {
-         double ltprev = myLengthPrev-myMuscleLengthPrev;
-         return ldot + (lm+ltprev-l)/myH;
-      }
-      else {
-         return (lm-myMuscleLengthPrev)/myH;
-      }
+      return (lm-myMuscleLengthPrev)/myH;
    }
 
    void updateMuscleLength (double l, double ldot, double excitation) {
-      if (!myMuscleLengthValid && myH != 0) {
+      if (myStepValid && l != myLengthStep) {
+         // Solve at a length other than that of the step start (e.g., a
+         // force query made after the position update). This is relative to
+         // the step start solution, and must not replace it.
+         double lmprev = myMuscleLengthPrev;
+         double ratio = myRmPrev;
+         myMuscleLengthPrev = myMuscleLengthStep;
+         myRmPrev = myRmStep;
+         doUpdateMuscleLength (l, ldot, excitation);
+         myMuscleLengthPrev = lmprev;
+         myRmPrev = ratio;
+      }
+      else {
+         doUpdateMuscleLength (l, ldot, excitation);
+         myLengthStep = l;
+         myMuscleLengthStep = myMuscleLength;
+         myRmStep = computeRm (l-myMuscleLength);
+         myStepValid = true;
+      }
+      myCacheValid = true;
+   }
+
+   void doUpdateMuscleLength (double l, double ldot, double excitation) {
+      // myH <= 0 means no step has been taken yet (the constructor sets it
+      // to -1), so defer initialization until there is a step size
+      if (!myMuscleLengthValid && myH > 0) {
          initializeLmPrevFromLdot (l, ldot, excitation);
          myMuscleLengthValid = true;
       }
@@ -720,7 +773,10 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       if (myComputeLmDotFromLDot || myH <= 0) {
          // Before the first step (myH <= 0), vm = (lm-lmprev)/h is undefined,
          // so estimate vm from ldot, as done for initialization.
-         vm = computeVmFromLdot (ldot);
+         // store dvm/dldot for computeDFdldot(). Use vm = 0 if there is
+         // no previous muscle length.
+         myRm = (myMuscleLengthPrev == 0 ? 0 : myRmPrev);
+         vm = myRm*ldot;
          lm = computeLmWithConstantVm (l, vm, excitation);
          computeDerivs (l, lm, vm, excitation);
       }
@@ -931,16 +987,25 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          }
       }
       else {
-         if (!myLengthValid) {
+         if (!myCacheValid || l != myLength) {
             updateMuscleLength (l, ldot, excitation);
-            myLengthValid = true;
          }
+         // When vm = (lm-lmprev)/h, the force depends only on l, and the
+         // total derivative dF/dl is split into stiffness Dm*Dt/denom and
+         // damping (Dv*Dt/denom)/h, so only K + D/h is exact. K alone can
+         // then be smaller than the quasi-static stiffness, or negative.
          double denom = computeStiffnessDenom();
-         if (denom > 0) {
+         if (!(denom > 0)) {
+            return 0;
+         }
+         else if (vmDependsOnLm()) {
+            // K = Dm Dt/(Dm*+Dt), with Dm* = Dm + Dv/h, so that K + D/h is
+            // the exact dF/dl
             return myMaxIsoForce*myDm*myDt/denom;
          }
          else {
-            return 0;
+            // K = Dm Rm
+            return myMaxIsoForce*myDm*computeClippedRm();
          }
       }
    }
@@ -951,7 +1016,8 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
     * curve and damping, as well as through the force length curves.
     */
    private boolean vmDependsOnLm() {
-      return myH > 0 && (vmFromTendon || !myComputeLmDotFromLDot);
+      // same condition as used to select the solve in doUpdateMuscleLength()
+      return myH > 0 && !myComputeLmDotFromLDot;
    }
 
    /**
@@ -1019,22 +1085,22 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          return (myMaxIsoForce*ftmp*ca*ca/(lo*Vmax));
       }
       else {
-         if (!myLengthValid) {
+         if (!myCacheValid || l != myLength) {
             updateMuscleLength (l, ldot, excitation);
-            myLengthValid = true;
          }
          double denom = computeStiffnessDenom();
          if (!(denom > 0)) {
             return 0;
          }
          else if (vmDependsOnLm()) {
+            // D = Dv Dt/(Dm*+Dt), with Dm* = Dm + Dv/h, assuming the
+            // muscle velocity at the step start equals ldot
             return myMaxIsoForce*myDv*myDt/denom;
          }
          else {
-            // vm = s*ldot with s from computeVmFromLdot(), so the force
-            // depends on ldot through vm, with dvm/dldot = s
-            double s = computeVmFromLdot (1.0);
-            return myMaxIsoForce*myDv*myDt*s/denom;
+            // D = Dv Rm Rm0, where Rm0 = myRm is the ratio used by the solve
+            // to estimate vm from ldot
+            return myMaxIsoForce*myDv*computeClippedRm()*myRm;
          }
       }
    }
@@ -1053,41 +1119,61 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    }
 
    public void setState (DataBuffer data) {
-      // for completeness, store length and muscleLength for rigid tendons
-      myLength = data.dget();
-      myMuscleLength = data.dget();
-      if (!myRigidTendonP) {
+      if (myRigidTendonP) {
+         // for completeness, store length and muscleLength for rigid tendons
+         myLength = data.dget();
+         myMuscleLength = data.dget();
+      }
+      else {
          myMuscleLengthPrev = data.dget();
-         // XXX. Need to store Dt and Dm in case computeLmDotFromLdot is true.
-         myDt = data.dget();
-         myDm = data.dget();
+         myRmPrev = data.dget();
          myH = data.dget();
-         myMuscleLengthValid = data.zgetBool(); // XXX need this?
-         myLengthValid = data.zgetBool(); // XXX need this?
+         myMuscleLengthValid = data.zgetBool();
+         myLengthStep = data.dget();
+         myMuscleLengthStep = data.dget();
+         myRmStep = data.dget();
+         myStepValid = data.zgetBool();
+         // cached values will be recomputed when needed
+         myCacheValid = false;
+         if (myStepValid) {
+            myLength = myLengthStep;
+            myMuscleLength = myMuscleLengthStep;
+         }
       }
    }
 
    public void getState (DataBuffer data) {
-      // for completeness, store length and muscleLength for rigid tendons
-      data.dput(myLength);
-      data.dput(myMuscleLength);
-      if (!myRigidTendonP) {
+      if (myRigidTendonP) {
+         // for completeness, store length and muscleLength for rigid tendons
+         data.dput(myLength);
+         data.dput(myMuscleLength);
+      }
+      else {
          data.dput(myMuscleLengthPrev);
-         // XXX. Need to store Dt and Dm in case computeLmDotFromLdot is true.
-         data.dput(myDt);
-         data.dput(myDm);
+         data.dput(myRmPrev);
          data.dput(myH);
-         data.zputBool (myMuscleLengthValid); // XXX need this?
-         data.zputBool (myLengthValid); // XXX need this?
+         data.zputBool (myMuscleLengthValid);
+         data.dput(myLengthStep);
+         data.dput(myMuscleLengthStep);
+         data.dput(myRmStep);
+         data.zputBool (myStepValid);
       }
    }
 
    public void advanceState (double t0, double t1) {
       if (!myRigidTendonP) {
          myH = (t1 - t0); // store step size for updating muscleLength later
-         myMuscleLengthPrev = myMuscleLength;
-         myLengthPrev = myLength;
-         myLengthValid = false;
+         if (myStepValid) {
+            // use the step start solution, since myMuscleLength may have
+            // been computed at another length since. This was computed
+            // (possibly before the first step), so it provides a valid
+            // previous value.
+            myMuscleLengthPrev = myMuscleLengthStep;
+            myRmPrev = myRmStep;
+            myMuscleLengthValid = true;
+         }
+         myStepValid = false;
+         myCacheValid = false;
       }
    }
    
@@ -1154,7 +1240,12 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       myMuscleLengthPrev *= s;
       myMuscleVel *= s;
       myLength *= s;
-      myLengthPrev *= s;
+      myLengthStep *= s;
+      myMuscleLengthStep *= s;
+      // cached derivatives of normalized force wrt length or velocity
+      myDm /= s;
+      myDt /= s;
+      myDv /= s;
    }
 
    public void scaleMass(double s) {

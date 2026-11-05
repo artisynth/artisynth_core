@@ -506,7 +506,7 @@ public class Thelen2003AxialMuscle extends EquilibriumAxialMuscle {
 
    public Thelen2003AxialMuscle clone() {
       Thelen2003AxialMuscle mat = (Thelen2003AxialMuscle)super.clone();
-      mat.myLengthValid = false;
+      mat.myCacheValid = false;
       return mat;
    }
 

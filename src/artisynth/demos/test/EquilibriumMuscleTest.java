@@ -58,6 +58,10 @@ public class EquilibriumMuscleTest extends RootModel {
    private double myExcitation = 1;
    private double mySpringPos = 0;
 
+   private String myRefFileName = null;     // reference force to compare with
+   private String mySaveRefFileName = null; // file to save reference force to
+   private String mySaveRef1FileName = null; // file to save mus1 force to
+
    public class LengthController extends ControllerBase {
 
       public void apply (double t0, double t1) {
@@ -164,6 +168,38 @@ public class EquilibriumMuscleTest extends RootModel {
             }
             myFibreDamping = Double.valueOf(args[i]);
          }
+         else if (args[i].equals ("-lmdot")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -lmdot needs another argument");
+               continue;
+            }
+            myComputeLmDotFromLDot = Boolean.valueOf(args[i]);
+         }
+         else if (args[i].equals ("-ref")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -ref needs another argument");
+               continue;
+            }
+            myRefFileName = args[i];
+         }
+         else if (args[i].equals ("-saveRef")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -saveRef needs another argument");
+               continue;
+            }
+            mySaveRefFileName = args[i];
+         }
+         else if (args[i].equals ("-saveRef1")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -saveRef1 needs another argument");
+               continue;
+            }
+            mySaveRef1FileName = args[i];
+         }
          else if (args[i].equals ("-length")) {
             myUseForce = false;
          }
@@ -186,6 +222,10 @@ public class EquilibriumMuscleTest extends RootModel {
             System.out.println (" -penAngle <degrees>");
             System.out.println (" -damping <d>");
             System.out.println (" -stepSize <sec>");
+            System.out.println (" -lmdot <true|false>");
+            System.out.println (" -ref <file>");
+            System.out.println (" -saveRef <file>");
+            System.out.println (" -saveRef1 <file>");
          }
       }
       if (myRunTime == -1) {
@@ -574,13 +614,17 @@ public class EquilibriumMuscleTest extends RootModel {
       }
    }
 
-   public double[] computeRelError() {
-      NumericOutputProbe force0 =
-         (NumericOutputProbe)getOutputProbes().get("force 0");
-      NumericOutputProbe force1 =
-         (NumericOutputProbe)getOutputProbes().get("force 1");
-      NumericList nlist0 = force0.getNumericList();
-      NumericList nlist1 = force1.getNumericList();
+   NumericList getForceList (String probeName) {
+      NumericOutputProbe probe =
+         (NumericOutputProbe)getOutputProbes().get(probeName);
+      return probe.getNumericList();
+   }
+
+   /**
+    * Computes the max and average error of the force values in nlist1
+    * relative to those in nlist0, normalized by the max value of nlist0.
+    */
+   public double[] computeRelError (NumericList nlist0, NumericList nlist1) {
       VectorNd refvals = new VectorNd(1);
       double maxf = nlist0.getMaxValues().get(0);
       double maxerr = 0;
@@ -598,6 +642,63 @@ public class EquilibriumMuscleTest extends RootModel {
       }
       avgerr /= nlist1.getNumKnots();
       return new double[] { maxerr, avgerr };
+   }
+
+   /**
+    * Computes the error of force1 relative to force0.
+    */
+   public double[] computeRelError() {
+      return computeRelError (getForceList("force 0"), getForceList("force 1"));
+   }
+
+   /**
+    * Writes the force values of the reference muscle (force0) to a file, one
+    * "t f" pair per line, so that they can be used (via -ref) as a reference
+    * for runs with other step sizes.
+    */
+   void saveReference (String fileName) {
+      saveReference (fileName, "force 0");
+   }
+
+   /**
+    * Writes the force values of the probe forceName (e.g., "force 1" for
+    * the compliant muscle) to a file, in the format of saveReference().
+    */
+   void saveReference (String fileName, String forceName) {
+      NumericList nlist0 = getForceList (forceName);
+      try (PrintWriter pw = new PrintWriter (new FileWriter (fileName))) {
+         for (int k=0; k<nlist0.getNumKnots(); k++) {
+            NumericListKnot knot = nlist0.getKnot(k);
+            pw.printf ("%.10g %.10g\n", knot.t, knot.v.get(0));
+         }
+      }
+      catch (IOException e) {
+         System.out.println ("ERROR: can't write reference file "+fileName);
+         e.printStackTrace();
+      }
+   }
+
+   /**
+    * Reads reference force values written by saveReference().
+    */
+   NumericList loadReference (String fileName) {
+      NumericList nlist = new NumericList (1);
+      try (BufferedReader br = new BufferedReader (new FileReader (fileName))) {
+         String line;
+         while ((line = br.readLine()) != null) {
+            String[] toks = line.trim().split ("\\s+");
+            if (toks.length == 2) {
+               nlist.add (
+                  Double.parseDouble (toks[0]), Double.parseDouble (toks[1]));
+            }
+         }
+      }
+      catch (IOException e) {
+         System.out.println ("ERROR: can't read reference file "+fileName);
+         e.printStackTrace();
+         return null;
+      }
+      return nlist;
    }
 
    double myVnMin, myVnMax;
@@ -623,12 +724,29 @@ public class EquilibriumMuscleTest extends RootModel {
          double maxAvgErr[] = computeRelError();
          System.out.printf (
             "RES: tratio=%4.2f ang=%04.1f time=%3.1f %s step=%5.3f "+
-            "vnrange=[ %6.3f %5.3f ] maxerr: %7.5f avgerr: %7.5f\n",
+            "vnrange=[ %6.3f %5.3f ] maxerr: %7.5f avgerr: %7.5f",
             myTendonSlackLength, myPennationAngleDeg, myRunTime, 
             (myUseMillard ? "Millard" : "Thelen_"),
             getMaxStepSize(),
             myVnMin, myVnMax,
             maxAvgErr[0], maxAvgErr[1]);
+         NumericList reflist;
+         if (myRefFileName != null &&
+             (reflist = loadReference (myRefFileName)) != null) {
+            // errors of force1 and force0 relative to the reference
+            double[] err1 = computeRelError (reflist, getForceList("force 1"));
+            double[] err0 = computeRelError (reflist, getForceList("force 0"));
+            System.out.printf (
+               " ref1: %7.5f %7.5f ref0: %7.5f %7.5f",
+               err1[0], err1[1], err0[0], err0[1]);
+         }
+         System.out.println ("");
+         if (mySaveRefFileName != null) {
+            saveReference (mySaveRefFileName);
+         }
+         if (mySaveRef1FileName != null) {
+            saveReference (mySaveRef1FileName, "force 1");
+         }
       }
       return sa;
    }

@@ -115,7 +115,6 @@ public class Millard2012AxialMuscleTest extends UnitTest {
       Millard2012AxialMuscle vmat = mat.clone();
       Millard2012AxialMuscle cmat = mat.clone();
       Millard2012AxialMuscle tmat = mat.clone();
-      tmat.vmFromTendon = true;
       cmat.setComputeLmDotFromLDot (true);
 
       double fvprev = 0;

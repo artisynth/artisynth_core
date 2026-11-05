@@ -1107,7 +1107,7 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       mat.myPassiveForceLengthCurve = maybeCopy (myPassiveForceLengthCurve);
       mat.myTendonForceLengthCurve = maybeCopy (myTendonForceLengthCurve);
       mat.myForceVelocityCurve = maybeCopy (myForceVelocityCurve);
-      mat.myLengthValid = false;
+      mat.myCacheValid = false;
 
       return mat;
    }

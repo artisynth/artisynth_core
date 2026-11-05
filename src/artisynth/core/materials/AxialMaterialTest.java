@@ -238,6 +238,7 @@ public class AxialMaterialTest extends UnitTest {
       double ex = 0.5;
       Thelen2003AxialMuscle mmat = new Thelen2003AxialMuscle (
          2.0, 2.0, 0.6, Math.toRadians(30));
+      // derivatives for compliant case are tested in EquilibriumAxialMuscleTest
       mmat.setRigidTendon (true);
 
       double maxL = 2.0;
@@ -245,18 +246,18 @@ public class AxialMaterialTest extends UnitTest {
       double maxV = 2.5;
       double minV = -2.5;
 
-      mmat.setIgnoreForceVelocity (true);
-      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
-      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
-      mmat.setIgnoreForceVelocity (false);
-      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
-      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      for (int k=0; k<2; k++) {
+         mmat.setIgnoreForceVelocity ((k%2) == 0);
+         testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+         testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      }
    }
 
    public void testMillard2012AxialMuscle (double tol) {
       double ex = 0.5;
       Millard2012AxialMuscle mmat = new Millard2012AxialMuscle (
          2.0, 2.0, 0.6, Math.toRadians(30));
+      // derivatives for compliant case are tested in EquilibriumAxialMuscleTest
       mmat.setRigidTendon (true);
 
       double maxL = 2.0;
@@ -265,12 +266,11 @@ public class AxialMaterialTest extends UnitTest {
       double minV = -2.5;
 
       mmat.setFibreDamping (1.0);
-      mmat.setIgnoreForceVelocity (true);
-      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
-      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
-      mmat.setIgnoreForceVelocity (false);
-      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
-      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      for (int k=0; k<2; k++) {
+         mmat.setIgnoreForceVelocity ((k%2) == 0);
+         testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+         testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      }
    }
 
    public void testBlankevoort1991Ligament (double tol) {

@@ -87,10 +87,18 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
       return mat.computeF (l, ldot, 0, a);
    }
 
+   double myDerivTol = 1e-6;
+   double myMaxDerivErr = 0;
+   boolean myPrintDerivErrs = false;
+
    private void checkDeriv (
       String msg, double d, double dnum, double fmax) {
       double err = Math.abs(d-dnum)/Math.max(fmax, Math.abs(dnum));
-      if (err > 1e-5) {
+      myMaxDerivErr = Math.max (myMaxDerivErr, err);
+      if (myPrintDerivErrs) {
+         System.out.printf ("%-70s err=%8.2e\n", msg, err);
+      }
+      if (err > myDerivTol) {
          throw new TestException (
             msg + ": computed "+d+", numeric "+dnum+", rel error "+err);
       }
@@ -121,49 +129,100 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
       mat.computeF (l0, 0, 0, a);
       mat.advanceState (0, h);
       double l = l0 + ldot*h;
-      if (lmDotFromLDot) {
-         // let the stored Dm, Dt (used to estimate vm) settle at l
-         mat.computeF (l, ldot, 0, a);
-         mat.computeF (l, ldot, 0, a);
-      }
       DataBuffer state = new DataBuffer();
       mat.getState (state);
 
       double f0 = computeFAtState (mat, state, l, ldot, a);
       double K = mat.computeDFdl (l, ldot, 0, a);
       double D = mat.computeDFdldot (l, ldot, 0, a);
+      // current Rm, at l, used for dF/dl when vm is estimated from ldot
+      double Rm = mat.computeClippedRm();
 
+      // central differences
       double dl = 1e-7*l;
-      double dFdl = (computeFAtState (mat, state, l+dl, ldot, a)-f0)/dl;
+      double dFdl = (computeFAtState (mat, state, l+dl, ldot, a)-
+                     computeFAtState (mat, state, l-dl, ldot, a))/(2*dl);
       String msg = mat.getClass().getSimpleName()+" lmDotFromLDot="
          +lmDotFromLDot+" lnorm="+lnorm+" a="+a+" ldot="+ldot;
       if (lmDotFromLDot) {
-         double dv = 1e-7;
+         double dv = 1e-8; // fv curvature changes at vm = 0, so keep dv small
          double dFdldot =
-            (computeFAtState (mat, state, l, ldot+dv, a)-f0)/dv;
+            (computeFAtState (mat, state, l, ldot+dv, a)-
+             computeFAtState (mat, state, l, ldot-dv, a))/(2*dv);
          checkDeriv (msg+" dF/dl", K, dFdl, fmax);
          checkDeriv (msg+" dF/dldot", D, dFdldot, fmax*h);
       }
       else {
          checkDeriv (msg+" K+D/h", K+D/h, dFdl, fmax);
+         // D must account for the force change due to lmprev advancing over
+         // the step, (dF/dlmprev) h vm, with vm assumed equal to ldot
+         double dlm = 1e-7*l;
+         double dFdlm0 =
+            (computeFAtState (mat, state, dlm, l, ldot, a)-
+             computeFAtState (mat, state, -dlm, l, ldot, a))/(2*dlm);
+         checkDeriv (msg+" D", D, -h*dFdlm0, fmax*h);
+      }
+      if (myPrintDerivErrs) {
+         System.out.printf ("   Rm=%g\n", Rm);
       }
    }
 
-   void testCompliantDerivatives() {
+   /**
+    * Computes the force at l for the given state, with the previous muscle
+    * length perturbed by dlm.
+    */
+   double computeFAtState (
+      EquilibriumAxialMuscle mat, DataBuffer state, double dlm,
+      double l, double ldot, double a) {
+      state.resetOffsets();
+      mat.setState (state);
+      mat.myMuscleLengthPrev += dlm;
+      return mat.computeF (l, ldot, 0, a);
+   }
+
+   void testCompliantDerivatives (EquilibriumAxialMuscle mat) {
       for (boolean lmDotFromLDot : new boolean[] { false, true }) {
          // near optimal length, and on the descending limb at full activation
          testCompliantDerivatives (
-            new Millard2012AxialMuscle (1000, 0.1, 0.2, 0.1),
-            lmDotFromLDot, 1.0, 0.5, 0.05);
+            (EquilibriumAxialMuscle)mat.clone(), lmDotFromLDot, 1.0, 0.5, 0.05);
          testCompliantDerivatives (
-            new Millard2012AxialMuscle (1000, 0.1, 0.2, 0.1),
-            lmDotFromLDot, 1.3, 1.0, 0.05);
+            (EquilibriumAxialMuscle)mat.clone(), lmDotFromLDot, 1.3, 1.0, 0.05);
       }
       // static hold: with computeLmDotFromLDot, vm is exactly 0 when ldot
       // is 0, and the damping must still include the force-velocity slope
       testCompliantDerivatives (
-         new Millard2012AxialMuscle (1000, 0.1, 0.2, 0.1),
-         true, 1.0, 0.5, 0.0);
+         (EquilibriumAxialMuscle)mat.clone(), true, 1.0, 0.5, 0.0);
+   }
+
+   void testCompliantDerivatives() {
+      // The Brent solver's tolerance on lm (1e-8*(T+lo)) gives errors in the
+      // numeric derivatives of up to about 2e-5 (relative), so use the Newton
+      // solver, which converges much more tightly.
+      boolean saveUseNewton = EquilibriumAxialMuscle.useNewtonSolver;
+      double saveMaxRm = EquilibriumAxialMuscle.maxRm;
+      EquilibriumAxialMuscle.useNewtonSolver = true;
+      // allow Rm > 1, so derivatives on the descending limb are exact
+      EquilibriumAxialMuscle.maxRm = 10;
+      try {
+         testCompliantDerivatives (
+            new Millard2012AxialMuscle (1000, 0.1, 0.2, 0.1));
+         testCompliantDerivatives (
+            new Thelen2003AxialMuscle (1000, 0.1, 0.2, 0.1));
+         // long compliant tendons on the descending limb, for which Rm is
+         // well above 1 (about 3.2 for Millard and 1.4 for Thelen)
+         for (boolean lmDotFromLDot : new boolean[] { false, true }) {
+            testCompliantDerivatives (
+               new Millard2012AxialMuscle (1000, 0.1, 2.0, 0.1),
+               lmDotFromLDot, 1.8, 1.0, 0.05);
+            testCompliantDerivatives (
+               new Thelen2003AxialMuscle (1000, 0.1, 2.0, 0.1),
+               lmDotFromLDot, 1.7, 1.0, 0.05);
+         }
+      }
+      finally {
+         EquilibriumAxialMuscle.useNewtonSolver = saveUseNewton;
+         EquilibriumAxialMuscle.maxRm = saveMaxRm;
+      }
    }
 
    void testDerivatives() {
@@ -208,19 +267,175 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
          "scaleMass", f, scaled.computeF (l, ldot, 0, a), s);
    }
 
+   private void checkUnchanged (String msg, double d, double dscaled) {
+      double err = Math.abs(dscaled-d)/Math.abs(d);
+      if (err > 1e-8) {
+         throw new TestException (
+            msg + ": changed to "+dscaled+" from "+d+" after scaling");
+      }
+   }
+
+   /**
+    * For a compliant tendon in mid-simulation, scaleDistance(s) should scale
+    * the force by s and leave the stiffness and damping unchanged, both from
+    * cached values and after recomputing the muscle length.
+    */
+   public void testCompliantScaling (
+      EquilibriumAxialMuscle mat, boolean lmDotFromLDot) {
+      double s = 1000;
+      double a = 0.5;
+      double h = 0.01;
+      double ldot = 0.05;
+      mat.setRigidTendon (false);
+      mat.setFibreDamping (0.1);
+      mat.setComputeLmDotFromLDot (lmDotFromLDot);
+      double l0 =
+         1.02*mat.getTendonSlackLength() + 1.1*mat.getOptFibreLength();
+      mat.computeF (l0, 0, 0, a);
+      mat.advanceState (0, h);
+      double l = l0 + ldot*h;
+      double f = mat.computeF (l, ldot, 0, a);
+      double K = mat.computeDFdl (l, ldot, 0, a);
+      double D = mat.computeDFdldot (l, ldot, 0, a);
+
+      // scale mat itself, since clone() invalidates the cached values
+      EquilibriumAxialMuscle scaled = mat;
+      scaled.scaleDistance (s);
+      String msg = mat.getClass().getSimpleName()+" lmDotFromLDot="
+         +lmDotFromLDot;
+      checkUnchanged (msg+" cached K", K, scaled.computeDFdl (s*l, s*ldot, 0, a));
+      checkUnchanged (
+         msg+" cached D", D, scaled.computeDFdldot (s*l, s*ldot, 0, a));
+      checkScaledForce (msg, f, scaled.computeF (s*l, s*ldot, 0, a), s);
+      checkUnchanged (msg+" K", K, scaled.computeDFdl (s*l, s*ldot, 0, a));
+      checkUnchanged (msg+" D", D, scaled.computeDFdldot (s*l, s*ldot, 0, a));
+   }
+
+   private void checkEqual (String msg, double d, double dchk) {
+      double err = Math.abs(dchk-d)/Math.abs(d);
+      if (err > 1e-8) {
+         throw new TestException (msg + ": "+dchk+", expected "+d);
+      }
+   }
+
+   /**
+    * For a compliant tendon, a force query at another length between steps
+    * (e.g., by an output probe after the position update) should give the
+    * same force as the next step's solve at that length, and should not
+    * change the next step.
+    */
+   /**
+    * Checks that a query at a length l2 other than that of the step start,
+    * made before the next advanceState(), returns the same values as the
+    * next step at l2, and does not change the next step. Also checks that
+    * repeated solves at the step start length agree, and that the step can
+    * be restored with getState()/setState(). lfrac gives the initial muscle
+    * length as a fraction of the optimal fibre length; for values < 1 the
+    * muscle is on the ascending limb, and Dm > 0, so that the vm/ldot ratio
+    * Dt/(Dm+Dt) is not clipped to 1.
+    */
+   public void testSideQuery (
+      EquilibriumAxialMuscle mat, boolean lmDotFromLDot, double lfrac) {
+      double a = 0.5;
+      double h = 0.01;
+      double ldot = 0.05;
+      mat.setRigidTendon (false);
+      mat.setFibreDamping (0.1);
+      mat.setComputeLmDotFromLDot (lmDotFromLDot);
+      double l0 =
+         1.02*mat.getTendonSlackLength() + lfrac*mat.getOptFibreLength();
+      double l1 = l0 + ldot*h;
+      double l2 = l1 + ldot*h;
+      String msg = mat.getClass().getSimpleName()+" lmDotFromLDot="
+         +lmDotFromLDot+" lfrac="+lfrac;
+
+      EquilibriumAxialMuscle matq = (EquilibriumAxialMuscle)mat.clone();
+      EquilibriumAxialMuscle mats = (EquilibriumAxialMuscle)mat.clone();
+      double f1 = 0;
+      for (EquilibriumAxialMuscle m :
+              new EquilibriumAxialMuscle[] {mat,matq,mats}) {
+         m.computeF (l0, 0, 0, a);
+         m.advanceState (0, h);
+         f1 = m.computeF (l1, ldot, 0, a);
+      }
+      if (lfrac < 1 && !(mat.myDm > 0)) {
+         throw new TestException (msg+": Dm="+mat.myDm+", expected > 0");
+      }
+      // repeated solves at l1 should give the same result
+      checkEqual (msg+" repeated F", f1, mat.computeF (l1, ldot, 0, a));
+      checkEqual (msg+" repeated F", f1, mat.computeF (l1, ldot, 0, a));
+
+      // save the state of mats, query it at l2, and then restore it
+      DataBuffer state = new DataBuffer();
+      mats.getState (state);
+      mats.computeF (l2, 2*ldot, 0, 0.8*a);
+      mats.computeDFdl (l2, 2*ldot, 0, 0.8*a);
+      state.resetOffsets();
+      mats.setState (state);
+
+      // query matq at l2 before the next advanceState
+      double fq = matq.computeF (l2, ldot, 0, a);
+      double Kq = matq.computeDFdl (l2, ldot, 0, a);
+      double Dq = matq.computeDFdldot (l2, ldot, 0, a);
+      checkEqual (msg+" F at l1 after query", f1, matq.computeF (l1, ldot, 0, a));
+      for (EquilibriumAxialMuscle m :
+              new EquilibriumAxialMuscle[] {mat,matq,mats}) {
+         m.advanceState (h, 2*h);
+      }
+      double f = mat.computeF (l2, ldot, 0, a);
+      double K = mat.computeDFdl (l2, ldot, 0, a);
+      double D = mat.computeDFdldot (l2, ldot, 0, a);
+      checkEqual (msg+" queried F", f, fq);
+      checkEqual (msg+" queried K", K, Kq);
+      checkEqual (msg+" queried D", D, Dq);
+      checkEqual (msg+" F after query", f, matq.computeF (l2, ldot, 0, a));
+      checkEqual (
+         msg+" K after query", K, matq.computeDFdl (l2, ldot, 0, a));
+      checkEqual (
+         msg+" D after query", D, matq.computeDFdldot (l2, ldot, 0, a));
+      // derivatives should be recomputed at l2 even if not preceded by F
+      checkEqual (
+         msg+" K after restore", K, mats.computeDFdl (l2, ldot, 0, a));
+      checkEqual (
+         msg+" D after restore", D, mats.computeDFdldot (l2, ldot, 0, a));
+      checkEqual (msg+" F after restore", f, mats.computeF (l2, ldot, 0, a));
+   }
+
+   void testSideQuery() {
+      for (boolean lmDotFromLDot : new boolean[] { false, true }) {
+         for (double lfrac : new double[] { 0.7, 1.1 }) {
+            testSideQuery (new Millard2012AxialMuscle(), lmDotFromLDot, lfrac);
+            testSideQuery (new Thelen2003AxialMuscle(), lmDotFromLDot, lfrac);
+         }
+      }
+   }
+
    void testScaling() {
       testScaling (new Millard2012AxialMuscle());
       testScaling (new Thelen2003AxialMuscle());
+      for (boolean lmDotFromLDot : new boolean[] { false, true }) {
+         testCompliantScaling (new Millard2012AxialMuscle(), lmDotFromLDot);
+         testCompliantScaling (new Thelen2003AxialMuscle(), lmDotFromLDot);
+      }
    }
 
    public void test() {
       testCompliantDerivatives();
       testDerivatives();
       testScaling();
+      testSideQuery();
    }
 
    public static void main (String[] args) {
       EquilibriumAxialMuscleTest tester = new EquilibriumAxialMuscleTest();
+      for (String arg : args) {
+         if (arg.equals ("-verbose")) {
+            tester.myPrintDerivErrs = true;
+         }
+      }
       tester.runtest();
+      if (tester.myPrintDerivErrs) {
+         System.out.printf ("max deriv err=%8.2e\n", tester.myMaxDerivErr);
+      }
    }
 }

@@ -78,6 +78,11 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    public static boolean DEFAULT_COMPUTE_LMDOT_FROM_LDOT = false;
    protected boolean myComputeLmDotFromLDot = DEFAULT_COMPUTE_LMDOT_FROM_LDOT;
 
+   // Transient quasi-static response mode, set by setQuasiStaticResponse().
+   // When true, the muscle length is computed as when computeLmDotFromLDot is
+   // true, and the step start solution is not updated.
+   protected boolean myQuasiStaticResponse = false;
+
    // "height" of muscle, precomputed from opt fibre length and pennation angle
    protected double myHeight;
 
@@ -393,6 +398,48 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
 
    public void setComputeLmDotFromLDot (boolean enable) {
       myComputeLmDotFromLDot = enable;
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>For this material, quasi-static response means that the muscle
+    * length is computed with the muscle velocity estimated from the length
+    * time derivative, as when {@link #getComputeLmDotFromLDot
+    * computeLmDotFromLDot} is {@code true}. This removes the contraction lag
+    * of the compliant tendon model, under which the one-step force response
+    * to excitation is attenuated by approximately {@code h/(tau+h)}, where
+    * {@code h} is the step size and {@code tau} is the contraction time
+    * constant.
+    *
+    * <p>This feature is still experimental.
+    */
+   @Override
+   public void setQuasiStaticResponse (boolean enable) {
+      if (enable != myQuasiStaticResponse) {
+         myQuasiStaticResponse = enable;
+         // cached quantities depend on the mode
+         myCacheValid = false;
+      }
+   }
+
+   /**
+    * Queries whether quasi-static response is enabled, as described in
+    * {@link #setQuasiStaticResponse}.
+    *
+    * @return {@code true} if quasi-static response is enabled
+    */
+   public boolean getQuasiStaticResponse() {
+      return myQuasiStaticResponse;
+   }
+
+   /**
+    * Returns true if the muscle velocity is estimated from the length time
+    * derivative, either because computeLmDotFromLDot is set or because
+    * quasi-static response is enabled.
+    */
+   private boolean estimateVmFromLDot() {
+      return myComputeLmDotFromLDot || myQuasiStaticResponse;
    }
 
    // Muscle and tendon length accessors
@@ -738,7 +785,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    }
 
    void updateMuscleLength (double l, double ldot, double excitation) {
-      if (myStepValid && l != myLengthStep) {
+      if (myStepValid && (l != myLengthStep || myQuasiStaticResponse)) {
          // Solve at a length other than that of the step start (e.g., a
          // force query made after the position update). This is relative to
          // the step start solution, and must not replace it.
@@ -749,6 +796,11 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          doUpdateMuscleLength (l, ldot, excitation);
          myMuscleLengthPrev = lmprev;
          myRmPrev = ratio;
+      }
+      else if (myQuasiStaticResponse) {
+         // Quasi-static solves must not replace the step start solution,
+         // which provides the previous values for the next step
+         doUpdateMuscleLength (l, ldot, excitation);
       }
       else {
          doUpdateMuscleLength (l, ldot, excitation);
@@ -770,7 +822,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       double lm;
       double vm;
       //double deltalm = estimateDeltaLm (l-lprev, ldot, lmprev);
-      if (myComputeLmDotFromLDot || myH <= 0) {
+      if (estimateVmFromLDot() || myH <= 0) {
          // Before the first step (myH <= 0), vm = (lm-lmprev)/h is undefined,
          // so estimate vm from ldot, as done for initialization.
          // store dvm/dldot for computeDFdldot(). Use vm = 0 if there is
@@ -1017,7 +1069,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
     */
    private boolean vmDependsOnLm() {
       // same condition as used to select the solve in doUpdateMuscleLength()
-      return myH > 0 && !myComputeLmDotFromLDot;
+      return myH > 0 && !estimateVmFromLDot();
    }
 
    /**

@@ -141,6 +141,21 @@ ExcitationComponent, HasNumericState {
    }
 
    /**
+    * Enables or disables quasi-static excitation response for all the
+    * targets of this exciter; see {@link
+    * ExcitationComponent#setQuasiStaticResponse}.
+    *
+    * <p>This feature is still experimental.
+    *
+    * @param enable if {@code true}, enables quasi-static response
+    */
+   public void setQuasiStaticResponse (boolean enable) {
+      for (ExcitationComponent ex : myTargets) {
+         ex.setQuasiStaticResponse (enable);
+      }
+   }
+
+   /**
     * {@inheritDoc}
     */
    public void setCombinationRule (CombinationRule rule) {

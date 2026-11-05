@@ -102,6 +102,28 @@ public interface ExcitationComponent extends ModelComponent {
     */
    public double getNetExcitation();
 
+   /**
+    * Enables or disables quasi-static excitation response for this
+    * component. This is a transient mode intended for use by the inverse
+    * tracking controller when forming its excitation response matrices.
+    * While enabled, the component reports its <i>settled</i> response to
+    * excitation, in which internal states through which excitation acts
+    * (such as the fibre length of a compliant tendon muscle) are assumed to
+    * reach equilibrium within the time step, instead of the
+    * lag-attenuated one-step response. Forces and their derivatives remain
+    * mutually consistent, and the component's numeric state is not altered.
+    * The mode should be disabled before the system is advanced.
+    *
+    * <p>Components without such internal states can ignore this
+    * call, which is what the default implementation does.
+    *
+    * <p>This feature is still experimental.
+    *
+    * @param enable if {@code true}, enables quasi-static response
+    */
+   public default void setQuasiStaticResponse (boolean enable) {
+   }
+
 //   /**
 //    * Returns the default weight that should be used when this excitation
 //    * component is being used for inverse actuation control.

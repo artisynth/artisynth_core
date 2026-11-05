@@ -78,6 +78,26 @@ public abstract class AxialMaterial extends MaterialBase {
     */
    public abstract boolean isDFdldotZero();
 
+   /**
+    * Enables or disables quasi-static excitation response for this
+    * material. This is a transient mode, used by the inverse tracking
+    * controller when forming its excitation response matrices, and is not
+    * saved as part of the material. While enabled, the force and its
+    * derivatives are computed assuming that internal states through which
+    * excitation acts (such as the fibre length of a compliant tendon muscle)
+    * reach equilibrium within the time step. Evaluations made in this mode
+    * must not alter the material's numeric state.
+    *
+    * <p>The default implementation does nothing, which is appropriate for
+    * materials without such internal states.
+    *
+    * <p>This feature is still experimental.
+    *
+    * @param enable if {@code true}, enables quasi-static response
+    */
+   public void setQuasiStaticResponse (boolean enable) {
+   }
+
    public boolean equals (AxialMaterial mat) {
       return true;
    }

@@ -77,7 +77,9 @@ public abstract class PointSpringBase extends Spring
    // that of myStateMat. Combined with the version of myStateMat to
    // implement getStateVersion().
    protected int myStateVersion = 0;
-   
+   // transient flag set by setQuasiStaticResponse()
+   protected boolean myQuasiStaticResponse = false;
+
    private static double DEFAULT_REST_LENGTH = 0;
    
    protected double myRestLength = DEFAULT_REST_LENGTH;
@@ -263,12 +265,51 @@ public abstract class PointSpringBase extends Spring
          myStateMat = null;
       }     
       // issue change event in case solve matrix symmetry or state has changed:
-      MaterialChangeEvent mce = 
+      MaterialChangeEvent mce =
          MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
       if (mce != null) {
          notifyParentOfChange (mce);
       }
+      if (myQuasiStaticResponse) {
+         if (oldMat != null && oldMat != newMat) {
+            oldMat.setQuasiStaticResponse (false);
+         }
+         if (newMat != null) {
+            newMat.setQuasiStaticResponse (true);
+         }
+      }
       //return newMat;
+   }
+
+   /**
+    * Enables or disables quasi-static excitation response for this spring,
+    * by passing the request to its effective material. This is a transient
+    * mode used by the inverse tracking controller when forming its excitation
+    * response matrices; see {@link
+    * ExcitationComponent#setQuasiStaticResponse}. For subclasses that
+    * implement {@link ExcitationComponent}, this overrides the default
+    * implementation.
+    *
+    * <p>This feature is still experimental.
+    *
+    * @param enable if {@code true}, enables quasi-static response
+    */
+   public void setQuasiStaticResponse (boolean enable) {
+      myQuasiStaticResponse = enable;
+      AxialMaterial mat = getEffectiveMaterial();
+      if (mat != null) {
+         mat.setQuasiStaticResponse (enable);
+      }
+   }
+
+   /**
+    * Queries whether quasi-static excitation response is enabled for this
+    * spring, as described in {@link #setQuasiStaticResponse}.
+    *
+    * @return {@code true} if quasi-static response is enabled
+    */
+   public boolean getQuasiStaticResponse() {
+      return myQuasiStaticResponse;
    }
 
    public AxialMaterial getEffectiveMaterial() {

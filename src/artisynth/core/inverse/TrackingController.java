@@ -149,6 +149,11 @@ public class TrackingController extends ControllerBase
    public static boolean DEFAULT_NORMALIZE_COST_TERMS = true;
    protected boolean myNormalizeCostTerms = DEFAULT_NORMALIZE_COST_TERMS;
 
+   // compute the excitation response using the quasi-static response of the
+   // exciters (experimental)
+   public static boolean DEFAULT_QUASI_STATIC_RESPONSE = true;
+   protected boolean myQuasiStaticResponse = DEFAULT_QUASI_STATIC_RESPONSE;
+
    // default bounds for the excitation values
    public static DoubleInterval DEFAULT_EXCITATION_BOUNDS =
       new DoubleInterval ("[-inf,inf])");
@@ -250,6 +255,11 @@ public class TrackingController extends ControllerBase
          "normalizeCostTerms",
          "normalize contribution of each cost terms using a frobenius norm",
          DEFAULT_NORMALIZE_COST_TERMS);
+      myProps.add(
+         "quasiStaticResponse",
+         "compute excitation response assuming exciter internal states "+
+         "reach equilibrium within each step",
+         DEFAULT_QUASI_STATIC_RESPONSE);
       myProps.addInheritable (
          "excitationBounds", "bounds for the computed excitations",
          DEFAULT_EXCITATION_BOUNDS);
@@ -639,6 +649,45 @@ public class TrackingController extends ControllerBase
    public void setNormalizeCostTerms (boolean enable) {
       myNormalizeCostTerms = enable;
    }
+
+   /**
+    * Queries whether quasi-static excitation response is enabled, as
+    * described in {@link #setQuasiStaticResponse(boolean)}.
+    *
+    * @return {@code true} if quasi-static response is enabled
+    */
+   public boolean getQuasiStaticResponse() {
+      return myQuasiStaticResponse;
+   }
+
+   /**
+    * Enables or disables quasi-static excitation response. When enabled, the
+    * controller enables quasi-static response for each of its exciters (see
+    * {@link ExcitationComponent#setQuasiStaticResponse}) while computing the
+    * excitations, and disables it afterwards. The excitation response is then
+    * computed assuming that internal states through which excitation acts,
+    * such as the fibre length of a compliant tendon muscle, reach equilibrium
+    * within each time step. Otherwise, for muscles with contraction dynamics,
+    * the one-step response to excitation can be strongly attenuated at small
+    * step sizes, resulting in noisy excitations.
+    *
+    * <p>Quasi-static response is enabled by default. This feature is
+    * still experimental.
+    *
+    * @param enable if {@code true}, enables quasi-static response
+    */
+   public void setQuasiStaticResponse (boolean enable) {
+      myQuasiStaticResponse = enable;
+   }
+
+   /**
+    * Enables or disables quasi-static response for all exciters.
+    */
+   private void setExcitersQuasiStatic (boolean enable) {
+      for (int i=0; i<numExciters(); i++) {
+         getExciter(i).setQuasiStaticResponse (enable);
+      }
+   }
    
    /**
     * Queries the current default bounds for the excitation values.
@@ -1017,21 +1066,32 @@ public class TrackingController extends ControllerBase
          myMech.getState (saveState);
       }
 
-      updateCostTerms (t0, t1);
-
-      // collect cost and constraint terms from among the child components
-      ArrayList<QPCostTerm> costs = new ArrayList<>();
-      ArrayList<QPConstraintTerm> constraints = new ArrayList<>();
-      costs.addAll (getCostTerms());
-      constraints.addAll (getInequalityConstraints());
-      constraints.addAll (getEqualityConstraints());
-
-      if (myMotionTerm.isEnabled()) {
-         myMotionTerm.updateHb (this, t0, t1);
+      VectorNd x;
+      if (myQuasiStaticResponse) {
+         setExcitersQuasiStatic (true);
       }
+      try {
+         updateCostTerms (t0, t1);
 
-      // solve for the excitations, given the cost and constraint terms
-      VectorNd x = myQPSolver.solve (costs, constraints, numExciters(), t0, t1);
+         // collect cost and constraint terms from among the child components
+         ArrayList<QPCostTerm> costs = new ArrayList<>();
+         ArrayList<QPConstraintTerm> constraints = new ArrayList<>();
+         costs.addAll (getCostTerms());
+         constraints.addAll (getInequalityConstraints());
+         constraints.addAll (getEqualityConstraints());
+
+         if (myMotionTerm.isEnabled()) {
+            myMotionTerm.updateHb (this, t0, t1);
+         }
+
+         // solve for the excitations, given the cost and constraint terms
+         x = myQPSolver.solve (costs, constraints, numExciters(), t0, t1);
+      }
+      finally {
+         if (myQuasiStaticResponse) {
+            setExcitersQuasiStatic (false);
+         }
+      }
       if (myComputeIncrementally) {
          // VectorNd deltaActivations = myCostFunction.solve (t0, t1);
          // myExcitations.add (deltaActivations);

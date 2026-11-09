@@ -363,8 +363,9 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
       mulElements(myFbar,weights,myFbar);
 
       if (myWeight >= 0) {
-         myHf.scale(myWeight);
-         myFbar.scale(myWeight);
+         double ws = controller.costTermWeightScale (myWeight);
+         myHf.scale(ws);
+         myFbar.scale(ws);
       }
    }
 

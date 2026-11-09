@@ -36,17 +36,7 @@ public class L2RegularizationTerm extends QPCostTermBase {
       TrackingController controller = getController();
       if (controller != null) { 
          int nume = controller.numExciters();
-         double s = myWeight;
-         if (controller.getNormalizeCostTerms()) {
-            //  divide by trace of the weight matrix
-            double trace = 0;
-            for (int i=0; i<nume; i++) {
-               trace += controller.myExciters.get(i).getWeight();
-            }
-            if (trace != 0) {
-               s = myWeight/trace;
-            }            
-         }
+         double s = myWeight*controller.exciterWeightNormalization();
          if (!controller.getComputeIncrementally()) {
             for (int i=0; i<nume; i++) {
                double sw = s*controller.myExciters.get(i).getWeight();

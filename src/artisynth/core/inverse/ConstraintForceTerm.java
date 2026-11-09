@@ -371,7 +371,8 @@ public class ConstraintForceTerm extends LeastSquaresTermBase {
          myCbar.scale (fn);
       }
       
-      if (controller.getUseTimestepScaling()) {
+      if (!controller.getNormalizeCostTerms() &&
+          controller.getUseTimestepScaling()) {
          // makes it independent of the time step
          myHc.scale(1/h);      
          myCbar.scale(1/h); 
@@ -383,8 +384,9 @@ public class ConstraintForceTerm extends LeastSquaresTermBase {
       mulElements(myCbar,weights,myCbar);
 
       if (myWeight >= 0) {
-          myHc.scale(myWeight);
-          myCbar.scale(myWeight);
+          double ws = controller.costTermWeightScale (myWeight);
+          myHc.scale(ws);
+          myCbar.scale(ws);
        }
    }
 

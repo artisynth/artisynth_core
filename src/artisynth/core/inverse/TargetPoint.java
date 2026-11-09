@@ -69,6 +69,38 @@ public class TargetPoint extends Point implements TrackingTarget {
       return 3;
    }
 
+   // set whenever the velocity is set via setVelocity(); used by the
+   // tracking controller to determine whether the target velocity has been
+   // supplied for the current step
+   protected boolean myVelocitySet = false;
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Also records that the velocity has been explicitly set, so that the
+    * tracking controller will use it instead of estimating it.
+    */
+   @Override
+   public void setVelocity (Vector3d vel) {
+      super.setVelocity (vel);
+      myVelocitySet = true;
+   }
+
+   /**
+    * Queries whether the velocity has been set via {@code setVelocity()}
+    * since the last call to {@link #clearVelocitySet}.
+    */
+   boolean isVelocitySet() {
+      return myVelocitySet;
+   }
+
+   /**
+    * Clears the flag indicating that the velocity has been set.
+    */
+   void clearVelocitySet() {
+      myVelocitySet = false;
+   }
+
    public TargetPoint () {
       super.setDynamic (false);
    }

@@ -35,17 +35,7 @@ public class DampingTerm extends QPCostTermBase {
          int nume = controller.numExciters();
          double h = t1 - t0;
          if (h > 0) { // paranoid - h should be > 0
-            double s = myWeight/(h*h);
-            if (controller.getNormalizeCostTerms()) {
-               //  divide by trace of the weight matrix
-               double trace = 0;
-               for (int i=0; i<nume; i++) {
-                  trace += controller.myExciters.get(i).getWeight();
-               }
-               if (trace != 0) {
-                  s /= trace;
-               }              
-            }
+            double s = myWeight/(h*h)*controller.exciterWeightNormalization();
             if (!controller.getComputeIncrementally()) {
                VectorNd prevEx = controller.getExcitations();
                for (int i=0; i<nume; i++) {

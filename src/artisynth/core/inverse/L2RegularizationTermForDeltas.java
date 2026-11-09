@@ -4,9 +4,9 @@ import maspack.matrix.VectorNd;
 import maspack.matrix.MatrixNd;
 
 /**
- * Cost term proportional to the sum of the excitation values.
- *
- * -- used for l-2 regularization of delta-activations
+ * Cost term that regularizes excitation changes, proportional to the squared
+ * norm of {@code a - a0}, where {@code a0} are the excitations at the start
+ * of the step.
  */
 public class L2RegularizationTermForDeltas extends QPCostTermBase {
 
@@ -26,14 +26,16 @@ public class L2RegularizationTermForDeltas extends QPCostTermBase {
       if (controller != null) {
          VectorNd act = new VectorNd (controller.numExciters());
          controller.getExcitations (act, 0);
-         double s = 1.0;
-         if (controller.getNormalizeCostTerms()) {
-            // divide by trace of I with size of Q
-            s = 1/Math.sqrt(Q.rowSize());
-         }         
+         double s = controller.identityNormalization (Q.rowSize());
+         // In incremental mode, the QP variables are the excitation changes
+         // themselves; otherwise, they are the excitations a, and the cost
+         // (1/2) |a - a0|^2 requires p -= a0.
+         boolean incremental = controller.getComputeIncrementally();
          for (int i=0; i<Q.rowSize(); i++) {
             Q.add (i, i, s*myWeight);
-            p.add (i, s*myWeight*act.get (i));
+            if (!incremental) {
+               p.add (i, -s*myWeight*act.get (i));
+            }
          }
       }
    }

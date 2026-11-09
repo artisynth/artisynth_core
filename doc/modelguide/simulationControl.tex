@@ -2907,6 +2907,15 @@ start and stop times, and {\tt labels}, if present, gives a list of the marker
 labels that should be used for each point; otherwise, points are assigned to
 marker data in order.
 
+\begin{sideblock}
+Because TRC data is often generated at a frequency that either doesn't
+match or is coarser than the simulation rate (e.g., 60 Hz TRC data
+vs. 10 or 1 msec step sizes), the probes created by these methods are
+by default assigned {\sf Cubic} interpolation
+(Section \ref{NumericProbeStructure:sec}) to help ensure smoother
+simulation behavior.
+\end{sideblock}
+
 As a convenience, the following static methods are also supplied:
 
 \begin{methodtable}{0.9}{0.1}

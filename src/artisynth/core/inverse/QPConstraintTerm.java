@@ -27,6 +27,7 @@ public interface QPConstraintTerm extends QPTerm {
     * added
     * @param t0 time at start of step
     * @param t1 time at end of step
+    * @return {@code rowoff} plus the number of constraint rows added
     */
    public int getTerm (MatrixNd A, VectorNd b, int rowoff, double t0, double t1);
 

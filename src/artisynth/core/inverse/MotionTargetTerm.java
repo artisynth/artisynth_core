@@ -16,6 +16,7 @@ import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ComponentList;
+import artisynth.core.modelbase.NumericState;
 import artisynth.core.modelbase.ReferenceComp;
 import artisynth.core.modelbase.ReferenceListBase;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -24,6 +25,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SVDecomposition;
 import maspack.matrix.Vector3d;
@@ -61,14 +63,29 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public static final boolean DEFAULT_USE_PD_CONTROL = false;
    protected boolean usePDControl = DEFAULT_USE_PD_CONTROL;
    
-   public static double DEFAULT_CHASE_TIME = 0.01;
+   // a chase time <= 0 means use the step size
+   public static double DEFAULT_CHASE_TIME = 0;
    protected double myChaseTime = DEFAULT_CHASE_TIME;
+
+   public static boolean DEFAULT_ESTIMATE_TARGET_VELOCITY = true;
+   protected boolean myEstimateTargetVelocity =
+      DEFAULT_ESTIMATE_TARGET_VELOCITY;
 
    public static double DEFAULT_Kd = 100.0;
    protected double Kd = DEFAULT_Kd;
 
-   public static double DEFAULT_Kp = 10000;
+   public static double DEFAULT_Kp = 2500;
    protected double Kp = DEFAULT_Kp;
+
+   // defaults for pdTimeConstant and pdDampingRatio, which are derived
+   // from Kp and Kd
+   public static double DEFAULT_PD_TIME_CONSTANT = 1/Math.sqrt(DEFAULT_Kp);
+   public static double DEFAULT_PD_DAMPING_RATIO =
+      DEFAULT_Kd/(2*Math.sqrt(DEFAULT_Kp));
+
+   // set once a warning about the PD gains has been issued; cleared
+   // whenever the gains change
+   protected boolean myGainWarningIssued = false;
 
 //   public static final boolean DEFAULT_USE_DELTA_ACTIVATIONS = false;
 //   protected boolean useDeltaAct = DEFAULT_USE_DELTA_ACTIVATIONS;
@@ -99,6 +116,94 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    protected VectorNd myEffectiveVbar = new VectorNd();
    protected MatrixNd myEffectiveHv = new MatrixNd();
 
+   // target velocity from the previous call to updateTarget(), and the time
+   // (t1) of that call, used to estimate vT(t0) for PD control
+   protected VectorNd myPrevTargetVel = new VectorNd();
+   protected double myPrevTargetVelTime = -1;
+   protected VectorNd myTargetVel = new VectorNd();
+
+   // target positions and poses from the previous call to updateTarget(),
+   // and the time (t1) of that call, used to estimate target velocities
+   protected ArrayList<Point3d> myPrevTargetPos = new ArrayList<>();
+   protected ArrayList<RigidTransform3d> myPrevTargetPose = new ArrayList<>();
+   protected double myPrevTargetPosTime = -1;
+
+   // version number written at the start of the history state
+   private static final int HISTORY_STATE_VERSION = 1;
+
+   /**
+    * Stores, in {@code nstate}, the values retained from the previous call
+    * to {@link #updateTarget} that are used by target velocity estimation
+    * and PD control. Storing these as part of the controller state ensures
+    * that simulation is exactly repeatable after a state restore.
+    *
+    * @param nstate state in which to store the values
+    * @param initial if {@code true}, store values corresponding to no
+    * previous call, as appropriate for an initial state
+    */
+   void getHistoryState (NumericState nstate, boolean initial) {
+      nstate.zput (HISTORY_STATE_VERSION);
+      if (initial) {
+         nstate.dput (-1);
+         nstate.zput (0);
+         nstate.zput (0);
+         nstate.dput (-1);
+         nstate.zput (0);
+         return;
+      }
+      nstate.dput (myPrevTargetPosTime);
+      nstate.zput (myPrevTargetPos.size());
+      for (Point3d p : myPrevTargetPos) {
+         nstate.dput (p);
+      }
+      nstate.zput (myPrevTargetPose.size());
+      for (RigidTransform3d X : myPrevTargetPose) {
+         nstate.dput (X.p);
+         nstate.dput (X.R);
+      }
+      nstate.dput (myPrevTargetVelTime);
+      nstate.zput (myPrevTargetVel.size());
+      nstate.dput (myPrevTargetVel);
+   }
+
+   /**
+    * Loads the values stored by {@link #getHistoryState} from {@code
+    * nstate}. States saved before these values were added contain no
+    * further integer data at this point, and in that case the values are
+    * reset to indicate no previous call.
+    *
+    * @param nstate state from which to load the values
+    */
+   void setHistoryState (NumericState nstate) {
+      myPrevTargetPos.clear();
+      myPrevTargetPose.clear();
+      if (nstate.zoffset() >= nstate.zsize()) {
+         // older state without history
+         myPrevTargetPosTime = -1;
+         myPrevTargetVelTime = -1;
+         myPrevTargetVel.setSize (0);
+         return;
+      }
+      nstate.zget(); // version, currently unused
+      myPrevTargetPosTime = nstate.dget();
+      int np = nstate.zget();
+      for (int i=0; i<np; i++) {
+         Point3d p = new Point3d();
+         nstate.dget (p);
+         myPrevTargetPos.add (p);
+      }
+      int nf = nstate.zget();
+      for (int i=0; i<nf; i++) {
+         RigidTransform3d X = new RigidTransform3d();
+         nstate.dget (X.p);
+         nstate.dget (X.R);
+         myPrevTargetPose.add (X);
+      }
+      myPrevTargetVelTime = nstate.dget();
+      myPrevTargetVel.setSize (nstate.zget());
+      nstate.dget (myPrevTargetVel);
+   }
+
    public static PropertyList myProps =
       new PropertyList(MotionTargetTerm.class, LeastSquaresTermBase.class);
 
@@ -108,8 +213,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          DEFAULT_LEGACY_CONTROL);
       myProps.add (
          "chaseTime", 
-         "if not using PD control, desired time for catching the target",
-         DEFAULT_CHASE_TIME);
+         "if not using PD control, desired time for catching the target; "+
+         "0 means use the step size",
+         DEFAULT_CHASE_TIME, "[0,inf]");
+      myProps.add (
+         "estimateTargetVelocity", 
+         "estimate target velocities from target positions",
+         DEFAULT_ESTIMATE_TARGET_VELOCITY);
       myProps.add(
          "usePDControl", "use PD controller for motion term",
          DEFAULT_USE_PD_CONTROL);
@@ -119,7 +229,15 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       myProps.add(
          "Kd", "derivative gain", DEFAULT_Kd);
       myProps.add(
-         "Kp", "proportional gain", DEFAULT_Kd);
+         "Kp", "proportional gain", DEFAULT_Kp);
+      myProps.add (
+         "pdTimeConstant",
+         "PD control time constant 1/sqrt(Kp); sets Kp and Kd",
+         DEFAULT_PD_TIME_CONSTANT, "(0,inf] NW");
+      myProps.add (
+         "pdDampingRatio",
+         "PD control damping ratio Kd/(2 sqrt(Kp)); sets Kd",
+         DEFAULT_PD_DAMPING_RATIO, "[0,inf] NW");
       myProps.addReadOnly (
          "velocityError", "velocity error at current timestep");
       myProps.addReadOnly (
@@ -201,20 +319,49 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          }
       }
       else {
+         // Target state has already been advanced to t1 (input probes are
+         // applied before controllers), while the source state is at t0. The
+         // position error is therefore made time consistent by subtracting
+         // h vT(t1), giving eps ~= xT(t0) - x(t0). This also makes the
+         // controller insensitive to vT when chaseTime = h, and tolerant of
+         // vT being missing or inconsistent with the target positions.
          updateSourceVelocity (mySourceVel);
-         if (usePDControl) { 
-            updateVelocityError (myVelError);
-            //myTrackingVel.scale (1.0, mySourceVel);
-            updateTargetVelocity (myTrackingVel);
+         updateTargetVelocity (myTargetVel);
+         if (myEstimateTargetVelocity) {
+            estimateTargetVelocity (myTargetVel, t0, t1);
+         }
+         myPosError.scaledAdd (-h, myTargetVel);
+         if (usePDControl) {
+            checkGains (h);
+            // Discretization of the PD law with target acceleration
+            // feedforward, a* = aT + Kp eps + Kd eta, giving
+            //
+            //   v* = vT(t1) - eta0 + h (Kp eps + Kd eta0),
+            //
+            // where eta0 = vT(t0) - v(t0). The resulting error dynamics
+            // approximate eps'' + Kd eps' + Kp eps = 0 independently of
+            // h, provided h Kd and h sqrt(Kp) are less than about 1. vT(t0)
+            // is taken from the previous call; if that is not available
+            // (first step, or after a reset), vT(t1) is used instead.
+            if (myPrevTargetVel.size() == myTargetVel.size() &&
+                TimeBase.equals (myPrevTargetVelTime, t0)) {
+               myVelError.sub (myPrevTargetVel, mySourceVel);
+            }
+            else {
+               myVelError.sub (myTargetVel, mySourceVel);
+            }
+            myTrackingVel.sub (myTargetVel, myVelError);
             myTrackingVel.scaledAdd (h*Kp, myPosError);
             myTrackingVel.scaledAdd (h*Kd, myVelError);
          }
          else {
-            //myTrackingVel.scale (1/myChaseTime, myPosError);
-            updateTargetVelocity (myTrackingVel);
-            myTrackingVel.scaledAdd (1/myChaseTime, myPosError);
+            // chase times less than h would overshoot the target
+            double T = Math.max (myChaseTime, h);
+            myTrackingVel.set (myTargetVel);
+            myTrackingVel.scaledAdd (1/T, myPosError);
          }
-         //System.out.println (" tvel=  " + myTrackingVel.toString("%12.8f"));         
+         myPrevTargetVel.set (myTargetVel);
+         myPrevTargetVelTime = t1;
       }
       storeTargetVelocity (myTrackingVel);
       
@@ -266,11 +413,15 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
    private int calcPosError (
       VectorNd posError, int idx, Frame source, Frame target) {
-      Xtmp.mulInverseLeft(source.getPose(), target.getPose());
-      veltmp.v.set(Xtmp.p);
+      // error is given in world coordinates, consistent with the frame
+      // velocity state
+      RigidTransform3d XS = source.getPose();
+      RigidTransform3d XT = target.getPose();
+      veltmp.v.sub (XT.p, XS.p);
+      Xtmp.R.mulInverseRight (XT.R, XS.R);
       double rad = Xtmp.R.getAxisAngle(veltmp.w);
       veltmp.w.scale (rad);
-  
+
       double[] buf = posError.getBuffer ();
       buf[idx++] = veltmp.v.x;
       buf[idx++] = veltmp.v.y;
@@ -322,6 +473,85 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       for (int i=0; i<myTargetFrames.size(); i++) {
          idx = myTargetFrames.get(i).getVelState (vbuf, idx);
       }
+   }
+
+   /**
+    * Estimates the target velocities at t1, for targets whose velocities
+    * have not been explicitly set (via {@code setVelocity()}) since the
+    * previous call. Estimates are formed from the target positions at t1 and
+    * those stored from the previous call (at t0), using a backward
+    * difference. Point velocities, and the translational and angular
+    * velocities of frames, are given in world coordinates, consistent with
+    * the velocity state of points and frames. The current target positions
+    * are then stored, and the velocity-set flags cleared, for use in the next
+    * call.
+    *
+    * @param vel target velocities, as obtained from the targets' velocity
+    * state. On return, entries for targets whose velocities have not been
+    * set are replaced by estimates, if available.
+    * @param t0 time at the start of the step
+    * @param t1 time at the end of the step
+    */
+   protected void estimateTargetVelocity (VectorNd vel, double t0, double t1) {
+      int np = myTargetPoints.size();
+      int nf = myTargetFrames.size();
+      // estimates are unavailable on the first step or after a reset or
+      // time jump
+      boolean valid = 
+         (myPrevTargetPos.size() == np &&
+          myPrevTargetPose.size() == nf &&
+          TimeBase.equals (myPrevTargetPosTime, t0) && t1 > t0);
+      double h = t1 - t0;
+      double[] vbuf = vel.getBuffer ();
+      int idx = 0;
+      Vector3d v = new Vector3d();
+      for (int i=0; i<np; i++) {
+         TargetPoint target = myTargetPoints.get(i);
+         if (valid && !target.isVelocitySet()) {
+            v.sub (target.getPosition(), myPrevTargetPos.get(i));
+            v.scale (1/h);
+            vbuf[idx  ] = v.x;
+            vbuf[idx+1] = v.y;
+            vbuf[idx+2] = v.z;
+         }
+         idx += 3;
+      }
+      RotationMatrix3d R = new RotationMatrix3d();
+      Vector3d w = new Vector3d();
+      for (int i=0; i<nf; i++) {
+         TargetFrame target = myTargetFrames.get(i);
+         if (valid && !target.isVelocitySet()) {
+            RigidTransform3d X1 = target.getPose();
+            RigidTransform3d X0 = myPrevTargetPose.get(i);
+            v.sub (X1.p, X0.p);
+            v.scale (1/h);
+            // world angular velocity from R1 = exp([w] h) R0
+            R.mulInverseRight (X1.R, X0.R);
+            double ang = R.getAxisAngle (w);
+            w.scale (ang/h);
+            vbuf[idx  ] = v.x;
+            vbuf[idx+1] = v.y;
+            vbuf[idx+2] = v.z;
+            vbuf[idx+3] = w.x;
+            vbuf[idx+4] = w.y;
+            vbuf[idx+5] = w.z;
+         }
+         idx += 6;
+      }
+      // store current positions and clear velocity-set flags
+      myPrevTargetPos.clear();
+      for (int i=0; i<np; i++) {
+         TargetPoint target = myTargetPoints.get(i);
+         myPrevTargetPos.add (new Point3d (target.getPosition()));
+         target.clearVelocitySet();
+      }
+      myPrevTargetPose.clear();
+      for (int i=0; i<nf; i++) {
+         TargetFrame target = myTargetFrames.get(i);
+         myPrevTargetPose.add (new RigidTransform3d (target.getPose()));
+         target.clearVelocitySet();
+      }
+      myPrevTargetPosTime = t1;
    }
 
    public void storeTargetVelocity (VectorNd vel) {
@@ -789,7 +1019,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          myVbar.scale (fn);
       }
       
-      if (controller.getUseTimestepScaling()) {
+      if (!controller.getNormalizeCostTerms() &&
+          controller.getUseTimestepScaling()) {
          // makes it independent of the time step
          myHv.scale(1/h);      
          myVbar.scale(1/h); 
@@ -800,8 +1031,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       mulElements(myVbar,weights,myVbar);
 
       if (myWeight >= 0) {
-          myHv.scale(myWeight);
-          myVbar.scale(myWeight);
+          double ws = controller.costTermWeightScale (myWeight);
+          myHv.scale(ws);
+          myVbar.scale(ws);
       }
       //System.out.println (" Hv=\n" + myHv.toString ("%12.8f"));
       //System.out.println (" vbar=  " + myVbar.toString ("%12.8f"));
@@ -980,10 +1212,16 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Sets the chase time. This is the time over which the controller tries to
-    * make the source catch up to the target, if not using PD control. Default
-    * value is 0.01. The chase time should generally by {@code >=} the
-    * simulation step size.
+    * Sets the chase time {@code T}. If not using PD control, this is the time
+    * over which the controller tries to make the source catch up to the
+    * target. A value {@code <= 0} (the default) causes {@code T} to be set to
+    * the simulation step size {@code h}, which places the source on the
+    * target at the end of each step. Values less than {@code h} are
+    * treated as {@code h}, since these would overshoot the target. Values
+    * greater than {@code h} give smoother excitations, but cause the source
+    * to lag the target by about {@code (T-h)} times the target velocity,
+    * unless target velocities are either supplied or estimated (see {@link
+    * #setEstimateTargetVelocity}).
     *
     * @param t new chase time
     */
@@ -1001,10 +1239,66 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Proportional gain for PD controller
+    * Enables estimation of the target velocities. If enabled, then for each
+    * target whose velocity has not been explicitly set (via its {@code
+    * setVelocity()} method, which is also used when setting its {@code
+    * velocity} property from a probe) since the previous time step, the
+    * target velocity is estimated from the target positions at the start and
+    * end of the step, using a backward difference. Otherwise, the target
+    * velocity is taken from the target's velocity state, which will be 0
+    * unless explicitly set. Without either explicit setting or estimation,
+    * the source will lag the target when using PD control or a chase time
+    * greater than the step size. Velocity information has no effect for
+    * chase control with a chase time equal to the step size. Target
+    * positions should be smooth (e.g., using cubic interpolation for probe
+    * data) to avoid noise in the estimate. Estimation is not used when legacy
+    * control is enabled. Estimation is enabled by default.
+    *
+    * @param enable if {@code true}, enables target velocity estimation
+    */
+   public void setEstimateTargetVelocity (boolean enable) {
+      myEstimateTargetVelocity = enable;
+   }
+
+   /**
+    * Queries whether target velocity estimation is enabled. See {@link
+    * #setEstimateTargetVelocity}.
+    *
+    * @return {@code true} if target velocity estimation is enabled
+    */
+   public boolean getEstimateTargetVelocity() {
+      return myEstimateTargetVelocity;
+   }
+
+   /**
+    * Prints a warning, once, if the PD gains are too large for the step size
+    * {@code h}, in which case the discrete control law no longer
+    * approximates continuous PD control.
+    */
+   protected void checkGains (double h) {
+      if (!myGainWarningIssued && (h*Kd > 1 || h*h*Kp > 1)) {
+         System.out.println (
+            "Warning: MotionTargetTerm: PD gains Kp=" + Kp + ", Kd=" + Kd +
+            " are too large for step size h=" + h +
+            "; h*Kd and h*sqrt(Kp) should not exceed 1");
+         myGainWarningIssued = true;
+      }
+   }
+
+   /**
+    * Sets the proportional gain {@code Kp} for PD control. For a source
+    * that tracks the desired velocity exactly, the position error {@code e}
+    * obeys {@code e'' + Kd e' + Kp e = 0}, so that {@code sqrt(Kp)} is the
+    * natural frequency and {@code Kd/(2 sqrt(Kp))} the damping ratio. For
+    * critical damping with time constant {@code T}, use {@code Kp = 1/T^2}
+    * and {@code Kd = 2/T}. Both {@code h Kd} and {@code h sqrt(Kp)}, where
+    * {@code h} is the step size, should be less than about 1.
+    *
+    * @param k proportional gain
     */
    public void setKp(double k) {
       Kp = k;
+      myGainWarningIssued = false;
    }
    
    /**
@@ -1017,11 +1311,14 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Derivative gain for PD controller
-    * 
+    * Sets the derivative gain {@code Kd} for PD control. See {@link
+    * #setKp(double)} for details.
+    *
+    * @param k derivative gain
     */
    public void setKd(double k) {
       Kd = k;
+      myGainWarningIssued = false;
    }
    
    /**
@@ -1030,6 +1327,73 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     */
    public double getKd() {
       return Kd;
+   }
+
+   /**
+    * Sets the PD control gains {@code Kp} and {@code Kd} from a time
+    * constant {@code T}, keeping the current damping ratio {@code zeta}
+    * (see {@link #setPdDampingRatio}), according to
+    * <pre>
+    * Kp = 1/T^2,  Kd = 2 zeta/T.
+    * </pre>
+    * {@code 1/T} is the natural frequency of the error dynamics. For
+    * critical damping ({@code zeta = 1}), the position error after a step
+    * decays as {@code (1 + t/T) exp(-t/T)}, reaching 10% of its initial
+    * value after about {@code 3.9 T}. {@code T} should be at least the step
+    * size {@code h}. If the current damping ratio is undefined (because
+    * {@code Kp = 0}), a damping ratio of 1 is used.
+    *
+    * @param T PD control time constant (must be positive)
+    */
+   public void setPdTimeConstant (double T) {
+      if (T <= 0) {
+         throw new IllegalArgumentException (
+            "time constant must be positive; got " + T);
+      }
+      double zeta = (Kp > 0 ? getPdDampingRatio() : 1.0);
+      setKp (1/(T*T));
+      setKd (2*zeta/T);
+   }
+
+   /**
+    * Queries the PD control time constant, given by {@code 1/sqrt(Kp)}.
+    * See {@link #setPdTimeConstant}. Returns infinity if {@code Kp = 0}.
+    *
+    * @return PD control time constant
+    */
+   public double getPdTimeConstant() {
+      return Kp > 0 ? 1/Math.sqrt(Kp) : Double.POSITIVE_INFINITY;
+   }
+
+   /**
+    * Sets the PD control damping ratio {@code zeta}, by setting {@code Kd =
+    * 2 zeta sqrt(Kp)} while leaving {@code Kp} unchanged. A value of 1 gives
+    * critical damping. See {@link #setPdTimeConstant}.
+    *
+    * @param zeta PD control damping ratio (must be non-negative)
+    */
+   public void setPdDampingRatio (double zeta) {
+      if (zeta < 0) {
+         throw new IllegalArgumentException (
+            "damping ratio must be non-negative; got " + zeta);
+      }
+      setKd (2*zeta*Math.sqrt(Kp));
+   }
+
+   /**
+    * Queries the PD control damping ratio, given by {@code
+    * Kd/(2 sqrt(Kp))}. See {@link #setPdDampingRatio}. Returns infinity if
+    * {@code Kp = 0} and {@code Kd > 0}.
+    *
+    * @return PD control damping ratio
+    */
+   public double getPdDampingRatio() {
+      if (Kp > 0) {
+         return Kd/(2*Math.sqrt(Kp));
+      }
+      else {
+         return Kd > 0 ? Double.POSITIVE_INFINITY : 0;
+      }
    }
    
 

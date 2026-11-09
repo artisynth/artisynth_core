@@ -84,6 +84,15 @@ this computation is done by the {\it motion tracker} (Figure
 An {\it excitation generator} then computes $\a$ in order to try and make $\v$
 match $\v_*$ (Section \ref{GeneratingExcitations:sec}).
 
+The target state $(\x_t, \v_t)$ is maintained within a set of {\it
+target} objects that the controller creates to mirror each source
+component (Section \ref{MotionTargets:sec}), and the target positions
+and velocities of these objects are typically specified using probes
+or controllers. Target velocities do not have to be explicitly set; if
+they are not, then they are either estimated from the position targets
+(see the property {\sf estimateTargetVelocity} in
+Section \ref{MotionTargets:sec}), or assumed to be 0.
+
 \begin{sideblock}
 The excitation generator accepts a desired velocity $\v_*$ instead of a desired
 acceleration because ArtiSynth's physics engine computes velocity changes
@@ -110,58 +119,137 @@ $\v_*$ for the next time step based on the current source state $(\x, \v)$ and
 desired target state $(\x_t, \v_t)$. This can be done in two ways: {\it
 chase control} (the default), and {\it PD control}.
 
+Both methods take account of the fact that the target and source states are
+known at different times. Let $h$ be the step size, and let $\x^k$ and $\v^k$
+denote the source position and velocity at the start of the step. Since input
+probes and other controllers are applied before the tracking controller, the
+target state has already been advanced to the end of the step when the
+tracking controller is called, and so is given by $\x_t^{k+1}$ and
+$\v_t^{k+1}$. The position error at the start of the step is then estimated as
+%
+\begin{equation}
+\e \equiv \x_t^{k+1} - h \v_t^{k+1} - \x^k.
+\label{trackingPosError:eqn}
+\end{equation}
+%
+If $\v_t$ is consistent with the motion of $\x_t$, then $\e$ approximates
+$\x_t^k - \x^k$. If it is not (for instance, if $\v_t$ is assumed to be 0
+because it is neither specified nor estimated), then $\e$ also contains a
+velocity correction that helps compensate for this.
+
 \subsubsection{Chase control}
 \label{ChaseControl:sec}
 
-Chase control simply sets $\v_*$ to $\v_t$, plus an additional velocity that
-tries to reduce the position error $\x_t - \x$ over a specified time interval
-$T$, called the {\it chase time}:
+Chase control sets $\v_*$ to $\v_t$, plus an additional velocity that tries to
+reduce the position error over a specified time interval $T$, called the {\it
+chase time}:
 %
 \begin{equation}
-\v_* = \v_t + \frac{\x_t - \x}{T}.
+\v_* = \v_t^{k+1} + \frac{\e}{T}.
 \label{chaseControl:eqn}
 \end{equation}
 %
-In general, $T$ should be greater than or equal to the simulation step size
-$h$. If it is greater, then $\x$ will tend to lag behind $\x_t$, but this will
-also reduce the potential for overshoot due to system
-nonlinearities. Conversely, if $T$ if {\it less} than $h$, then $\x$ is much
-more likely to overshoot.  The default value of $T$ is 0.01.
+If the source attains $\v_*$, the position error decays as $e^{-t/T}$.
+When $T = h$, (\ref{chaseControl:eqn}) reduces to
+%
+\begin{equation*}
+\v_* = \frac{\x_t^{k+1} - \x^k}{h},
+\end{equation*}
+%
+which places the source on the target at the end of each step, regardless of
+$\v_t$. This most closely reproduces the target trajectory, and is often
+the appropriate choice for inverse simulation.
+
+$T$ should not be less than $h$, since the source would then overshoot the
+target.  Larger values of $T$ produce smoother excitations and reduce
+sensitivity to roughness in the target trajectory and to system nonlinearities,
+but introduce a tracking lag of about $(T-h) \|\v_t\|$ if $\v_t$ is neither
+specified nor estimated (Section \ref{MotionTargets:sec}). With $\v_t$
+specified or estimated, a chase time of a few steps can give smoother
+excitations with little or no loss of accuracy.
+
+$T$ is controlled by the {\sf chaseTime} property of the motion target term
+(Section \ref{MotionTermProperties:sec}). In accordance with the need
+to keep $T \ge h$, $T$ is determined from
+%
+\begin{equation*}
+T = \max (h, \text{\sf chaseTime}).
+\end{equation*}
+%
+Setting {\sf chaseTime} to 0 (the default) then ensures that $T = h$.
 
 \subsubsection{PD control}
 \label{PDControl:sec}
 
-PD control computes a desired source {\it acceleration} $\dot\v_*$ based on
+PD control computes a desired source {\it acceleration} according to
 %
 \begin{equation}
-\dot\v_* = K_p (\x_t - \x) + K_d (\v_t - \v),
+\dot\v_* = \dot\v_t + K_p (\x_t - \x) + K_d (\v_t - \v),
 \label{PDcontrol:eqn}
 \end{equation}
 %
-and then integrates this to determine $\v_*$:
+which, if attained, causes the position error $\x_t - \x$ to obey
 %
 \begin{equation}
-\v_* = \v + h \dot\v_*,
+\ddot\e + K_d \dot\e + K_p \e = 0.
+\label{PDerrorDynamics:eqn}
+\end{equation}
+%
+This is then integrated over the step to determine $\v_*$:
+%
+\begin{equation}
+\v_* = \v_t^{k+1} - \boldsymbol{\eta} + h (K_p \e + K_d \boldsymbol{\eta}),
+\quad \boldsymbol{\eta} \equiv \v_t^k - \v^k,
 \label{PDcontrolVtarg:eqn}
 \end{equation}
 %
-where $h$ is the simulation step size. PD control offers a greater ability to
-adjust the tracking behavior than chase control, but it is often necessary to
-tune the gain parameters $K_p$ and $K_d$. One rule of thumb is to
-set their initial values such that (\ref{chaseControl:eqn}) and
-(\ref{PDcontrolVtarg:eqn}) are equal, which leads to
+where $\e$ is given by (\ref{trackingPosError:eqn}) and $\v_t^k$ is the target
+velocity from the previous step. (If this is unavailable, as on the first
+step or after a reset, $\v_t^{k+1}$ is used instead.)  Equation
+(\ref{PDcontrolVtarg:eqn}) is equivalent to $\v_* = \v^k + h \dot\v_*$, with
+the target acceleration $\dot\v_t$ approximated by $(\v_t^{k+1} -
+\v_t^k)/h$.
+
+From (\ref{PDerrorDynamics:eqn}), the gains determine a natural frequency
+$\sqrt{K_p}$ and a damping ratio $\zeta = K_d / (2 \sqrt{K_p})$. It is often
+easier to specify the gains in terms of $\zeta$ and a time constant $T =
+1/\sqrt{K_p}$, using
 %
 \begin{equation*}
-K_p = \frac{1}{h T}, \quad K_d = \frac{1}{h}.
+K_p = \frac{1}{T^2}, \quad K_d = \frac{2 \zeta}{T}.
 \end{equation*}
 %
-The default values for $K_p$ and $K_d$ are $10000$ and $100$, corresponding to
-$h$ and $T$ both equaling $0.01$. Lowering the value of $K_p$ will reduce
-overshoot but increase tracking lag.
+For critical damping ($\zeta = 1$), the position error following a step
+change decays as $(1 + t/T) e^{-t/T}$, falling to 10\% of its initial value
+after about $3.9 T$. Values of $\zeta$ less than 1 lead to overshoot, while
+values greater than 1 lead to a slower response. Unlike chase control, the
+resulting behavior does not depend on the step size $h$, provided that $h
+K_d$ and $h \sqrt{K_p}$ are both less than about 1; otherwise, the discrete
+control law no longer approximates (\ref{PDerrorDynamics:eqn}) and a warning
+is printed. The default values for $K_p$ and $K_d$ are $2500$ and $100$,
+corresponding to $T = 0.02$ and $\zeta = 1$.
 
-PD control is enabled and adjusted by setting the {\sf usePDControl}, {\sf Kp}
-and {\sf Kd} properties of the motion target term to {\tt true}
+PD control is enabled by setting the {\sf usePDControl} property of the
+motion target term to {\tt true}, and adjusted by setting its {\sf Kp} and
+{\sf Kd} properties. The gains can also be set using the {\sf pdTimeConstant} and {\sf pdDampingRatio}
+properties, which set {\sf Kp} and {\sf Kd} according to $T$ and $\zeta$
 (Section \ref{MotionTermProperties:sec}).
+
+Chase control is a special case of PD control: setting $K_p = 1/(h T)$ and $K_d
+= 1/h$ in (\ref{PDcontrolVtarg:eqn}) yields (\ref{chaseControl:eqn}).  That is,
+chase control eliminates any velocity error within a single step, so that its
+derivative gain depends on $h$. PD control offers a greater ability to adjust
+the tracking behavior, but works best when $\v_t$ is specified or estimated
+(Section \ref{MotionTargets:sec}). Otherwise, the derivative term will damp the
+source velocity toward 0, producing a tracking lag of about $2 \zeta T \|\v\|$.
+
+\begin{sideblock}
+With either method, target trajectories should be smooth. For example,
+marker data sampled at a fixed rate and interpolated linearly has velocity
+discontinuities at each sample. If the step size is smaller than the sample
+interval, these can cause the computed excitations to oscillate at the
+sample rate. Using cubic interpolation for the target probe avoids this.
+\end{sideblock}
 
 \subsection{Generating excitations using a quadratic program}
 \label{GeneratingExcitations:sec}
@@ -176,46 +264,48 @@ velocity at the end of the subsequent time step, $\v^{k+1}$, satisfies
 %
 This is accomplished using a quadratic program.
 
-First, for a broad class of problems, $\f$ is linearly related to $\a$,
-so that (\ref{fnonlinear:eqn}) simplifies to
+First, we linearize (\ref{fnonlinear:eqn}) with respect to changes
+in $\a$ given by $\a = \a_0 + \Delta \a$,
+where $\a_0$ is the current set of excitation values and
+$\partial \f_a/\partial \a$ is evaluated at $\a_0$:
 %
 \begin{equation}
-\f = \f_p (\q, \u) + \Lambda (\q, \u) \a,
-\label{flinearInA:eqn}	
+\f(\a_0 + \Delta \a) \approx
+\f_p (\q, \u) + \f_a(\q, \u, \a_0) + \frac{\partial \f_a}{\partial \a} \Delta \a,
+\label{flinearizeWrtA:eqn}	
 \end{equation}
-where $\Lambda$ is an excitation response matrix. Given (\ref{flinearInA:eqn}),
-it is possible to show (section ``Inverse modeling''
-in \cite{lloyd2012artisynth}) that
+%
+Given this, it is possible to show that
 %
 \begin{equation*}
-\v^{k+1} = \v_0 + \H_m \a,
+\v^{k+1} = \v_0 + \H_m \Delta \a,
 \end{equation*}
 %
-where $\v_0$ is the velocity with zero excitations and $\H_m$ is a
-motion excitation response matrix. To best follow the trajectory, we
-can compute $\a$ to minimize the quadratic cost function
+where $\v_0$ is the velocity that will result if $\a$ is unchanged and $\H_m$ is a
+motion {\it excitation response} matrix. To best follow the trajectory, we
+can compute $\Delta \a$ to minimize the quadratic cost function
 %
 \begin{equation}
-\phi_m(\a) \equiv \frac{1}{2} \| \v_* - \v^{k+1} \|^2 = 
-\frac{1}{2} \| \bar\v - \H_m \a \|^2, \quad
+\phi_m(\Delta \a) \equiv \frac{1}{2} \| \v_* - \v^{k+1} \|^2 = 
+\frac{1}{2} \| \bar\v - \H_m \Delta \a \|^2, \quad
 \bar\v \equiv \v_* - \v_0.
-\label{MotionCostTerm:eqn}
+%\label{MotionCostTerm:eqn}
 \end{equation}
 %
 If we add in the constraint that excitations lie in the range $[0,
 1]$, the problem takes the form of a quadratic program (QP)
 %
 \begin{gather}
-\min_{\a} \; \phi_m(\a) \notag \\
-\text{subject to} \quad 0 \le \a \le {\bf 1}.
+\min_{\Delta \a} \; \phi_m(\Delta \a) \notag \\
+\text{subject to} \quad -\a_0 \le \Delta \a \le {\bf 1} - \a_0.
 \label{basicQP:eqn}
 \end{gather}
 %
 In order to prioritize some target terms over others,
-$\phi_m(\a)$ can be modified to include weights, according to
+$\phi_m(\Delta \a)$ can be modified to include weights, according to
 %
 \begin{equation}
-\phi_m(\a) \equiv \frac{1}{2} \| \W_m (\bar\v - \H_m \a) \|^2,
+\phi_m(\Delta \a) \equiv \frac{1}{2} \| \W_m (\bar\v - \H_m \Delta \a) \|^2,
 \label{motionCostTerm:eqn}	
 \end{equation}
 %
@@ -223,19 +313,44 @@ where $\W_m$ is a diagonal weighting matrix.
 %
 To handle excitation redundancy, where the size of $\a$ exceeds the
 size of $\v$, we can add a regularization term
-$\frac{1}{2} \a^T \W_a \a$, where $\W_a$ is a diagonal weight matrix that
-can be used to adjust the relative importance of specific excitations:
 %
-\begin{gather}
-\min_{\a} \; \phi_m(\a) + \frac{1}{2} \a^T \W_a \a \notag \notag \\
-\text{subject to} \quad 0 \le \a \le {\bf 1}.
-\label{regularizedQP:eqn}
-\end{gather}
+\begin{equation}
+\phi_a(\Delta \a) \equiv 
+\frac{1}{2} (\a_0 + \Delta \a)^T \W_a (\a_0 + \Delta \a)
+\label{regularizeCostTerm:eqn}	
+\end{equation}
 %
+that resolves redundancy in favour of lowering a weighted norm of
+$\a$.  $\W_a$ is a diagonal weight matrix that can be used to adjust
+the relative importance of specific excitations.
 
 \begin{sideblock}
 The matrix $\W_a$ described here is the {\it inverse} of the matrix $\W$
-presented in \cite{lloyd2012artisynth}.
+presented in \cite{lloyd2012artisynth}. In particular, {\it increasing} an
+element of $\W_a$ will tend to {\it decrease} the size of the corresponding
+excitation.  Also, For legacy reasons, $\W_a$ appears {\it unsquared} in
+$\phi_a$, whereas $\W_m$ (and similar matrices in other cost functions) are
+squared.
+\end{sideblock}
+
+The motion and regularization terms are combined to form
+an overall cost function
+%
+\begin{gather}
+\min_{\Delta \a} \; w_m \phi_m(\Delta \a) + w_a \phi_a (\Delta \a) \notag \\
+\text{subject to} \quad -\a_0 \le \Delta \a \le {\bf 1} - \a_0,
+\label{regularizedQP:eqn}
+\end{gather}
+%
+where $w_m$ and $w_a$ are additional scalar weights that balance the
+different cost terms.
+
+\begin{sideblock}
+If the controller property {\sf normalizeCostTerms} is {\tt true} (the
+default), then the cost terms in (\ref{regularizedQP:eqn}) are normalized so
+that the effect of the weights $w_m$ and $w_a$ more accurately reflects their
+actual value. See {\sf normalizeCostTerms} in
+Section \ref{ControllerProperties:sec} for more details.
 \end{sideblock}
 
 \subsection{Force tracking}
@@ -244,18 +359,19 @@ presented in \cite{lloyd2012artisynth}.
 Other cost terms can be added to the tracking controller.  For
 instance, we can request a force trajectory $\f_{et}$ for a selected set
 of force effectors. As with motions, the forces of these effectors
-$\f_e$ at the end of step $k+1$ are linearly related to $\a$ via
+$\f_e$ at the end of step $k+1$ are linearly related to $\Delta \a$ via
 %
 \begin{equation*}
-\f_e^{k+1} = \f_{e0} + \H_e \a
+\f_e^{k+1} = \f_{e0} + \H_e \Delta \a
 \end{equation*}
 %
-where $\f_{e0}$ is the force with zero excitations and $\H_e$ is
+where $\f_{e0}$ is the force if $\a$ is unchanged and $\H_e$ is
 the force excitation response matrix. The force trajectory can
 then be tracked by minimizing
 %
 \begin{equation}
-\phi_e(\a) \equiv \frac{1}{2} \| \W_e (\bar\f_e - \H_e \a) \|^2, \quad
+\phi_e(\Delta \a) \equiv 
+\frac{1}{2} \| \W_e (\bar\f_e - \H_e \Delta \a) \|^2, \quad
 \bar\f_e \equiv \f_{et} - \f_{e0},
 \label{forceEffectorCostTerm:eqn}	
 \end{equation}
@@ -288,48 +404,76 @@ is no equivalent of the motion tracker.
 \label{trackingForces:fig}
 \end{figure}
 
-To balance the effect of different cost terms, each is associated with
-a weight (e.g., $w_m$, $w_e$, and $w_a$ for the motion, force and
-regularization terms), so that the QP takes a form such as
+With force tracking included, the full QP takes the form
 %
 \begin{gather}
-\min_{\a} \; w_m \phi_m(\a) + w_e \phi_e (\a) + \frac{w_a}{2} \a^T \W_a \a \notag \\
-\text{subject to} \quad 0 \le \a \le {\bf 1}.
+\min_{\Delta\a} \; w_m \phi_m(\Delta\a) + 
+w_e \phi_e (\Delta\a) + w_a \phi_a (\Delta\a) \notag \\
+\text{subject to} \quad -\a_0 \le \Delta\a \le {\bf 1}-\a_0.
 \label{fullQP:eqn}
 \end{gather}
 %
 
-\subsection{Incremental computation}
-\label{IncrementalComputation:sec}
+\subsection{Non-incremental computation}
+\label{NonIncrementalComputation:sec}
 
-In some cases, the system forces are {\it not} linear with respect to the
-excitations (i.e., equation (\ref{flinearInA:eqn}) is not valid). One
-situation where this occurs is when equilibrium muscle models are used
-(Section \ref{equilibriumMuscles:sec}).
-
-When forces are not linear in $\a$, the force relationship can be linearized
-and the quadratic program can be reformulated in terms of excitation {\it
-changes} $\Delta \a$; for example,
+In many cases, the system forces are actually linear with respect to
+$\a$, such that $\f_a$ in (\ref{fnonlinear:eqn}) takes the form
 %
-\begin{gather}
-\min_{\Delta\a} \; w_m \phi_m(\Delta\a) + w_e \phi_e (\Delta\a) + 
-\frac{w_a}{2} \Delta\a^T \W_a \Delta\a + \a_0^T \W_a \Delta\a \notag \\
-\text{subject to} \quad -\a_0 \le \Delta\a \le {\bf 1-\a_0}.
-\label{incrementalQP:eqn}
-\end{gather}
+\begin{equation}
+\f_a = \Lambda (\q, \u) \a,
+\label{flinearInA:eqn}	
+\end{equation}
 %
-where $\a_0$ denotes the excitation values at the beginning of
-the time step. Excitations are then updated
-according to 
+When that is true,
 %
 \begin{equation*}
-\a = \a_0 + \Delta \a.
+\frac{\partial \f_a}{\partial \a} = \Lambda (\q, \u),
 \end{equation*}
 %
+and the cost terms and QP can be defined with respect to the
+{\it full} excitation values $\a$ instead of $\Delta\a$. The motion term,
+for example, becomes
+%
+\begin{equation*}
+\phi_m(\a) \equiv \frac{1}{2} \| \W_m (\bar\v - \H_m \a) \|^2, \quad
+\bar\v \equiv \v_* - \v_0,
+\end{equation*}
+%
+where $\v_0$ is now the velocity that results when $\a = {\bf 0}$
+(and similarly for the force term, with $\f_{e0}$ the force when $\a = {\bf
+0}$), while the regularization term becomes simply $\phi_a(\a) = \frac{1}{2}
+\a^T \W_a \a$. The QP then takes the form
+%
+\begin{gather}
+\min_{\a} \; w_m \phi_m(\a) + 
+w_e \phi_e (\a) + w_a \phi_a (\a) \notag \\
+\text{subject to} \quad {\bf 0} \le \a \le {\bf 1}.
+\label{fullQPLinear:eqn}
+\end{gather}
+%
+The original tracking controller assumed that forces are linear in $\a$ and
+used (\ref{fullQPLinear:eqn}) in place of (\ref{fullQP:eqn}).
+Non-incremental computation can still be enabled by setting the tracking
+controller property {\sf computeIncrementally} to {\tt false} (Section
+\ref{ControllerProperties:sec}), but it should only be used when the forces
+are (approximately) linear in $\a$. Even then, incremental computation
+usually gives equal or better tracking at the same computational cost.
+The main reasons to enable non-incremental computation are:
+%
+\begin{itemize}
 
-Incremental computation can be enabled, at the expense of slower computation,
-by setting the tracking controller property {\sf computeIncrementally} to {\tt
-true} (Section \ref{ControllerProperties:sec}).
+\item To reproduce the results of models that were developed using
+non-incremental computation, which was the default in earlier versions of
+ArtiSynth.
+
+\item Non-incremental computation can sometimes give slightly smoother
+excitations, at the expense of tracking accuracy. For example, in an arm model
+with a soft FEM bone, mean excitation changes per step were about 45\% lower
+with non-incremental computation, while the tracking error was about 12\%
+higher.
+
+\end{itemize}
 
 \subsection{Setting up the tracking controller}
 \label{SettingUpController:sec}
@@ -657,11 +801,8 @@ methods:
 \end{methodtable}
 %
 
-By default, the controller initializes excitations to zero and then updates
-them at the beginning of each time step. However, when excitations are being
-computed incrementally (Section \ref{IncrementalComputation:sec}), it may be
-desirable to start with non-zero excitation values. In that case, the following
-methods may be useful:
+When excitations are being computed incrementally (the default
+behavior), the following methods may be useful:
 %
 \begin{methodtable}{0.58}{0.42}
 \midline
@@ -708,6 +849,7 @@ color for the exciter is set to white, enabling a white-to-red color transition
 for the exciter as it is activated.
 
 \subsection{Motion targets}
+\label{MotionTargets:sec}
 
 As indicated above, motion source components can be specified to the controller
 using the {\tt addPointTarget()} and {\tt addFrameTarget()} methods. Source
@@ -775,15 +917,32 @@ properties described in Section \ref{targetPositions:sec} are {\it not} used by
 the tracking controller for target components.
 \end{sideblock}
 
-Likewise, a corresponding velocity trajectory $\v_t$ can also be specified by
-setting the {\sf velocity} property of the target object.  If this is not set,
-$\v_t$ defaults to 0, which will introduce a small lag into the tracking
-behavior. If $\v_t$ {\it is} set, care should be taken to ensure that it is
+Likewise, a corresponding velocity trajectory $\v_t$ can also be
+specified by setting the {\sf velocity} property of the target
+object. When doing so, care should be taken to ensure that it is
 consistent with the actual time derivative of $\x_t$.
 
+If $\v_t$ is not set, then if the {\sf estimateTargetVelocity}
+property of the motion target term is {\tt true} (the default; Section
+\ref{MotionTermProperties:sec}), the controller will estimate $\v_t$ for any
+target whose {\sf velocity} property has not been set since the previous time
+step. The estimate is computed from the change in the target's position (and
+orientation, for frames) over the step. Explicitly set velocities always take
+precedence, so that estimation can be used for some targets while others have
+their velocities supplied by probes or controllers. A velocity is considered to
+be set if the target's {\sf velocity} property has been set (or its {\tt
+setVelocity()} method called) since the previous step. Because the estimate is
+obtained by differencing, target position trajectories should be smooth; for
+probe data, cubic interpolation is recommended.
+
+If $\v_t$ is not set and {\sf estimateTargetVelocity} is {\tt false}, then
+$\v_t$ is assumed to be 0. This will introduce a lag into the tracking
+behavior, except when using chase control with $T = h$ size
+(Section \ref{MotionTracking:sec}).
+
 \begin{sideblock}
-Applications typically do not need to specify $\v_t$. However, doing so may
-improve tracking performance, particularly when using PD control
+Specifying or estimating $\v_t$ will usually improve tracking performance
+considerably, particularly when using PD control
 (Section \ref{MotionTracking:sec}).
 \end{sideblock}
 
@@ -791,7 +950,7 @@ Each target component also implements the interface
 \javaclass[\inverse]{TrackingTarget}, described in
 Section \ref{TargetComponents:sec}, which supplies methods to specify the
 weights in the weighting matrix $\W_m$ of the motion tracking cost term
-$\phi_m(\a)$ (\ref{motionCostTerm:eqn}).
+$\phi_m(\Delta \a)$ (\ref{motionCostTerm:eqn}).
 
 Lists of all the motion source components and their associated target
 components (i.e., those returned by the {\tt addXXXTarget()} methods) can be
@@ -817,7 +976,8 @@ obtained using
 \subsubsection{Motion target term}
 \label{MotionTargetTerm:sec}
 
-The cost term $\phi_m(\a)$ that is responsible for tracking motion targets is
+The cost term $\phi_m(\Delta \a)$ that is 
+responsible for tracking motion targets is
 contained within a tracking controller subcomponent that is named {\tt
 "motionTerm"} and which is an instance of
 \javaclass[\inverse]{MotionTargetTerm}. Users 
@@ -926,36 +1086,39 @@ the point and frame target lists to be set together:
 \subsubsection{L2 Regularization}
 \label{L2Regularization:sec}
 
-L2 regularization attempts to minimize the weighted square of the excitation
-values, as described by
+L2 regularization attempts to minimize the weighted square of the
+excitation values, 
 %
 \begin{equation}
 \frac{w_a}{2} \, \a^T \W_a \, \a
 \label{L2regularization:eqn}
 \end{equation}
 %
-in (\ref{fullQP:eqn}), and so provides a way to resolve redundancy when the
-number of exciters is greater than needed to perform the required tracking. It
-can be enabled or disabled by adding or removing an L2 regularization term from
-the controller, as managed by the following methods:
+by applying the cost term $w_a \phi_a (\Delta\a)$ to the full QP
+(\ref{fullQP:eqn}), where $\phi_a$ is defined by
+(\ref{regularizeCostTerm:eqn}). It provides a way to resolve
+redundancy when the number of exciters is greater than needed to
+perform the required tracking. It can be enabled or disabled by adding
+or removing an L2 regularization term from the controller, as managed
+by the following methods:
 %
-\begin{methodtable}{0.58}{0.42}
+\begin{methodtable}{0.5}{0.5}
 \midline
 %
 \methodentry
 {\inverse.TrackingController.setL2Regularization()}%
 {void setL2Regularization()}%
-{Enables L2 regularization with default weight 0.0001.}%
+{Enables L2 regularization with default weight $w_a = 0.0001$.}%
 %
 \methodentry
 {\inverse.TrackingController.setL2Regularization(double)}%
-{void setL2Regularization(double w)}%
-{Enables L2 regularization with weight {\tt w}.}%
+{void setL2Regularization(double wa)}%
+{Enables L2 regularization with weight $w_a$.}%
 %
 \methodentry
 {\inverse.TrackingController.getL2RegularizationWeight()}%
 {double getL2RegularizationWeight()}%
-{Returns regularization weight, or 0 if not enabled.}%
+{Returns regularization weight $w_a$, or 0 if not enabled.}%
 %
 \methodentry
 {\inverse.TrackingController.removeL2Regularization()}%
@@ -965,8 +1128,7 @@ the controller, as managed by the following methods:
 \midline
 \end{methodtable}
 %
-The weight associated with the above methods corresponds to $w_a$ in
-(\ref{L2regularization:eqn}) and (\ref{fullQP:eqn}). The entries in the
+The entries in the
 diagonal matrix $\W_a$ are given by the weights associated with the exciters
 themselves, as described in Section \ref{Exciters:sec}.
 
@@ -974,7 +1136,7 @@ L2 regularization is implemented using a controller subcomponent of type
 \javaclass[\inverse]{L2RegularizationTerm}, which
 is added or removed from the controller as required and can be accessed using
 %
-\begin{methodtable}{0.58}{0.42}
+\begin{methodtable}{0.5}{0.5}
 \midline
 %
 \methodentry
@@ -1005,40 +1167,41 @@ derivative of $\a$, or more precisely,
 \end{equation*}
 %
 where $\W_a$ is the diagonal excitation weight matrix used for L2
-regularization (\ref{L2regularization:eqn}). Letting $\a_0$ denote
-the excitations at the beginning of the time step, and approximating
-$\dot\a$ by
+regularization (\ref{L2regularization:eqn}). Since the $\dot\a$
+over each time step can be approximated by
 %
 \begin{equation*}
-\dot\a \approx \frac{\a - \a_0}{h},
+\dot\a \approx \frac{\Delta \a}{h},
 \end{equation*}
 %
-where $h$ is the time step size, the damping cost term $\phi_d(\a)$
+where $h$ is the time step size, the damping cost term $\phi_d$
 becomes
 %
 \begin{equation*}
-\phi_d(\a) = \frac{1}{2 h^2} \left( \a^T \W_a \a - 2 \a_0^T \W_a \a \right).
+\phi_d(\Delta\a) = \frac{1}{2 h^2} \left( \Delta\a^T \W_a \Delta\a \right),
 \end{equation*}
 %
+and its contribution to the QP is given by $w_d \phi_d (\Delta\a)$.
+
 Excitation damping can be managed by the following methods:
 %
-\begin{methodtable}{0.6}{0.4}
+\begin{methodtable}{0.5}{0.5}
 \midline
 %
 \methodentry
 {\inverse.TrackingController.setExcitationDamping()}%
 {void setExcitationDamping()}%
-{Enable excitation damping with default weight $10^{-5}$.}%
+{Enable excitation damping with default $w_d = 10^{-5}$.}%
 %
 \methodentry
 {\inverse.TrackingController.setExcitationDamping(double)}%
-{void setExcitationDamping(double w)}%
-{Enable excitation damping with weight {\tt w}.}%
+{void setExcitationDamping(double wd)}%
+{Enable excitation damping with weight $w_d$.}%
 %
 \methodentry
 {\inverse.TrackingController.getExcitationDampingWeight()}%
 {double getExcitationDampingWeight()}%
-{Returns damping weight, or 0 if not enabled.}%
+{Returns damping weight $w_d$, or 0 if not enabled.}%
 %
 \methodentry
 {\inverse.TrackingController.removeExcitationDamping()}%
@@ -1048,11 +1211,15 @@ Excitation damping can be managed by the following methods:
 \midline
 \end{methodtable}
 %
+As with regularization (Section \ref{Regularization:sec}), the entries
+in the diagonal matrix $\W_a$ are given by the weights associated with
+the exciters themselves, as described in Section \ref{Exciters:sec}.
+
 Excitation damping is implemented using a controller subcomponent of type
 \javaclass[\inverse]{DampingTerm}, which
 is added or removed from the controller as required and can be accessed using
 %
-\begin{methodtable}{0.6}{0.4}
+\begin{methodtable}{0.5}{0.5}
 \midline
 %
 \methodentry
@@ -1374,7 +1541,7 @@ described elsewhere, this can be done using either probes or other controller
 objects.  The target component also implements the interface
 \javaclass[\inverse]{TrackingTarget}, described in
 Section \ref{TargetComponents:sec}, which supplies methods to specify the
-weighting matrix $\W_e$ in the force effector cost term $\phi_e(\a)$
+weighting matrix $\W_e$ in the force effector cost term $\phi_e(\Delta\a)$
 (\ref{forceEffectorCostTerm:eqn}).
 
 By default, force effector tracking is {\it static-only}, meaning that only
@@ -1414,7 +1581,7 @@ same effect as {\it minimizing} the force associated with that force effector.
 \subsubsection{Force effector term}
 \label{ForceEffectorTerm:sec}
 
-The cost term $\phi_e(\a)$ that is responsible for tracking force effector
+The cost term $\phi_e(\Delta\a)$ that is responsible for tracking force effector
 targets is contained within a tracking controller subcomponent named
 {\tt "forceEffectorTerm"} and which is an instance of
 \javaclass[\inverse]{ForceEffectorTerm}. 
@@ -1581,15 +1748,15 @@ subweights, described by the properties {\sf weight} and {\sf subWeights}, all
 of which have default values of 1.0. These weights are used to manage the
 priority of the target within the tracking computation; the {\sf subWeights}
 vector has a size equal to the number of degrees of freedom (DOF) in the target
-(3 for points and 6 for frames), 
-and permits fine-grained weighting for each of
+(3 for points and 6 for frames), and permits fine-grained weighting for each of
 the target's DOFs. The product of the weight with each subweight produces the
 entries for the diagonal weighting matrix that appears in the various cost
 terms for motion and force tracking (e.g., $\W_m$ for the motion tracking cost
-function $\phi_m(\a)$ in (\ref{motionCostTerm:eqn}) and $\W_e$ for the force
-effector cost function $\phi_e(\a)$ in (\ref{forceEffectorCostTerm:eqn})). Targets
-(or specific DOFs) with higher weights will be tracked more accurately, while
-weights of 0 effectively disable tracking.
+function $\phi_m(\Delta\a)$ in (\ref{motionCostTerm:eqn}) and $\W_e$ for the
+force effector cost function $\phi_e(\Delta\a)$ in
+(\ref{forceEffectorCostTerm:eqn})). Targets (or specific DOFs) with higher
+weights will be tracked more accurately, while weights of 0 effectively disable
+tracking.
 
 Target components vary depending on the source component whose position or
 force is being tracked, but each implements the interface
@@ -1880,8 +2047,8 @@ elsewhere in the model. Always present.
 \item[\tt motionTerm]\mbox{}
 
 The {\tt MotionTargetTerm} detailed in Section \ref{MotionTargetTerm:sec}.
-Implements the motion cost term $\phi_m(\a)$ defined in
-(\ref{MotionCostTerm:eqn}), and the motion tracker of
+Implements the motion cost term $\phi_m(\Delta\a)$ defined in
+(\ref{motionCostTerm:eqn}), and the motion tracker of
 Figure \ref{trackingController:fig}.  Allocates and maintains target components
 for motion sources, storing the targets in the subcomponent lists {\tt
 targetPoints} and {\tt targetFrames}, and references to the sources in the
@@ -1890,7 +2057,7 @@ reference lists {\tt sourcePoints} and {\tt sourceFrames}. Always present.
 \item[\tt forceEffectorTerm]\mbox{}
 
 The {\tt ForceEffectorTerm} detailed in Section \ref{ForceEffectorTerm:sec}.
-Implements the force effector cost term $\phi_e(\a)$ defined in
+Implements the force effector cost term $\phi_e(\Delta\a)$ defined in
 (\ref{forceEffectorCostTerm:eqn}).  Allocates and maintains target components
 for force effector sources, storing then in the subcomponent list {\tt
 forceTargets}. Added on demand.
@@ -1936,16 +2103,37 @@ turns the controller off. Default value is {\tt true}.
 
 \item[normalizeCostTerms]\mbox{}
 
-Controls whether or not the cost terms are normalized. Normalizing the terms
-helps ensure that their weights (e.g., $w_m$, $w_e$, and $w_a$ in
-(\ref{fullQP:eqn})) more accurately control the tradeoffs between terms.
+If {\tt true}, normalizes the cost terms so that their weights (e.g., $w_m$,
+$w_e$, and $w_a$ in (\ref{fullQP:eqn})) more accurately control the tradeoffs
+between terms. Each term's quadratic matrix $\Q$ is scaled to have unit
+trace before its weight is applied, so that the effect of the weights is
+approximately independent of the simulation step size $h$, as well as of
+the physical units and the masses of the model. However, since terms with
+low-rank $\Q$ matrices (such as motion terms with fewer target coordinates
+than exciters) concentrate this trace into fewer directions, the effective
+ratio between weights still depends on the numbers of targets and exciters.
+Also, when normalization is enabled, the motion and force term weights $w_m$
+and $w_e$ effectively enter the cost squared.
+If {\tt false}, no normalization is performed and all weights enter the cost
+linearly, as in (\ref{fullQP:eqn}), but their effect depends on the step
+size, physical units, and model masses, and so typically needs to be retuned
+for each model (see also {\sf useTimestepScaling}).
 Default value is {\tt true}.
 
 \item[computeIncrementally]\mbox{}
 
-Controls whether excitation values should be computed incrementally, as
-described in Section \ref{IncrementalComputation:sec}.  Default value is {\tt
-false}.
+Controls whether excitation values should be computed incrementally or
+non-incrementally, as described in Sections \ref{GeneratingExcitations:sec}
+and \ref{NonIncrementalComputation:sec}.  Default value is {\tt true}.
+
+\item[refactorForIncremental]\mbox{}
+
+For incremental computation, controls whether the system solve matrix is
+refactored when computing each column of the excitation response matrices
+$\H_m$, $\H_e$, etc. Refactoring accounts for the effect of the excitations on
+the force derivatives used by the integrator, but has a computational cost
+that is proportional to the number of exciters, and does not usually improve
+tracking accuracy significantly.  Default value is {\tt false}.
 
 \item[excitationBounds]\mbox{}
 
@@ -1990,8 +2178,22 @@ step. Default value is {\tt false}.
 
 \item[useTimestepScaling]\mbox{}
 
-Experimental property which enables scaling of all the cost
-terms by the simulation time step. Default value is {\tt false}.
+If {\tt true}, and {\sf normalizeCostTerms} is {\tt false}, then the
+quantities $\H_m$ and $\bar\v$ of the motion term
+(\ref{motionCostTerm:eqn}), and the corresponding quantities of the
+constraint force term, are scaled by $1/h$, where $h$ is the simulation step
+size. Since $\H_m$ (the
+velocity change per unit excitation over one step) is approximately
+proportional to $h$, this converts these terms from velocity errors into
+acceleration errors, so that their size relative to the regularization terms
+is approximately independent of $h$. Without this, the motion term's
+quadratic matrix scales with $h^2$, so that the effect of the regularization
+weight $w_a$ increases as $h$ decreases. The weights remain dependent on the
+model's units and masses, and so may need to be tuned for each model.
+This property has no effect when {\sf normalizeCostTerms} is {\tt true},
+since normalization already removes the dependence on $h$
+(and additional scaling would simply weaken the regularization terms by a
+factor of $h^2$). Default value is {\tt false}.
 
 \item[debug]\mbox{}
 
@@ -2019,7 +2221,17 @@ terms. Default value is 1.0.
 \item[chaseTime]\mbox{}
 
 Specifies the {\it chase time} $T$ used for chase control
-(Section \ref{ChaseControl:sec}). Default value is 0.01.
+(Section \ref{ChaseControl:sec}). If the value is less than the current step
+size $h$, then $T$ is set to $h$ instead. Therefore, a value of 0 (the default)
+ensures that $T = h$.
+
+\item[estimateTargetVelocity]\mbox{}
+
+If {\tt true}, the velocity $\v_t$ of each target whose {\sf velocity}
+property has not been set since the previous step is estimated from the
+change in the target's position over the step (Section
+\ref{MotionTargets:sec}). If {\tt false}, unset target velocities are
+assumed to be 0. Default value is {\tt true}.
 
 \item[usePDControl]\mbox{}
 
@@ -2028,13 +2240,27 @@ Controls whether or not PD control is used
 
 \item[Kp]\mbox{}
 
-Specifies the proportional terms for PD control
-(Section \ref{PDControl:sec}). Default value is 10000.
+Specifies the proportional gain $K_p$ for PD control
+(Section \ref{PDControl:sec}). Default value is 2500.
 
 \item[Kd]\mbox{}
 
-Specifies the derivative terms for PD control
+Specifies the derivative gain $K_d$ for PD control
 (Section \ref{PDControl:sec}). Default value is 100.
+
+\item[pdTimeConstant]\mbox{}
+
+PD control time constant $T = 1/\sqrt{K_p}$ (Section
+\ref{PDControl:sec}). Setting this property sets {\sf Kp} and {\sf Kd} to
+$1/T^2$ and $2\zeta/T$, where $\zeta$ is the current damping ratio. This
+property is derived from {\sf Kp} and is not saved. Default value is 0.02.
+
+\item[pdDampingRatio]\mbox{}
+
+PD control damping ratio $\zeta = K_d/(2\sqrt{K_p})$ (Section
+\ref{PDControl:sec}). Setting this property sets {\sf Kd} to $2 \zeta
+\sqrt{K_p}$, leaving {\sf Kp} unchanged. This property is derived from {\sf
+Kp} and {\sf Kd} and is not saved. Default value is 1.
 
 \item[legacyControl]\mbox{}
 

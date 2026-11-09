@@ -6,6 +6,7 @@ import java.util.*;
 import artisynth.core.mechmodels.Point;
 import maspack.util.*;
 import maspack.matrix.*;
+import maspack.interpolation.Interpolation;
 
 /**
  * Reads a TRC (Track-Row-Column) marker data file. This file format is defined
@@ -455,6 +456,10 @@ public class TRCReader {
 
    private void addProbeData (PositionInputProbe probe, int[] midxs) {
       probe.clearData();
+      // cubic interpolation gives smoother target velocities than linear,
+      // which reduces excitation chatter when the probe drives tracking
+      // targets
+      probe.setInterpolationOrder (Interpolation.Order.Cubic);
       if (getNumFrames() > 0) {
          double t0 = getFrameTime (0);
          int npnts = midxs.length;
@@ -479,7 +484,8 @@ public class TRCReader {
     *
     * <p>If the first TRC frame does not have a time of 0, this initial time
     * will be subtracted from the time for the probe data (so that the probe
-    * data will begin at time 0).
+    * data will begin at time 0). The probe's interpolation order is set to
+    * {@link Interpolation.Order#Cubic}.
     * 
     * @param name if non-null, gives the name of the probe
     * @param points points to be controlled by the probe
@@ -542,7 +548,8 @@ public class TRCReader {
     * of markers in the TRC data must therefore equal or exceed {@code n}.  If
     * the first TRC frame does not have a time of 0, this initial time will be
     * subtracted from the time for the probe data (so that the probe data will
-    * begin at time 0).
+    * begin at time 0). The probe's interpolation order is set to {@link
+    * Interpolation.Order#Cubic}.
     * 
     * @param name if non-null, gives the name of the probe
     * @param points points to be controlled by the probe

@@ -13,6 +13,7 @@ import artisynth.core.modelbase.*;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.properties.*;
+import maspack.spatialmotion.Twist;
 
 /**
  * A specialized Frame class used to store and render the target pose for
@@ -81,6 +82,38 @@ public class TargetFrame extends RigidBody implements TrackingTarget {
 
    public int getTargetSize() {
       return 6;
+   }
+
+   // set whenever the velocity is set via setVelocity(); used by the
+   // tracking controller to determine whether the target velocity has been
+   // supplied for the current step
+   protected boolean myVelocitySet = false;
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Also records that the velocity has been explicitly set, so that the
+    * tracking controller will use it instead of estimating it.
+    */
+   @Override
+   public void setVelocity (Twist vel) {
+      super.setVelocity (vel);
+      myVelocitySet = true;
+   }
+
+   /**
+    * Queries whether the velocity has been set via {@code setVelocity()}
+    * since the last call to {@link #clearVelocitySet}.
+    */
+   boolean isVelocitySet() {
+      return myVelocitySet;
+   }
+
+   /**
+    * Clears the flag indicating that the velocity has been set.
+    */
+   void clearVelocitySet() {
+      myVelocitySet = false;
    }
 
    public TargetFrame () {

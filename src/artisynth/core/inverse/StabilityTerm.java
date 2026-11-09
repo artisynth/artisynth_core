@@ -355,8 +355,9 @@ public class StabilityTerm extends LeastSquaresTermBase {
          }
          //System.out.println ("Hs=\n" + myHs.toString ("%16.8f"));
          if (myWeight >= 0 && myWeight != 1.0) {
-            myHs.scale(myWeight);
-            myBs.scale(myWeight);
+            double s = controller.costTermWeightScale (myWeight);
+            myHs.scale(s);
+            myBs.scale(s);
          }
          //System.out.println ("weight=" + myWeight);
          //System.out.println ("bs=" + myBs);

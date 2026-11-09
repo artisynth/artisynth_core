@@ -326,12 +326,12 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
     */
    /**
     * Checks that a query at a length l2 other than that of the step start,
-    * made before the next advanceState(), returns the same values as the
-    * next step at l2, and does not change the next step. Also checks that
-    * repeated solves at the step start length agree, and that the step can
-    * be restored with getState()/setState(). lfrac gives the initial muscle
-    * length as a fraction of the optimal fibre length; for values < 1 the
-    * muscle is on the ascending limb, and Dm > 0, so that the vm/ldot ratio
+    * made before the next advanceState(), returns the same values as the next
+    * step at l2, and does not change the next step. Also checks that repeated
+    * solves at the step start length agree, and that the step can be restored
+    * with getState()/setState(). lfrac gives the initial muscle length as a
+    * fraction of the optimal fibre length; for values {@code <} 1 the muscle
+    * is on the ascending limb, and Dm {@code >} 0, so that the vm/ldot ratio
     * Dt/(Dm+Dt) is not clipped to 1.
     */
    public void testSideQuery (

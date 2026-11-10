@@ -475,6 +475,129 @@ higher.
 
 \end{itemize}
 
+\subsection{Solve status and the equality retry}
+\label{SolveStatus:sec}
+
+The quadratic program of Section \ref{GeneratingExcitations:sec} is solved
+by the controller's {\tt QPSolver}, which uses Dantzig's pivoting method
+({\tt maspack.solvers.DantzigQPSolver}). When the pivoting method finds no
+solution, it reports a status other than {\tt SOLVED} and leaves its
+solution vector at zero. With incremental computation a zero solution means
+that the excitations do not change for that step, which looks the same as a
+legitimate answer. The solver therefore keeps the status of its most recent
+solve, and the controller supplies the solver through {\tt getQPSolver()}:
+%
+\begin{lstlisting}[]
+   QPSolver solver = controller.getQPSolver();
+   if (solver.getStatus() != DantzigQPSolver.Status.SOLVED) {
+      // the excitations of this step were not computed
+   }
+\end{lstlisting}
+%
+A failed solve is also reported on the console.
+
+\subsubsection{Equality constraints}
+
+When the motion term is made a constraint, by setting the controller
+property {\sf motionTargetAsConstraint} to {\tt true}, the program contains
+the equality constraints $\A_{eq} \Delta \a = \b_{eq}$ in addition to the
+excitation bounds. The pivoting method then solves linear systems with the
+matrix
+%
+\begin{equation*}
+\matl
+\Q & \A_{eq}^T \\
+-\A_{eq} & {\bf 0}
+\matr,
+\end{equation*}
+%
+which is singular when the rows of $\A_{eq}$ are linearly dependent and
+ill-conditioned when they nearly are. Dependent rows are common in
+tracking: each row asks for one target velocity, and several targets on one
+rigid body, or more target coordinates than the exciters can move
+independently, give rows that are combinations of each other, at least up
+to rounding. Equality constraints that cannot be met within the excitation
+bounds, such as a target that moves faster than its exciters can follow,
+leave the program without a solution. In either case the pivoting method
+may report a failure and leave the solution at zero, or report {\tt SOLVED}
+for a point far outside the excitation bounds. In a tracking simulation the
+first shows up as excitations that freeze while the model keeps moving, the
+second as excitations that jump outside their bounds.
+
+\subsubsection{The equality retry}
+
+The solver can check the point it obtains and, when that point fails, solve
+the step again with every equality term demoted to a cost term, so that its
+targets are approached rather than met. A retry is triggered by:
+%
+\begin{itemize}
+
+\item a solve that returned nothing: a reported failure, a solution
+containing NaN, or a solution that is identically zero while the equality
+constraints still require a change;
+
+\item a solution that lies outside the excitation bounds by more than a
+threshold.
+
+\end{itemize}
+%
+A large equality residual on a point that is otherwise admissible does not
+trigger a retry, since such a step tracks its targets less well once and
+then recovers, and a program without equality constraints is never retried,
+since it has nothing to demote. The retry is off by default, which leaves the
+behavior of existing models unchanged. It is enabled with
+%
+\begin{lstlisting}[]
+   controller.getQPSolver().setFallbackEnabled (true);
+\end{lstlisting}
+%
+and adjusted with the following methods of {\tt QPSolver}:
+
+\begin{description}
+
+\item[setFallbackEnabled(boolean)]\mbox{}
+
+Enables the retry. Default value is {\tt false}.
+
+\item[setBoundsThreshold(double)]\mbox{}
+
+Sets the size of a bounds violation that triggers a retry. Smaller
+violations are left alone: with incremental computation the bounds shift
+with the excitations already reached, so the next step pulls a small
+excursion back without help. A value of 0 retries on any violation.
+Default value is {\tt 1.0}.
+
+\item[setFallbackCostScale(double)]\mbox{}
+
+Scales the cost terms relative to the demoted equality terms during a
+retry. A negative value keeps the program's own balance. Default value is
+{\tt -1}.
+
+\item[setEqualityTolerance(double), setZeroTolerance(double),
+setBoundsTolerance(double)]\mbox{}
+
+Tolerances of the checks: the relative tolerance on the equality right-hand
+side, the magnitude below which a solution counts as zero, and the
+violation below which a retried point counts as admissible.
+
+\item[setMaxReports(int)]\mbox{}
+
+Sets how many retries are reported individually on the console before
+they are only counted. Default value is {\tt 20}.
+
+\end{description}
+
+The solver also records where retries happened. {\tt getSolveCount()} and
+{\tt getFallbackCount()} give the number of solves and of retries,
+{\tt getFallbackPercent()} the share of solves that were retried, and
+{\tt getFallbackTimes()} the times at which they occurred;
+{\tt getFrozenTriggers()} and {\tt getViolationTriggers()} separate the two
+triggers; {\tt getUnrecoveredCount()} counts retries that failed as well,
+so any value other than zero means that some steps could not be repaired;
+{\tt getWorstEqualityResidual()} and {\tt getWorstBoundsViolation()} give
+the largest residual and violation seen. {\tt reset()} clears these
+records, so that they describe a single simulation.
+
 \subsection{Setting up the tracking controller}
 \label{SettingUpController:sec}
 
@@ -2134,6 +2257,16 @@ $\H_m$, $\H_e$, etc. Refactoring accounts for the effect of the excitations on
 the force derivatives used by the integrator, but has a computational cost
 that is proportional to the number of exciters, and does not usually improve
 tracking accuracy significantly.  Default value is {\tt false}.
+
+\item[motionTargetAsConstraint]\mbox{}
+
+Controls whether the motion term is handled as an equality constraint instead
+of a cost term, so that the target velocities are met exactly, $\v^{k+1} =
+\v_*$, rather than approached as in (\ref{vtrack:eqn}). The remaining cost
+terms then decide how the exciters share the work, and an L2 regularization
+term is added if none is present. Equality constraints can leave the program
+without a solution or make it ill-conditioned (Section \ref{SolveStatus:sec}).
+Default value is {\tt false}.
 
 \item[excitationBounds]\mbox{}
 

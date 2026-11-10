@@ -12,6 +12,12 @@ import maspack.solvers.DantzigQPSolver.Status;
 
 /**
  * Solves a quadratic program given a set of cost and constraint terms.
+ *
+ * <p>The underlying {@link DantzigQPSolver} reports a {@link Status}, and when
+ * that status is not {@link Status#SOLVED} it leaves the solution vector
+ * untouched. The caller is then handed a vector of zeros that is
+ * indistinguishable from a legitimate answer. {@link #getStatus} exposes the
+ * status so the two can be told apart.
  */
 public class QPSolver {
 
@@ -23,6 +29,8 @@ public class QPSolver {
    int myQPTestCaseCnt = 200;
    int myQPCnt = 0;
    FunctionTimer timer = new FunctionTimer();
+
+   protected Status myStatus = Status.SOLVED;
 
    /**
     * Solves the quadratic program of the form:
@@ -112,7 +120,7 @@ public class QPSolver {
                   timer.start();
                }
             }
-            mySolver.solve (x,Q,P,A,b);
+            myStatus = mySolver.solve (x,Q,P,A,b);
             if (myQPTestCaseFile != null) {
                if (myQPCnt == myQPTestCaseCnt) {
                   timer.stop();
@@ -123,15 +131,16 @@ public class QPSolver {
             }
          }
          else {
-            Status qpStatus = mySolver.solve (x, Q, P, A, b, Aeq, beq);
-            if (qpStatus != Status.SOLVED) {
-               System.err.println (
-                  "InverseSolve failed: solver status = "+qpStatus.toString ());
-            }
+            myStatus = mySolver.solve (x, Q, P, A, b, Aeq, beq);
          }
       }
       catch (Exception e) {
          e.printStackTrace();
+         myStatus = Status.NUMERIC_ERROR;
+      }
+      if (myStatus != Status.SOLVED) {
+         System.err.println (
+            "InverseSolve failed: solver status = "+myStatus.toString ());
       }
       return x;
    }
@@ -161,5 +170,16 @@ public class QPSolver {
       catch (Exception e) {
          e.printStackTrace();
       }
+   }
+
+   // ---------------------------- Accessors ----------------------------
+
+   /**
+    * @return status of the most recent solve. Anything other than
+    * {@link Status#SOLVED} means the solution vector was never written, so
+    * the values it carries are not an answer.
+    */
+   public Status getStatus () {
+      return myStatus;
    }
 }

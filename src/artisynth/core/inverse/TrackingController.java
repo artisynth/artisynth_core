@@ -573,6 +573,17 @@ public class TrackingController extends ControllerBase
    }
 
    /**
+    * Returns the solver for the quadratic program that computes the
+    * excitations at each step. Its methods describe the outcome of the most
+    * recent solve, such as {@link QPSolver#getStatus}.
+    *
+    * @return quadratic program solver used by this controller
+    */
+   public QPSolver getQPSolver () {
+      return myQPSolver;
+   }
+
+   /**
     * Enables the automatic configuration of excitation coloring for exciters
     * that support this capability. If enabled, then as these exciters are
     * added to the controller, their {@code excitationColor} is inspected.  If

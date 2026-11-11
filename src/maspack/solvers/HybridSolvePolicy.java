@@ -30,6 +30,13 @@ package maspack.solvers;
  * when a first iterative solve succeeds.
  *
  * <p>Times can be given in any units, provided they are consistent.
+ *
+ * <p>Because solve times are measured by a wall clock, the resulting sequence
+ * of iterative and direct solves is not repeatable. For debugging, a fixed
+ * cycle length can be specified (see {@link #setFixedCycleLength}), in which
+ * case times are ignored and a refactor is requested after a fixed number of
+ * iterative solves. Iterative solve failures still cause a refactor and
+ * backoff, which, given repeatable inputs, are also repeatable.
  */
 public class HybridSolvePolicy {
 
@@ -38,6 +45,11 @@ public class HybridSolvePolicy {
 
    private int myInitialBackoff = DEFAULT_INITIAL_BACKOFF;
    private int myMaxBackoff = DEFAULT_MAX_BACKOFF;
+
+   // default value for the fixed cycle length of newly created policies
+   private static int myDefaultFixedCycleLength = 0;
+   // if > 0, number of iterative solves per cycle, ignoring times
+   private int myFixedCycleLength = myDefaultFixedCycleLength;
 
    // factorization state
    private boolean myFactorValid = false;
@@ -122,7 +134,19 @@ public class HybridSolvePolicy {
     */
    public void recordIterative (double time) {
       myNumIterativeSolves++;
-      if (myCycleSolves > 0) {
+      if (myFixedCycleLength > 0) {
+         if (myCycleSolves > 0) {
+            myCycleTime += time;
+            myCycleSolves++;
+            if (myCycleSolves > myFixedCycleLength) {
+               myRefactorPending = true;
+            }
+            if (myCycleSolves == 2) {
+               myBackoff = 0;
+            }
+         }
+      }
+      else if (myCycleSolves > 0) {
          double tavg = myCycleTime/myCycleSolves;
          if (time >= tavg) {
             // average solve time would no longer decrease
@@ -212,6 +236,46 @@ public class HybridSolvePolicy {
     */
    public int getSkipCount() {
       return mySkipCnt;
+   }
+
+   /**
+    * Returns the fixed cycle length. See {@link #setFixedCycleLength}.
+    *
+    * @return fixed cycle length, or 0 if cycles are determined by timing
+    */
+   public int getFixedCycleLength() {
+      return myFixedCycleLength;
+   }
+
+   /**
+    * Sets a fixed cycle length {@code n}. If {@code n > 0}, solve times are
+    * ignored and a refactor is requested after {@code n} successful
+    * iterative solves, making the solve sequence repeatable. If {@code n <=
+    * 0}, cycles are determined by solve times (the default).
+    *
+    * @param n fixed cycle length, or 0 to use solve times
+    */
+   public void setFixedCycleLength (int n) {
+      myFixedCycleLength = Math.max (0, n);
+   }
+
+   /**
+    * Returns the default fixed cycle length for newly created policies.
+    *
+    * @return default fixed cycle length
+    */
+   public static int getDefaultFixedCycleLength() {
+      return myDefaultFixedCycleLength;
+   }
+
+   /**
+    * Sets the default fixed cycle length for newly created policies. See
+    * {@link #setFixedCycleLength}.
+    *
+    * @param n default fixed cycle length, or 0 to use solve times
+    */
+   public static void setDefaultFixedCycleLength (int n) {
+      myDefaultFixedCycleLength = Math.max (0, n);
    }
 
    public int getInitialBackoff() {

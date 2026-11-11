@@ -57,6 +57,10 @@ public class ExcitationResponse
    void initializeMech() {
       myMech = myController.getMech ();
       myMechSysSolver = new MechSystemSolver(myMech);
+      // Hybrid solves must be disabled: an iterative solve in
+      // KKTFactorAndSolve() leaves the KKT factorization unchanged, so that
+      // subsequent KKTSolve() calls would use a stale factorization.
+      myMechSysSolver.setHybridSolve (false);
       //myMechSysSolver = myController.getMech().getSolver();
    }
 

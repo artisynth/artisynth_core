@@ -107,10 +107,37 @@ public class HybridSolvePolicyTest extends UnitTest {
       check ("iterative not allowed", policy.useIterative());
    }
 
+   public void testFixedCycle() {
+      HybridSolvePolicy policy = new HybridSolvePolicy();
+      policy.setFixedCycleLength (3);
+      for (int k=0; k<2; k++) {
+         policy.recordDirect (1);
+         // times would normally trigger an immediate refactor and backoff
+         iterSolve (policy, 100);
+         iterSolve (policy, 100);
+         check ("refactor pending too early", !policy.isRefactorPending());
+         iterSolve (policy, 100);
+         check ("refactor not pending", policy.isRefactorPending());
+         check ("iterative allowed when refactor pending",
+                !policy.useIterative());
+         checkEquals ("backoff", policy.getBackoff(), 0);
+      }
+      // failures still cause backoff
+      policy.recordDirect (1);
+      check ("iterative not allowed", policy.useIterative());
+      policy.recordIterativeFailure();
+      checkEquals ("backoff", policy.getBackoff(), 2);
+      skipSolve (policy, 1);
+      skipSolve (policy, 1);
+      iterSolve (policy, 100);
+      checkEquals ("backoff", policy.getBackoff(), 0);
+   }
+
    public void test() {
       testRefactor();
       testBackoff();
       testFailures();
+      testFixedCycle();
    }
 
    public static void main (String[] args) {

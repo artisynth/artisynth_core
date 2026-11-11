@@ -139,6 +139,7 @@ import maspack.render.GL.GLViewer;
 import maspack.render.Viewer;
 import maspack.widgets.GuiUtils;
 import maspack.render.GL.GLViewerFrame;
+import maspack.solvers.HybridSolvePolicy;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.SparseSolverId;
 import maspack.util.ClassFinder;
@@ -1702,6 +1703,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
          hybridSolves = true;
       }
       MechSystemSolver.myDefaultHybridSolveP = hybridSolves;
+      if (hybridSolveCycle.value > 0) {
+         HybridSolvePolicy.setDefaultFixedCycleLength (
+            hybridSolveCycle.value);
+      }
 
       // number of CPU threads to use for the solver
       int numThreads = mySimulationPrefs.getNumSolverThreads();
@@ -2698,6 +2703,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder enableHybridSolves =
       new BooleanHolder (false);
+   protected static IntHolder hybridSolveCycle =
+      new IntHolder (0);
    protected static IntHolder numSolverThreads =
       new IntHolder (-1);
    protected static StringHolder posCorrection = new StringHolder ();
@@ -2987,6 +2994,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-enableHybridSolves %v #enable hybrid linear solves",
          enableHybridSolves);
+      parser.addOption (
+         "-hybridSolveCycle %d " +
+         "#fixed hybrid solve cycle length (for repeatability)",
+         hybridSolveCycle);
       parser.addOption (
          "-matrixSolver %s #default matrix solver (e.g., Pardiso, Mumps)",
          matrixSolver);
@@ -5079,6 +5090,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       abortOnInvertedElems = new BooleanHolder (false);
       disableHybridSolves = new BooleanHolder (false);
       enableHybridSolves = new BooleanHolder (false);
+      hybridSolveCycle = new IntHolder (0);
       numSolverThreads = new IntHolder (-1);
       posCorrection = new StringHolder ();
       noIncompressDamping = new BooleanHolder (false);

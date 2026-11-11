@@ -29,6 +29,9 @@ all:	javadocs PDF HTML INFOCENTER
 PROTECTED_METHOD_CLASSES = \
 	artisynth/core/mechmodels/DynamicComponentBase.java
 
+# temporary directory for generating the protected javadocs
+PROT_TMP = javadocs_prot_tmp
+
 # build the javadocs
 javadocs:
         # clear any existing javadoc directory
@@ -39,12 +42,19 @@ javadocs:
 		-windowtitle "Artisynth API documentation" \
 		-J-Xms500m -J-Xmx500m -encoding UTF-8 $(JAVADOC_XOPTS) \
 		`$(FIND_PACKAGES) -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`
-	# special generation to show protected methods in certain classes
+	# special generation to show protected methods in certain classes:
+	# generate into a temp dir, linked to the public docs via element-list,
+	# then copy only the class pages into javadocs
+	rm -rf $(PROT_TMP)
 	javadoc -classpath "$(ROOT_DIR)/classes:$(ROOT_DIR)/lib/*"\
-		-author -d javadocs \
+		-author -d $(PROT_TMP) -protected \
 		-windowtitle "Artisynth API documentation" \
 		-encoding UTF-8 $(JAVADOC_XOPTS) \
+		-linkoffline . javadocs \
 		$(addprefix $(ROOT_DIR)/src/, $(PROTECTED_METHOD_CLASSES))
+	for f in $(PROTECTED_METHOD_CLASSES:.java=.html); do \
+	   cp $(PROT_TMP)/$$f javadocs/$$f; done
+	rm -rf $(PROT_TMP)
 
 #
 # Recursively call make into a set of subdirectories.

@@ -1734,7 +1734,8 @@ public class SurfaceMeshIntersector {
     * "inside" or "outside" the opposite mesh determines the type
     * of CSG volume produced:
     * 
-    * <table summary="">
+    * <table>
+    * <caption>CSG volume types</caption>
     *   <tr>
     *     <th>mesh0 regions</th>
     *     <th>mesh1 regions</th>

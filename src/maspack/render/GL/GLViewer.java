@@ -1859,7 +1859,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * {@inheritDoc}
+    * Adds a mouse wheel listener to this viewer.
+    *
+    * @param l mouse wheel listener to add
     */
    public void addMouseWheelListener (MouseWheelListener l) {
       if (canvas != null) {

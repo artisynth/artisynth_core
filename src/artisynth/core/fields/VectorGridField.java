@@ -70,7 +70,7 @@ public class VectorGridField<T extends VectorObject<T>>
    /**
     * Constructs a named field using a given grid.
     *
-    * @param grid name name of the field
+    * @param name name of the field
     * @param grid vector grid used to implement the field
     */
    public VectorGridField (String name, VectorGrid<T> grid) {

@@ -68,7 +68,8 @@ import maspack.util.ReaderTokenizer;
  * <p>
  * 
  * Terminology: <br>
- * <table summary="">
+ * <table>
+ * <caption>Terminology</caption>
  * <tbody>
  *    <tr><td>"Targets"</td><td>are trajectories of points/frames that we
  *    wish our model to follow</td></tr>

@@ -323,7 +323,10 @@ public class DoubleField extends LabeledTextField {
    }
 
    /**
-    * {@inheritDoc}
+    * Enables or disables setting void values from the GUI. The default value
+    * for this setting is <code>false</code>.
+    *
+    * @param enable if {@code true}, enables void values to be set from the GUI
     */
    public void setGUIVoidEnabled (boolean enable) {
       super.setGUIVoidEnabled (enable);

@@ -421,7 +421,7 @@ public class TransformGeometryContext {
     * the transformable components, along with any additional parent
     * components for which notification was requested during step 4.
     * 
-    * </ul><p>
+    * </ul>
     * 
     * @param gtr transformation to apply
     * @param flags specifies conditions associated with the transformation

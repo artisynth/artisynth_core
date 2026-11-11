@@ -664,7 +664,12 @@ public class Matrix1x6 extends DenseMatrixBase
    }
 
    /**
-    * {@inheritDoc}
+    * Returns true if the elements of this matrix exactly equal those of matrix
+    * <code>M1</code>.
+    * 
+    * @param M1
+    * matrix to compare with
+    * @return false if the matrices are not equal
     */
    public boolean equals (Matrix1x6 M1) {
       return (m00 == M1.m00 && m01 == M1.m01 && m02 == M1.m02 &&

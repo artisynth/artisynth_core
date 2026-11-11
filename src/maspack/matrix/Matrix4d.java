@@ -53,56 +53,104 @@ public class Matrix4d extends Matrix4dBase implements VectorObject<Matrix4d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the columns of this matrix to the vectors v0, v1, v2, and v3.
+    * 
+    * @param v0
+    * values for the first column
+    * @param v1
+    * values for the second column
+    * @param v2
+    * values for the third column
+    * @param v3
+    * values for the fourth column
     */
    public void setColumns (Vector4d v0, Vector4d v1, Vector4d v2, Vector4d v3) {
       super.setColumns (v0, v1, v2, v3);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the rows of this matrix to the vectors v0, v1, v2, and v3.
+    * 
+    * @param v0
+    * values for the first row
+    * @param v1
+    * values for the second row
+    * @param v2
+    * values for the third row
+    * @param v3
+    * values for the fourth row
     */
    public void setRows (Vector4d v0, Vector4d v1, Vector4d v2, Vector4d v3) {
       super.setRows (v0, v1, v2, v3);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies this matrix by M1 and places the result in this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void mul (Matrix4dBase M1) {
       super.mul (M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies matrix M1 by M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void mul (Matrix4dBase M1, Matrix4dBase M2) {
       super.mul (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies this matrix by the transpose of M1 and places the result in
+    * this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void mulTranspose (Matrix4dBase M1) {
       super.mulTransposeRight (this, M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the transpose of matrix M1 by M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void mulTransposeLeft (Matrix4dBase M1, Matrix4dBase M2) {
       super.mulTransposeLeft (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies matrix M1 by the transpose of M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void mulTransposeRight (Matrix4dBase M1, Matrix4dBase M2) {
       super.mulTransposeRight (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the transpose of matrix M1 by the transpose of M2 and places
+    * the result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void mulTransposeBoth (Matrix4dBase M1, Matrix4dBase M2) {
       super.mulTransposeBoth (M1, M2);
@@ -121,49 +169,86 @@ public class Matrix4d extends Matrix4dBase implements VectorObject<Matrix4d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies matrix M1 by the inverse of M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
+    * @return false if M2 is singular
     */
    public boolean mulInverseRight (Matrix4dBase M1, Matrix4dBase M2) {
       return super.mulInverseRight (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the inverse of matrix M1 by M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
+    * @return false if M1 is singular
     */
    public boolean mulInverseLeft (Matrix4dBase M1, Matrix4dBase M2) {
       return super.mulInverseLeft (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the inverse of matrix M1 by the inverse of M2 and places the
+    * result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
+    * @return false if M1 or M2 is singular
     */
    public boolean mulInverseBoth (Matrix4dBase M1, Matrix4dBase M2) {
       return super.mulInverseBoth (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Adds matrix M1 to M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void add (Matrix4dBase M1, Matrix4dBase M2) {
       super.add (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Adds this matrix to M1 and places the result in this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void add (Matrix4dBase M1) {
       super.add (M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Subtracts matrix M1 from M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void sub (Matrix4dBase M1, Matrix4dBase M2) {
       super.sub (M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Subtracts this matrix from M1 and places the result in this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void sub (Matrix4dBase M1) {
       super.sub (M1);
@@ -180,35 +265,59 @@ public class Matrix4d extends Matrix4dBase implements VectorObject<Matrix4d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Scales the elements of matrix M1 by <code>s</code> and places the
+    * results in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
     */
    public void scale (double s, Matrix4dBase M1) {
       super.scale (s, M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Computes s M1 + M2 and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
+    * @param M2
+    * matrix to be added
     */
    public void scaledAdd (double s, Matrix4dBase M1, Matrix4dBase M2) {
       super.scaledAdd (s, M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Computes s M1 and adds the result to this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled and added
     */
    public void scaledAdd (double s, Matrix4dBase M1) {
       super.scaledAdd (s, M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to the negative of M1.
+    * 
+    * @param M1
+    * matrix to negate
     */
    public void negate (Matrix4dBase M1) {
       super.negate (M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to the transpose of M
+    *
+    * @param M1
+    * matrix to take the transpose of
     */
    public void transpose (Matrix4dBase M1) {
       super.transpose (M1);
@@ -229,21 +338,41 @@ public class Matrix4d extends Matrix4dBase implements VectorObject<Matrix4d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this matrix to uniformly distributed random values in
+    * a specified range.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
     */
    public void setRandom (double lower, double upper) {
       super.setRandom (lower, upper);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this matrix to uniformly distributed random values in
+    * a specified range, using a supplied random number generator.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
+    * @param generator
+    * random number generator
     */
    public void setRandom (double lower, double upper, Random generator) {
       super.setRandom (lower, upper, generator);
    }
 
    /**
-    * {@inheritDoc}
+    * Inverts the matrix M and places the result in this matrix, return false if
+    * M is detected to be singular. The inverse is computed using an LU
+    * decomposition with partial pivoting.
+    * 
+    * @param M
+    * matrix to invert
+    * @return false if M is singular
     */
    public boolean invert (Matrix4dBase M) {
       return super.invert (M);

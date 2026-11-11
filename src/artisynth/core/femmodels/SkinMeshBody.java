@@ -561,7 +561,10 @@ public class SkinMeshBody extends SkinMeshBase
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the {@link Collidability} of this body. This provides control over
+    * whether external and/or internal collisions are enabled for this body.
+    *
+    * @param c new Collidability for this body
     */
    public void setCollidable (Collidability c) {
       if (myCollidability != c) {
@@ -807,7 +810,11 @@ public class SkinMeshBody extends SkinMeshBase
    }
 
    /**
-    * {@inheritDoc}
+    * Appends the attachments associated with the markers of this body to
+    * {@code list}.
+    *
+    * @param list list to which attachments are appended
+    * @param level currently unused
     */
    public void getAttachments (List<DynamicAttachment> list, int level) {
       //list.addAll (myAttachments);

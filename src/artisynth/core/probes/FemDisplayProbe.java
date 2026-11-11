@@ -833,7 +833,13 @@ public class FemDisplayProbe extends CutPlaneProbe {
    }
 
    /**
-    * {@inheritDoc}
+    * Write probe attributes to a PrintWriter
+    * 
+    * @param pw writer to which components are written
+    * @param fmt format for floating point numbers
+    * @param ancestor ancestor component which respect to which references are
+    * expressed
+    * @throws IOException if an I/O error occurred
     */
    public void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)

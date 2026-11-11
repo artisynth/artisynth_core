@@ -310,7 +310,9 @@ public abstract class FemFieldComp
    }
 
    /**
-    * {@inheritDoc}
+    * Returns true if this component is selectable.
+    * 
+    * @return true if this component is selectable
     */
    public boolean isSelectable() {
       return true;

@@ -87,7 +87,10 @@ public abstract class QPTermBase extends ModelComponentBase
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the enabled status of this term. Terms that are not enabled are
+    * ignored.
+    *
+    * @param enabled if {@code true}, enables this term
     */
    public void setEnabled (boolean enabled) {
       this.enabled = enabled;

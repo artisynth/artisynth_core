@@ -179,7 +179,9 @@ public class MatrixNdGrid extends VectorGrid<MatrixNd> {
    }
    
    /**
-    * {@inheritDoc}
+    * Sets this grid to be a copy of an existing grid.
+    *
+    * @param grid grid to copy
     */
    public void set (MatrixNdGrid grid) {
       myRowSize = grid.myRowSize;
@@ -226,7 +228,14 @@ public class MatrixNdGrid extends VectorGrid<MatrixNd> {
    }
     
    /**
-    * {@inheritDoc}
+    * Returns <code>true</code> if this grid equals another within a prescribed
+    * tolerance. The grids are equal if the resolution, widths, center,
+    * orientation and values are equal. Specifying {@code tol = 0} requires
+    * exact equality.
+    *
+    * @param grid grid to compare against
+    * @param tol floating point tolerance (absolute)
+    * @return {@code true} if the grids are equal
     */
    public boolean epsilonEquals (MatrixNdGrid grid, double tol) {
       if (myRowSize != grid.getMatrixRowSize()) {

@@ -136,7 +136,7 @@ import jogamp.opengl.awt.Java2D;
  * GLCapabilitiesImmutable, GLCapabilitiesChooser, int, int)
  * GLDrawableFactory.createOffscreenDrawable(..)}.
  *
- * <p> <a name="verticalFlip">A vertical-flip is required</a>, if the drawable
+ * <p> <a id="verticalFlip">A vertical-flip is required</a>, if the drawable
  * {@link #isGLOriented()} and {@link
  * #setSkipGLOrientationVerticalFlip(boolean) vertical flip is not
  * skipped}.<br> In this case this component performs the required vertical
@@ -162,7 +162,7 @@ import jogamp.opengl.awt.Java2D;
  *
  * <p> Please read <a href="GLCanvas.html#java2dgl">Java2D OpenGL Remarks</a>.
  *
- * <h3><a name="fboGLSLVerticalFlip">FBO / GLSL Vertical Flip</a></h3> If <a
+ * <h2><a id="fboGLSLVerticalFlip">FBO / GLSL Vertical Flip</a></h2> If <a
  * href="#verticalFlip">vertical flip is required</a>, FBO is used, GLSL is
  * available and {@link #setSkipGLOrientationVerticalFlip(boolean) vertical
  * flip is not skipped}, a fragment shader is utilized to flip the FBO texture
@@ -178,7 +178,7 @@ import jogamp.opengl.awt.Java2D;
  *
  * <p> The current gl-viewport is preserved.
  *
- * <p> <a name="bug842"><i>Warning (Bug 842)</i></a>: Certain GL states other
+ * <p> <a id="bug842"><i>Warning (Bug 842)</i></a>: Certain GL states other
  * than viewport and texture (see above) influencing rendering, will also
  * influence the GLSL vertical flip, e.g. {@link GL#glFrontFace(int)
  * glFrontFace}({@link GL#GL_CCW}). It is recommended to reset those states to
@@ -186,7 +186,7 @@ import jogamp.opengl.awt.Java2D;
  * method! We may change this behavior in the future, i.e. preserve all
  * influencing states.
  *
- * <h3><a name="contextSharing">OpenGL Context Sharing</a></h3> To share a
+ * <h2><a id="contextSharing">OpenGL Context Sharing</a></h2> To share a
  * {@link GLContext} see the following note in the documentation overview: <a
  * href="../../../../overview-summary.html#SHARING">context sharing</a> as well
  * as {@link GLSharedContextSetter}.

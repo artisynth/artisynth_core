@@ -1353,21 +1353,36 @@ public class SparseVectorNd extends VectorBase implements java.io.Serializable {
    // }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * the range -0.5 (inclusive) to 0.5 (exclusive).
     */
    public void setRandom() {
       setRandom (-0.5, 0.5, RandomGenerator.get());
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * a specified range.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
     */
    public void setRandom (double lower, double upper) {
       setRandom (lower, upper, RandomGenerator.get());
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * a specified range, using a supplied random number generator.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
+    * @param generator
+    * random number generator
     */
    public void setRandom (double lower, double upper, Random generator) {
       setZero();

@@ -1219,14 +1219,28 @@ public class MatrixNd extends DenseMatrixBase
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this matrix to uniformly distributed random values in
+    * a specified range.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
     */
    public void setRandom (double lower, double upper) {
       super.setRandom (lower, upper);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this matrix to uniformly distributed random values in
+    * a specified range, using a supplied random number generator.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
+    * @param generator
+    * random number generator
     */
    public void setRandom (double lower, double upper, Random generator) {
       super.setRandom (lower, upper, generator);

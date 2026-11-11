@@ -345,7 +345,8 @@ public class VectorField extends LabeledTextField {
    }
 
    /**
-    * {@inheritDoc}
+    * @param enable
+    * or disables setting void values from the GUI
     */
    public void setGUIVoidEnabled (boolean enable) {
       super.setGUIVoidEnabled (enable);

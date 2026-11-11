@@ -155,7 +155,13 @@ public class RigidTransformer extends GeometryTransformer {
    }
 
    /**
-    * {@inheritDoc}
+    * Transforms a rigid transform <code>T</code> and returns the result in
+    * <code>TR</code>. This provides the low level implementation for the
+    * transformation of rigid transforms and does not do any saving or
+    * restoring of data.
+    *
+    * @param TR transformed transform
+    * @param T transform to be transformed
     */
    public void computeTransform (RigidTransform3d TR, RigidTransform3d T) {
       TR.mul (myT, T);

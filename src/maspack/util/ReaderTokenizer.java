@@ -69,7 +69,7 @@ import java.io.*;
  * whitespace using {@link #whitespaceChar whitespaceChar} and its sibling
  * routines.
  * 
- * <h3>Basic Usage</h3>
+ * <h2>Basic Usage</h2>
  * 
  * The basic usage paradigm for ReaderTokenizer is:
  * 
@@ -184,7 +184,7 @@ import java.io.*;
  * {@link #tokenIsNumber tokenIsNumber}, {@link #tokenIsWord tokenIsWord}, or
  * {@link #tokenIsBoolean tokenIsBoolean}.
  * 
- * <h3>Token Lookahead</h3>
+ * <h2>Token Lookahead</h2>
  * 
  * ReaderTokenizer supports one token of lookahead. That is, the application may
  * read a token, and then, if it is not recognized, return it to the input
@@ -210,7 +210,7 @@ import java.io.*;
  * The non-numeric token is returned to the input stream so that it is available
  * to whatever parsing code is invoked next.
  * 
- * <h3>Reading Numbers</h3>
+ * <h2>Reading Numbers</h2>
  * 
  * A major reason for implementing ReaderTokenizer is that
  * java.io.StreamTokenizer does not properly handle long or integer values, or
@@ -238,7 +238,7 @@ import java.io.*;
  * {@link #scanNumbers scanNumbers}, can be used to read a sequence of numbers
  * and place them in an array.
  * 
- * <h3>Saving and Restoring State</h3>
+ * <h2>Saving and Restoring State</h2>
  * 
  * A deficiency of java.io.StreamTokenizer is that it does not permit its
  * settings to be queried and set arbitrarily. This makes it impossible to

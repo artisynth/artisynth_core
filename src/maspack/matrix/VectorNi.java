@@ -1036,21 +1036,36 @@ public class VectorNi extends VectoriBase implements java.io.Serializable {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * the range -1000 (inclusive) to 1000 (exclusive).
     */
    public void setRandom() {
       super.setRandom();
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * a specified range.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
     */
    public void setRandom (int lower, int upper) {
       super.setRandom (lower, upper);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * a specified range, using a supplied random number generator.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
+    * @param generator
+    * random number generator
     */
    public void setRandom (int lower, int upper, Random generator) {
       super.setRandom (lower, upper, generator);

@@ -1324,7 +1324,11 @@ public class OBB extends BVNode {
    }
    
    /**
-    * {@inheritDoc}
+    * Scales this bounding volume node by the indicated scale factor
+    * <code>s</code>. This can be used to enlarge a volume to 
+    * accommodate a margin.
+    * 
+    * @param s scaling factor
     */
    public void scale (double s) {
       myHalfWidths.scale (s);

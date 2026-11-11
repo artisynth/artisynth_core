@@ -153,10 +153,19 @@ public class IntegerMultiField extends LabeledMultiTextField {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the formatter used to convert numeric values into text. The formatter
+    * is specified using a C <code>printf</code> style format string. A space
+    * is inserted between values. For a description of the format string syntax,
+    * see {@link maspack.util.NumberFormat NumberFormat}.
     * 
-    * The format conversion character must be appropriate for integer values
+    * <p>The format conversion character must be appropriate for integer values
     * (i.e., one of "dox").
+    * 
+    * @param fmtStr
+    * format specification string
+    * @see #getFormat
+    * @throws IllegalArgumentException
+    * if the format string syntax is invalid
     */
    public void setFormat (String fmtStr) {
       setFormat (new NumberFormat (fmtStr));
@@ -332,7 +341,10 @@ public class IntegerMultiField extends LabeledMultiTextField {
    }
 
    /**
-    * {@inheritDoc}
+    * Enables or disables setting void values from the GUI. The default value
+    * for this setting is <code>false</code>.
+    *
+    * @param enable if {@code true}, enables void values to be set from the GUI
     */
    public void setGUIVoidEnabled (boolean enable) {
       super.setGUIVoidEnabled (enable);

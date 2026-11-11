@@ -48,27 +48,28 @@ import java.awt.*;
  * and left-to-right, the above example produces the output shown in Figure 1.
  * If the container's <code>ComponentOrientation</code> property is horizontal
  * and right-to-left, the example produces the output shown in Figure 2.
-  * <center><table WIDTH=600 summary="layout">
- * <tr ALIGN=CENTER>
+ * <table style="width:600px; margin-left:auto; margin-right:auto">
+ * <caption>Example layouts</caption>
+ * <tr style="text-align:center">
  * <td><img SRC="doc-files/VerticalGridLayout-1.gif" alt="Shows 6 buttons in
  * rows of 2. Row 1 shows buttons 1 then 2. Row 2 shows buttons 3 then 4. Row 3
  * shows buttons 5 then 6."> </td>
  * 
- * <td ALIGN=CENTER><img SRC="doc-files/VerticalGridLayout-2.gif" alt="Shows 6
+ * <td style="text-align:center"><img SRC="doc-files/VerticalGridLayout-2.gif" alt="Shows 6
  * buttons in rows of 2. Row 1 shows buttons 2 then 1. Row 2 shows buttons 4
  * then 3. Row 3 shows buttons 6 then 5."> </td>
  * </tr>
  * 
- * <tr ALIGN=CENTER>
+ * <tr style="text-align:center">
  * <td>Figure 1: Horizontal, Left-to-Right</td>
  * 
  * <td>Figure 2: Horizontal, Right-to-Left</td>
  * </tr>
- * </table></center>
+ * </table>
  * <p>
  * When both the number of rows and the number of columns have been set to
- * non-zero values, either by a constructor or by the <tt>setRows</tt> and
- * <tt>setColumns</tt> methods, the number of columns specified is ignored.
+ * non-zero values, either by a constructor or by the <code>setRows</code> and
+ * <code>setColumns</code> methods, the number of columns specified is ignored.
  * Instead, the number of columns is determined from the specified number or
  * rows and the total number of components in the layout. So, for example, if
  * three rows and two columns have been specified and nine components are added
@@ -230,7 +231,7 @@ public class VerticalGridLayout implements LayoutManager, java.io.Serializable {
    /**
     * Sets the number of columns in this layout to the specified value. Setting
     * the number of columns has no affect on the layout if the number of rows
-    * specified by a constructor or by the <tt>setRows</tt> method is
+    * specified by a constructor or by the <code>setRows</code> method is
     * non-zero. In that case, the number of columns displayed in the layout is
     * determined by the total number of components and the number of rows
     * specified.

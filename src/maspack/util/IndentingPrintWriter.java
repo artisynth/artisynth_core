@@ -51,8 +51,8 @@ public class IndentingPrintWriter extends PrintWriter {
     * @param out
     * A character-output stream
     * @param autoFlush
-    * A boolean; if true, the <tt>println</tt>, <tt>printf</tt>, or
-    * <tt>format</tt> methods will flush the output buffer
+    * A boolean; if true, the <code>println</code>, <code>printf</code>, or
+    * <code>format</code> methods will flush the output buffer
     */
    public IndentingPrintWriter (Writer out, boolean autoFlush) {
       super (out, autoFlush);
@@ -84,8 +84,8 @@ public class IndentingPrintWriter extends PrintWriter {
     * @param out
     * An output stream
     * @param autoFlush
-    * A boolean; if true, the <tt>println</tt>, <tt>printf</tt>, or
-    * <tt>format</tt> methods will flush the output buffer
+    * A boolean; if true, the <code>println</code>, <code>printf</code>, or
+    * <code>format</code> methods will flush the output buffer
     * 
     * @see java.io.OutputStreamWriter#OutputStreamWriter(java.io.OutputStream)
     */

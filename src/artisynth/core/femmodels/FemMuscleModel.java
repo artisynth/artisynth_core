@@ -222,7 +222,10 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
    }
 
    /**
-    * {@inheritDoc}
+    * Returns the list of excitation sources for this model, or {@code null}
+    * if there are no sources.
+    *
+    * @return list of excitation sources, or {@code null}
     */
    public ExcitationSourceList getExcitationSources() {
       return myExcitationSources;

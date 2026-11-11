@@ -160,7 +160,9 @@ public class VectorNdGrid extends VectorGrid<VectorNd> {
    }
    
    /**
-    * {@inheritDoc}
+    * Sets this grid to be a copy of an existing grid.
+    *
+    * @param grid grid to copy
     */
    public void set (VectorNdGrid grid) {
       myVecSize = grid.myVecSize;
@@ -202,7 +204,14 @@ public class VectorNdGrid extends VectorGrid<VectorNd> {
    }      
 
    /**
-    * {@inheritDoc}
+    * Returns <code>true</code> if this grid equals another within a prescribed
+    * tolerance. The grids are equal if the resolution, widths, center,
+    * orientation and values are equal. Specifying {@code tol = 0} requires
+    * exact equality.
+    *
+    * @param grid grid to compare against
+    * @param tol floating point tolerance (absolute)
+    * @return {@code true} if the grids are equal
     */
    public boolean epsilonEquals (VectorNdGrid grid, double tol) {
       if (myVecSize != grid.getVectorSize()) {

@@ -23,7 +23,7 @@ import maspack.util.NumberFormat;
  * Featherstone, Robot Dynamics Algorithms, and are used to represent quantities
  * such as spatial velocities (or twists), spatial forces (or wrenchs).
  * 
- * <a name="variance"></a>
+ * <a id="variance"></a>
  * <p>
  * Spatial vectors are either <i>contarvariant</i> (those associated with
  * motion), or <i>covariant</i> (those associated with forces). For a
@@ -640,7 +640,8 @@ public abstract class SpatialVector extends VectorBase
 
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * the range -0.5 (inclusive) to 0.5 (exclusive).
     */
    public void setRandom()
     {
@@ -648,7 +649,13 @@ public abstract class SpatialVector extends VectorBase
     }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * a specified range.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
     */
    public void setRandom (double lower, double upper)
     {
@@ -656,7 +663,15 @@ public abstract class SpatialVector extends VectorBase
     }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector to uniformly distributed random values in
+    * a specified range, using a supplied random number generator.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
+    * @param generator
+    * random number generator
     */
    public void setRandom (double lower, double upper, Random generator)
     {

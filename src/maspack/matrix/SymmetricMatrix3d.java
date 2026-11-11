@@ -156,14 +156,25 @@ public class SymmetricMatrix3d extends Matrix3dBase {
    }
    
    /**
-    * {@inheritDoc}
+    * Quickly inverts the matrix M using the determinant formula and returns
+    * the computed determinant. If the determinant is 0, no inversion
+    * is performed.
+    *
+    * @param M matrix to invert
+    * @return determinant of M
     */
    public double fastInvert (Matrix3dBase M) {
       return super.fastInvert(M);
    }
 
    /**
-    * {@inheritDoc}
+    * Inverts the matrix M and places the result in this matrix, return false if
+    * M is detected to be singular. The inverse is computed using an unrolled LU
+    * decomposition with partial pivoting.
+    * 
+    * @param M
+    * matrix to invert
+    * @return false if M is singular
     */
    public boolean invert(Matrix3dBase M) {
       return super.invert(M);
@@ -671,14 +682,21 @@ public class SymmetricMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to a diagonal matrix whose values are specified by diag.
+    * 
+    * @param diag
+    * diagonal values
     */
    public void setDiagonal (Vector3d diag) {
       super.setDiagonal (diag);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to a diagonal matrix whose values are specified by the
+    * array vals.
+    * 
+    * @param vals
+    * diagonal values
     */
    public void setDiagonal (double[] vals) {
       super.setDiagonal (vals);

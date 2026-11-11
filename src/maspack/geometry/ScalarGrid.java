@@ -98,28 +98,48 @@ public class ScalarGrid extends ScalarGridBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this grid to be a copy of an existing grid.
+    *
+    * @param grid grid to copy
     */
    public void set (ScalarGrid grid) {
       super.set (grid);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets all the vertex values for this grid. The input array is indexed such
+    * that for vertex indices xi, yj, zk, the corresponding index into this
+    * array is
+    * <pre>
+    * idx = xi + nx*yj + (nx*ny)*zk
+    * </pre>
+    * where <code>nx</code> and <code>ny</code> are the number
+    * of vertices along x and y axes.
+    *
+    * @param values value for each vertex. Must have a length
+    * {@code >=} {@link #numVertices}.
     */
    public void setVertexValues (double[] values) {
       super.setVertexValues (values);
    }
 
    /**
-    * {@inheritDoc}
+    * Returns an array of the values at each vertex. See {@link
+    * #setVertexValues} for a description of how vertices are indexed with
+    * respect to this array.
+    * 
+    * @return array of vertex values.
     */
    public double[] getVertexValues() {
       return super.getVertexValues();
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the value for the vertex indexed by {@code vi}. See {@link
+    * #setVertexValues} for a description of how vertices are indexed.
+    *
+    * @param vi vertex index
+    * @param value vertex value
     */
    public void setVertexValue (int vi, double value) {
       super.setVertexValue (vi, value);
@@ -133,63 +153,118 @@ public class ScalarGrid extends ScalarGridBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Queries the value for the vertex indexed by {@code vi}. See {@link
+    * #setVertexValues} for a description of how vertices are indexed.
+    * 
+    * @param vi vertex index
+    * @return value at the vertex
     */
    public double getVertexValue (int vi) {
       return super.getVertexValue (vi);
    }
 
    /**
-    * {@inheritDoc}
+    * Queries the value at a specified vertex, as specified by x, y, z indices.
+    * 
+    * @param vxyz x, y, z vertex indices
+    * @return value at the vertex
     */
    public double getVertexValue (Vector3i vxyz) {
       return super.getVertexValue (vxyz);
    }
    
    /**
-    * {@inheritDoc}
-    */
+    * Queries the value at a specified vertex, as specified by x, y, z indices.
+    * 
+    * @param xi x vertex index
+    * @param yj y vertex index
+    * @param zk z vertex index
+    * @return value at the vertex
+    */   
    public double getVertexValue (int xi, int yj, int zk) {
       return super.getVertexValue (xi, yj, zk);
    }
 
    /**
-    * {@inheritDoc}
+    * Zeros all the vertex values for this grid.
     */
    public void zeroVertexValues () {
       super.zeroVertexValues();
    }
    
-   /**
-    * {@inheritDoc}
+   /** 
+    * Calculates the value at an arbitrary point in world coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, {@link
+    * #OUTSIDE_GRID} is returned.
+    *
+    * @param point point at which to calculate the value
+    * (world coordinates)
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
     */
    public double getWorldValue (Point3d point) {
       return super.getWorldValue (point);
    }
 
-   /**
-    * {@inheritDoc}
+   /** 
+    * Calculates the value at an arbitrary point in world coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, then
+    * the method returns either the nearest grid value or {@link
+    * #OUTSIDE_GRID}, depending on whether {@code clipToGrid} is {@code true}
+    * or false.
+    *
+    * @param point point at which to calculate the value
+    * (world coordinates)
+    * @param clipToGrid if {@code true}, return the nearest grid value if
+    * {@code point} is outside the grid volume
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
     */
    public double getWorldValue (Point3d point, boolean clipToGrid) {
       return super.getWorldValue (point, clipToGrid);
    }
 
-   /**
-    * {@inheritDoc}
+   /** 
+    * Calculates the value at an arbitrary point in local coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, {@link
+    * #OUTSIDE_GRID} is returned.
+    *
+    * @param point point at which to calculate the normal and value
+    * (local coordinates)
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
     */
    public double getLocalValue (Point3d point) {
       return super.getLocalValue (point);
    }
 
-   /**
-    * {@inheritDoc}
+   /** 
+    * Calculates the value at an arbitrary point in local coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, then
+    * the method returns either the nearest grid value or {@link
+    * #OUTSIDE_GRID}, depending on whether {@code clipToGrid} is {@code true}
+    * or false.
+    *
+    * @param point point at which to calculate the normal and value
+    * (local coordinates)
+    * @param clipToGrid if {@code true}, return the nearest grid value if
+    * {@code point} is outside the grid volume
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
     */
    public double getLocalValue (Point3d point, boolean clipToGrid) {
       return super.getLocalValue (point, clipToGrid);
    }
 
    /**
-    * {@inheritDoc}
+    * Returns <code>true</code> if this grid equals another within a prescribed
+    * tolerance. The grids are equal if the resolution, widths, center,
+    * orientation and values are equal. Specifying {@code tol = 0} requires
+    * exact equality.
+    *
+    * @param grid grid to compare against
+    * @param tol floating point tolerance (absolute)
+    * @return {@code true} if the grids are equal
     */
    public boolean epsilonEquals (ScalarGrid grid, double tol) {
       return super.epsilonEquals (grid, tol);

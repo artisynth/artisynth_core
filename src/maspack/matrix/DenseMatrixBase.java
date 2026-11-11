@@ -218,7 +218,8 @@ public abstract class DenseMatrixBase extends MatrixBase implements DenseMatrix 
 
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this matrix to uniformly distributed random values in
+    * the range -0.5 (inclusive) to 0.5 (exclusive).
     */
    public void setRandom() {
       super.setRandom();

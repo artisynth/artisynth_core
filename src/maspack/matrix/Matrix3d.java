@@ -96,7 +96,14 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the columns of this matrix to the vectors v0, v1, and v2.
+    * 
+    * @param v0
+    * values for the first column
+    * @param v1
+    * values for the second column
+    * @param v2
+    * values for the third column
     */
     public void setColumns(Vector3d v0, Vector3d v1, Vector3d v2) {
        super.setColumns(v0, v1, v2);
@@ -141,14 +148,24 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the rows of this matrix to the vectors v0, v1, and v2.
+    * 
+    * @param v0
+    * values for the first row
+    * @param v1
+    * values for the second row
+    * @param v2
+    * values for the third row
     */
    public void setRows(Vector3d v0, Vector3d v1, Vector3d v2) {
       super.setRows(v0, v1, v2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies this matrix by M1 and places the result in this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void mul(Matrix3dBase M1) {
       super.mul(M1);
@@ -162,28 +179,50 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies this matrix by the transpose of M1 and places the result in
+    * this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void mulTranspose(Matrix3dBase M1) {
       super.mulTransposeRight(this, M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the transpose of matrix M1 by M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void mulTransposeLeft(Matrix3dBase M1, Matrix3dBase M2) {
       super.mulTransposeLeft(M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies matrix M1 by the transpose of M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void mulTransposeRight(Matrix3dBase M1, Matrix3dBase M2) {
       super.mulTransposeRight(M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the transpose of matrix M1 by the transpose of M2 and places
+    * the result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void mulTransposeBoth(Matrix3dBase M1, Matrix3dBase M2) {
       super.mulTransposeBoth(M1, M2);
@@ -202,21 +241,42 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies matrix M1 by the inverse of M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
+    * @return false if M2 is singular
     */
    public boolean mulInverseRight(Matrix3dBase M1, Matrix3dBase M2) {
       return super.mulInverseRight(M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the inverse of matrix M1 by M2 and places the result in this
+    * matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
+    * @return false if M1 is singular
     */
    public boolean mulInverseLeft(Matrix3dBase M1, Matrix3dBase M2) {
       return super.mulInverseLeft(M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the inverse of matrix M1 by the inverse of M2 and places the
+    * result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
+    * @return false if M1 or M2 is singular
     */
    public boolean mulInverseBoth(Matrix3dBase M1, Matrix3dBase M2) {
       return super.mulInverseBoth(M1, M2);
@@ -303,28 +363,44 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Adds matrix M1 to M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void add(Matrix3dBase M1, Matrix3dBase M2) {
       super.add(M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Adds this matrix to M1 and places the result in this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void add(Matrix3dBase M1) {
       super.add(M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Subtracts matrix M1 from M2 and places the result in this matrix.
+    * 
+    * @param M1
+    * left-hand matrix
+    * @param M2
+    * right-hand matrix
     */
    public void sub(Matrix3dBase M1, Matrix3dBase M2) {
       super.sub(M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Subtracts this matrix from M1 and places the result in this matrix.
+    * 
+    * @param M1
+    * right-hand matrix
     */
    public void sub(Matrix3dBase M1) {
       super.sub(M1);
@@ -341,35 +417,59 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Scales the elements of matrix M1 by <code>s</code> and places the
+    * results in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
     */
    public void scale(double s, Matrix3dBase M1) {
       super.scale(s, M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Computes s M1 + M2 and places the result in this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled
+    * @param M2
+    * matrix to be added
     */
    public void scaledAdd(double s, Matrix3dBase M1, Matrix3dBase M2) {
       super.scaledAdd(s, M1, M2);
    }
 
    /**
-    * {@inheritDoc}
+    * Computes s M1 and adds the result to this matrix.
+    * 
+    * @param s
+    * scaling factor
+    * @param M1
+    * matrix to be scaled and added
     */
    public void scaledAdd(double s, Matrix3dBase M1) {
       super.scaledAdd(s, M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to the negative of M1.
+    * 
+    * @param M1
+    * matrix to negate
     */
    public void negate(Matrix3dBase M1) {
       super.negate(M1);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to the transpose of M
+    *
+    * @param M1
+    * matrix to take the transpose of
     */
    public void transpose(Matrix3dBase M1) {
       super.transpose(M1);
@@ -390,14 +490,28 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this matrix to uniformly distributed random values in
+    * a specified range.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
     */
    public void setRandom(double lower, double upper) {
       super.setRandom(lower, upper);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this matrix to uniformly distributed random values in
+    * a specified range, using a supplied random number generator.
+    * 
+    * @param lower
+    * lower random value (inclusive)
+    * @param upper
+    * upper random value (exclusive)
+    * @param generator
+    * random number generator
     */
    public void setRandom(double lower, double upper, Random generator) {
       super.setRandom(lower, upper, generator);
@@ -411,35 +525,57 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Quickly inverts the matrix M using the determinant formula and returns
+    * the computed determinant. If the determinant is 0, no inversion
+    * is performed.
+    *
+    * @param M matrix to invert
+    * @return determinant of M
     */
    public double fastInvert (Matrix3dBase M) {
       return super.fastInvert(M);
    }
 
    /**
-    * {@inheritDoc}
+    * Inverts the matrix M and places the result in this matrix, return false if
+    * M is detected to be singular. The inverse is computed using an unrolled LU
+    * decomposition with partial pivoting.
+    * 
+    * @param M
+    * matrix to invert
+    * @return false if M is singular
     */
    public boolean invert(Matrix3dBase M) {
       return super.invert(M);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to a diagonal matrix whose values are specified by diag.
+    * 
+    * @param diag
+    * diagonal values
     */
    public void setDiagonal(Vector3d diag) {
       super.setDiagonal(diag);
    }
 
    /**
-    * {@inheritDoc}
+    * Sets this matrix to a diagonal matrix whose values are specified by the
+    * array vals.
+    * 
+    * @param vals
+    * diagonal values
     */
    public void setDiagonal(double[] vals) {
       super.setDiagonal(vals);
    }
  
    /**
-    * {@inheritDoc}
+    * Sets this matrix to a diagonal matrix whose values are specified.
+    * 
+    * @param m00 first diagonal value
+    * @param m11 second diagonal value
+    * @param m22 third diagonal value
     */
    public void setDiagonal(double m00, double m11, double m22) {
       super.setDiagonal(m00, m11, m22);
@@ -523,7 +659,22 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Adds an outer product to this matrix. The outer product
+    * is formed from two vectors whose coordinates are given
+    * as arguments.
+    * 
+    * @param x0
+    * first vector x coordinate
+    * @param y0
+    * first vector y coordinate
+    * @param z0
+    * first vector z coordinate
+    * @param x1
+    * second vector x coordinate
+    * @param y1
+    * second vector y coordinate
+    * @param z1
+    * second vector z coordinate
     */
    public void addOuterProduct (
       double x0, double y0, double z0, double x1, double y1, double z1) {
@@ -531,21 +682,47 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    }
 
    /**
-    * {@inheritDoc}
+    * Adds an outer product to this matrix. The outer product
+    * is formed from two vectors are given as arguments.
+    * 
+    * @param v0
+    * first vector
+    * @param v1
+    * second vector
     */
    public void addOuterProduct (Vector3d v0, Vector3d v1) {
       super.addOuterProduct (v0, v1);
    }
 
    /**
-    * {@inheritDoc}
+    * Adds a scaled outer product to this matrix. The outer product
+    * is formed from two vectors are given as arguments, and takes
+    * the form
+    * <pre>
+    *        T
+    * s v1 v2
+    * </pre>
+    *
+    * @param s scaling factor
+    * @param v0 first vector
+    * @param v1 second vector
     */
    public void addScaledOuterProduct (double s, Vector3d v0, Vector3d v1) {
       super.addScaledOuterProduct (s, v0, v1);
    }
 
    /**
-    * {@inheritDoc}
+    * Adds a scaled outer product to this matrix. The outer product
+    * is formed from the single vector <code>v</code> and takes
+    * the form
+    * <pre>
+    *      T
+    * s v v
+    * </pre>
+    * The product is hence symmetric.
+    * 
+    * @param s scaling factor
+    * @param v vector used to form outer product
     */
    public void addScaledOuterProduct (double s, Vector3d v) {
       super.addScaledOuterProduct (s, v);

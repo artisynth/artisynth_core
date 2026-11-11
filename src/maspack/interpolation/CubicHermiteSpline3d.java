@@ -675,7 +675,8 @@ public class CubicHermiteSpline3d
     *
     * @param s parameter value at which the knot should be added
     * @param x value at the knot
-    * @param x derivative value at the knot
+    * @param dxds derivative value at the knot
+    * @return the added knot
     */
    public Knot addKnot (double s, Vector3d x, Vector3d dxds) {
       Knot knot = new Knot (s, x, dxds);

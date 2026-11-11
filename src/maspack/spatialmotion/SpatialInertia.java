@@ -71,7 +71,7 @@ import maspack.util.ReaderTokenizer;
  * body's velocity is stored in a fixed frame or in one which moves with the
  * body.
  * 
- * <h3><a name="fixedframe">Fixed-frame usage example</a></h3>
+ * <h2><a id="fixedframe">Fixed-frame usage example</a></h2>
  * 
  * In this situation, the body's velocity is stored in some fixed "world" frame,
  * which we transform into body coordinates for purposes of computing the
@@ -100,7 +100,7 @@ import maspack.util.ReaderTokenizer;
  * vb.extrapolateTranform (Xbw, h); // use vb to update Xbw
  * </pre>
  * 
- * <h3><a name="bodyframe">Body-frame usage example</a></h3>
+ * <h2><a id="bodyframe">Body-frame usage example</a></h2>
  * 
  * In this situation, the body's velocity is stored with respect to the body
  * frame, and hence is assumed to be <i>moving with it</i>. This means that

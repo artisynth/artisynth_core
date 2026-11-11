@@ -234,14 +234,28 @@ public class AnalyticGeometryManager<T> extends Manager<T> {
    }
 
    /**
-    * {@inheritDoc}
+    * Creates a new {@link AnalyticGeometryManager} with the given {@link
+    * Creator} and {@link Updatable}.
+    *
+    * @param creator
+    * the {@code Creator} of this {@code AnalyticGeometryManager}
+    * @param updatable
+    * the {@code Updatable} of this {@code AnalyticGeometryManager}
     */
    public AnalyticGeometryManager (Creator<T> creator, Updatable updatable) {
       this (null, creator, updatable);
    }
 
    /**
-    * {@inheritDoc}
+    * Creates a new {@link AnalyticGeometryManager} with the given name, {@link
+    * Creator}, and {@link Updatable}.
+    *
+    * @param name
+    * the name of this {@code AnalyticGeometryManager}
+    * @param creator
+    * the {@code Creator} of this {@code AnalyticGeometryManager}
+    * @param updatable
+    * the {@code Updatable} of this {@code AnalyticGeometryManager}
     */
    public AnalyticGeometryManager (String name, Creator<T> creator,
    Updatable updatable) {

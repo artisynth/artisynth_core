@@ -35,7 +35,14 @@ public interface Diff1Function3x1 extends Function3x1 {
    public double eval (Vector3d deriv, Vector3d in);
    
    /**
-    * {@inheritDoc}
+    * Evaluates this function for the specified inputs. If {@code deriv} is not
+    * {@code null}, the derivative is also computed and returned in this
+    * argument. Both {@code in} and {@code deriv} (if not {@code null}) must
+    * have size 3.
+    *
+    * @param deriv if not {@code null}, returns the derivative values
+    * @param in function input values
+    * @return function output value
     */
    default public double eval (VectorNd deriv, VectorNd in) {
       if (in.size() != 3) {

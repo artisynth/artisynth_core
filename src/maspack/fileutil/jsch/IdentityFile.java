@@ -89,7 +89,7 @@ public class IdentityFile implements Identity {
     * 
     * @param passphrase
     * the pass-phrase for this identity.
-    * @return <tt>true</tt> if the decryption is succeeded or this identity is
+    * @return <code>true</code> if the decryption is succeeded or this identity is
     * not cyphered.
     */
    public boolean setPassphrase(byte[] passphrase) throws JSchException {
@@ -142,9 +142,9 @@ public class IdentityFile implements Identity {
    }
 
    /**
-    * Returns <tt>true</tt> if this identity is cyphered.
+    * Returns <code>true</code> if this identity is cyphered.
     * 
-    * @return <tt>true</tt> if this identity is cyphered.
+    * @return <code>true</code> if this identity is cyphered.
     */
    public boolean isEncrypted() {
       return kpair.isEncrypted();

@@ -141,7 +141,7 @@ public class ScalarGridField
    /**
     * Constructs a named field using a given grid.
     *
-    * @param grid name name of the field
+    * @param name name of the field
     * @param grid scalar grid used to implement the field
     */
    public ScalarGridField (String name, ScalarGrid grid) {

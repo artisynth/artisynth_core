@@ -129,7 +129,13 @@ public class AffineTransform3d extends AffineTransform3dBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies transformation X1 by transformation X2 and places the result in
+    * this transformation.
+    * 
+    * @param X1
+    * left-hand transformation
+    * @param X2
+    * right-hand transformation
     */
    public void mul(AffineTransform3dBase X1, AffineTransform3dBase X2) {
       super.mul(X1, X2);
@@ -148,7 +154,14 @@ public class AffineTransform3d extends AffineTransform3dBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies transformation X1 by the inverse of transformation X2 and
+    * places the result in this transformation.
+    * 
+    * @param X1
+    * left-hand transformation
+    * @param X2
+    * right-hand transformation
+    * @return false if X2 is singular
     */
    public boolean mulInverseRight(
       AffineTransform3dBase X1, AffineTransform3dBase X2) {
@@ -156,7 +169,14 @@ public class AffineTransform3d extends AffineTransform3dBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the inverse of transformation X1 by transformation X2 and
+    * places the result in this transformation.
+    * 
+    * @param X1
+    * left-hand transformation
+    * @param X2
+    * right-hand transformation
+    * @return false if X1 is singular
     */
    public boolean mulInverseLeft(
       AffineTransform3dBase X1, AffineTransform3dBase X2) {
@@ -164,7 +184,14 @@ public class AffineTransform3d extends AffineTransform3dBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Multiplies the inverse of transformation X1 by the inverse of
+    * transformation X2 and places the result in this transformation.
+    * 
+    * @param X1
+    * left-hand transformation
+    * @param X2
+    * right-hand transformation
+    * @return false if either X1 or X2 is singular
     */
    public boolean mulInverseBoth(
       AffineTransform3dBase X1, AffineTransform3dBase X2) {
@@ -179,7 +206,11 @@ public class AffineTransform3d extends AffineTransform3dBase {
    }
 
    /**
-    * {@inheritDoc}
+    * Inverts transform X and places the result in this transform.
+    * 
+    * @param X
+    * transform to invert
+    * @return false if transform X is singular
     */
    public boolean invert(AffineTransform3dBase X) {
       return super.invert(X);

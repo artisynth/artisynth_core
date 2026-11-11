@@ -153,10 +153,19 @@ public class VectorMultiField extends LabeledMultiTextField {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the formatter used to convert numeric values into text. The formatter
+    * is specified using a C <code>printf</code> style format string. A space
+    * is inserted between values. For a description of the format string syntax,
+    * see {@link maspack.util.NumberFormat NumberFormat}.
     * 
-    * The format conversion character must be appropriate for floating point
+    * <p>The format conversion character must be appropriate for floating point
     * values (i.e., one of "eEfgaA").
+    * 
+    * @param fmtStr
+    * format specification string
+    * @see #getFormat
+    * @throws IllegalArgumentException
+    * if the format string syntax is invalid
     */
    public void setFormat (String fmtStr) {
       setFormat (new NumberFormat (fmtStr));
@@ -336,7 +345,8 @@ public class VectorMultiField extends LabeledMultiTextField {
    }
 
    /**
-    * {@inheritDoc}
+    * @param enable
+    * or disables setting void values from the GUI
     */
    public void setGUIVoidEnabled (boolean enable) {
       super.setGUIVoidEnabled (enable);

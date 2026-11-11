@@ -3920,7 +3920,12 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * {@inheritDoc}
+    * Older version of {@link #addVelJacobian}.
+    *
+    * @param M
+    * solve matrix to which scaled velocity Jacobian is to be added
+    * @param s
+    * scaling factor for velocity Jacobian
     */
    public void addVelJacobianOld (SparseNumberedBlockMatrix M, double s) {
       // TODO: FINISH. currently computes Jacobian only for the points

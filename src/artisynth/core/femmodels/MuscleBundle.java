@@ -308,7 +308,10 @@ public class MuscleBundle extends CompositeComponentBase
    }
    
    /**
-    * {@inheritDoc}
+    * Initializes this bundle at time t. This is called at the start of a
+    * simulation, or after the model's state has been reset.
+    *
+    * @param t initialization time (seconds)
     */
    public void initialize (double t) {
       for (MuscleElementDesc d : myElementDescs) {

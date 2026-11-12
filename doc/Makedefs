@@ -38,6 +38,10 @@ WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_DOC_DIR)
 FIX_PERMISSIONS = \
   ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) $(WEB_HOME)/bin/fixMagicPerms 
 
+# ssh command to update the DocNav index
+UPDATE_DOCNAV_INDEX = \
+  ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) $(WEB_HOME)/bin/makeDocNav
+
 # Junk files produced by LaTeX
 LATEX_JUNK_FILES = \
   *.log *.aux *.out *.toc *.bbl *.blg *.cb *.cb2 *.run.xml *.bcf *.dvi

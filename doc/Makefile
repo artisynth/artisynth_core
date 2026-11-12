@@ -113,6 +113,7 @@ install:	HTML INFOCENTER PDF
 	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
 	rsync -rCtO --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)
+	$(UPDATE_DOCNAV_INDEX)
 
 .PHONY: install_all
 install_all: install_javadocs install
@@ -120,6 +121,7 @@ install_all: install_javadocs install
 install_html: HTML INFOCENTER
 	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html
+	$(UPDATE_DOCNAV_INDEX)
 
 install_single_html: HTML
 	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html

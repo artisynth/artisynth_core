@@ -34,6 +34,7 @@ install: install_html install_pdf
 install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/updates
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/updates
+	$(UPDATE_DOCNAV_INDEX)
 
 install_pdf: $(PDF_TARG)
 	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf

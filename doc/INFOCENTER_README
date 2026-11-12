@@ -45,21 +45,34 @@ generated automatically when the documentation HTML files are created.
 Starting and Restarting the InfoCenter
 --------------------------------------
 
-The InfoCenter process can be started, stopped, and restarted using
-the scripts startInfoCenter, stopInfoCenter, and restartInfoCenter,
-located in /var/www/artisynth.org/bin.
+The InfoCenter is managed by systemd as the service
+eclipse-infocenter (see "Ensuring the InfoCenter starts on reboot"
+below), which starts it automatically whenever the ArtiSynth webserver
+reboots. The preferred way to restart, stop, or start it is through
+systemctl:
 
-Because of file permission issues, the InfoCenter should be run as the
-user www-data. This can be achieved by running the start/stop/restart
-scripts using 'su -u www-data'. So for example, to restart the
-InfoCenter, one could do
+> sudo systemctl restart eclipse-infocenter
+> sudo systemctl stop eclipse-infocenter
+> sudo systemctl start eclipse-infocenter
+> sudo systemctl status eclipse-infocenter
+
+The service runs as the user www-data (needed because of file
+permissions), and 'restart' runs bin/restartInfoCenter, so it also
+clears the search index (see below).
+
+The underlying scripts startInfoCenter, stopInfoCenter, and
+restartInfoCenter, located in /var/www/artisynth.org/bin, can still be
+run directly as www-data, e.g.
 
 > cd /var/www/artisynth.org
 > sudo -u www-data bin/restartInfoCenter
 
-By default, the InfoCenter is started automatically whenever the
-ArtiSynth webserver reboots. This is achieved by configuring systemctl
-as described below under "Ensuring the InfoCenter starts on reboot".
+but this is best avoided: an InfoCenter started this way runs outside
+systemd, so 'systemctl status' reports the service as inactive (dead)
+even though the InfoCenter is running, systemd will not restart it if
+it crashes, and 'systemctl stop' will not stop it. If that happens,
+'sudo systemctl restart eclipse-infocenter' shuts down the manually
+started copy and brings the InfoCenter back under systemd.
 
 It is not always necessary to restart the InfoCenter. The HTML files
 that the InfoCenter uses are located under the html directory, and
@@ -90,6 +103,18 @@ Apache webserver for www.artisynth.org by the following entry in
     ProxyPreserveHost On
     ProxyPass /manuals http://localhost:8081/help
     ProxyPassReverse /manuals http://localhost:8081/help
+
+The InfoCenter should only accept connections from the webserver
+itself, not from the internet. For this reason, the start command in
+both startInfoCenter and restartInfoCenter includes the option
+
+    -host 127.0.0.1
+
+which binds port 8081 to localhost only. Do not remove it: without
+it, the InfoCenter (an old, unmaintained Eclipse 4.4.2 / Jetty 8
+server) is directly reachable at http://<server-ip>:8081, bypassing
+Apache. To check, run 'ss -tln | grep 8081'; it should show
+127.0.0.1:8081, not *:8081. (Added 2026-10-27.)
 
 Adding a New Document
 ---------------------

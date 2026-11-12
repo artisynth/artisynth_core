@@ -108,7 +108,7 @@ modelguide.pdf: $(SOURCES) $(EPS_FILES) $(FLC_TARGETS)
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) modelguide.ps
 
-modelguide.xml: $(SOURCES) $(IMG_FILES)
+modelguide.xml: $(SOURCES) $(IMG_FILES) $(FLC_TARGETS)
 	latexml $< > modelguide.xml
 
 modelguide_html: $(HTML_DIR)/modelguide.html
@@ -118,7 +118,7 @@ inverse_html: $(HTML_DIR)/inverse.html
 $(HTML_DIR)/inverse.html: inverse.tex
 	$(BUILD_HTML)
 
-$(HTML_DIR)/modelguide.html: $(SOURCES) $(IMG_FILES)
+$(HTML_DIR)/modelguide.html: $(SOURCES) $(IMG_FILES) $(FLC_TARGETS)
 	$(BUILD_HTML)
 	rm -f modelguide.xml
 
@@ -128,7 +128,7 @@ $(HTML_DIR)/femModels.html: femModels.tex
 	$(BUILD_HTML)
 	rm -f femModels.xml
 
-$(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES)
+$(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES) $(FLC_TARGETS)
 	$(BUILD_SECTIONED_HTML)
 	rm -f modelguide.xml
 

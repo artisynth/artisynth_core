@@ -928,6 +928,23 @@ public class PolygonalMeshTest extends MeshTestBase {
 
       check ("cube copy with hard edges & colors", mesh.epsilonEquals (copy, 0));
       checkUniqueness (mesh, copy);
+
+      // copying a mesh with vertex coloring must not change the colors of the
+      // original (the clone used to append its default vertex colors to the
+      // color list it still shared with the original)
+      checkEquals (
+         "original numColors after copy", mesh.numColors(), mesh.numVertices());
+      checkEquals (
+         "copy numColors", copy.numColors(), copy.numVertices());
+      for (int i=0; i<mesh.numColors(); i++) {
+         if (mesh.getColor(i) == copy.getColor(i)) {
+            throw new TestException ("color " + i + " is shared");
+         }
+      }
+      copy.setColor (0, 0.1f, 0.2f, 0.3f, 1f);
+      check (
+         "original color unchanged by changing the copy",
+         mesh.getColor(0)[0] == cubeColors[0][0]);
    }
 
    protected PolygonalMesh createNewMesh() {

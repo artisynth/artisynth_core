@@ -922,22 +922,24 @@ public class MeshCurve extends RenderableCompositeBase
                }
             }
             RigidTransform3d TMW = getTMW();
-            if (TMW != null) {
-               double len = 0;
-               Point3d prev = null;
-               for (Point3d p : myLocalPoints) {
+            double len = 0;
+            Point3d prev = null;
+            for (Point3d p : myLocalPoints) {
+               if (TMW != null) {
                   p.inverseTransform (TMW);
-                  if (prev != null) {
-                     len += p.distance(prev);
-                  }
-                  myArcLengths.add (len);
-                  prev = p;
                }
-               if (isClosed()) {
-                  len += prev.distance(myLocalPoints.get(0));
-                  myArcLengths.add (len);
+               if (prev != null) {
+                  len += p.distance(prev);
                }
-               myLength = len;
+               myArcLengths.add (len);
+               prev = p;
+            }
+            if (isClosed()) {
+               len += prev.distance(myLocalPoints.get(0));
+               myArcLengths.add (len);
+            }
+            myLength = len;
+            if (TMW != null) {
                for (Vector3d n : myLocalNormals) {
                   n.inverseTransform (TMW);
                }

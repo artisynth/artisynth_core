@@ -3614,56 +3614,99 @@ public class MeshFactory {
 
    /**
     * Creates a quad mesh formed by connecting a series of open rectangular
-    * prisms along a curve in the x-y plane. The curve is a polyline described
-    * by the x-y point pairs in {@code xy}. Following the curve, a local
-    * coordinate frame is assumed, with x pointing along the curve, z aligned
-    * with the world z axis, and y = z X x. Each prism has widths {@code wx},
-    * {@code wy}, {@code wz} along the local x, y and z axes, and is centered
-    * on the curve with an offset {@code yoffset} along local y.
+    * prisms along a curve. The curve is a polyline described by the list of
+    * points {@code pnts}, with an accompanying list of normal vectors {@code
+    * nrms} that provide a z direction at each point. Following the curve, a
+    * local coordinate frame is assumed, with x pointing along the curve, z
+    * provided by {@code nrms}, and y = z X x. Each prism has widths {@code
+    * wx}, {@code wy}, {@code wz} along the local x, y and z axes, and is
+    * centered on the curve with offsets {@code yoffset} and {@code zoffset}
+    * along the local {@code y} and {@code z} directions.
     *
     * <p>The curve is resampled by arc length into {@code n} equal intervals,
     * where {@code n} is {@code wx} rounded to fit the curve length, and each
-    * prism spans the chord between adjacent samples. Prism ends are mitered
-    * at the joints so that the width along y remains {@code wy}. When the
-    * original curve has corners, the resampled chords may cut those corners.
-    * For open curves, the end faces are aligned with the local frame of the
-    * curve at its end points.
+    * prism spans the chord between adjacent samples. Prism ends are mitered at
+    * the joints so that the y and z widths remain as close as possible to
+    * {@code wy} and {@code wz}. When the original curve has corners, the
+    * resampled chords may cut those corners.  For open curves, the end faces
+    * are aligned with the local frame of the curve at its end points.
     *
-    * @param xy x-y coordinate pairs describing the curve
+    * <p>Normals are interpolated by arc length at the sample points, and
+    * then made orthogonal to the local x direction, so they need not be
+    * exactly perpendicular to the curve. However, an exception is thrown if
+    * a normal has zero length or is parallel to the curve. If adjacent normals
+    * point in opposite directions, so that their interpolation vanishes, the
+    * nearer of the two is used.
+    *
+    * <p>Several conditions can produce poor results:
+    * <ul>
+    * <li>If the local frame twists about the curve (as it will, for example,
+    * for a helix), the side quads of each prism will be non-planar. Use
+    * {@link
+    * #createBand(List,List,double,double,double,double,double,boolean,boolean)}
+    * if planar faces are required.
+    * <li>The miter scaling grows as 1/cos(theta/2), where theta is the turning
+    * angle at a joint, so the mesh will develop spikes where the curve
+    * nearly reverses direction.
+    * <li>If the cross section is large relative to the curve's radius of
+    * curvature, the inner side of the band will fold over on itself. No check
+    * is made for this.
+    * </ul>
+    *
+    * @param pnts points describing the curve
+    * @param nrms normal directions giving the z direction at each point
     * @param wx nominal prism width along the curve
     * @param wy prism width along local y
     * @param wz prism width along z
     * @param yoffset offset of each prism along local y
+    * @param zoffset offset of each prism along local z
     * @param closed if {@code true}, the curve (and mesh) is closed
     * @param capped if {@code true} and {@code closed} is {@code false},
     * the ends of the mesh are closed with quads
     * @return created mesh
     */
    public static PolygonalMesh createQuadBand (
-      double[] xy, double wx, double wy, double wz, double yoffset,
+      List<? extends Vector3d> pnts, List<Vector3d> nrms,
+      double wx, double wy, double wz, double yoffset, double zoffset,
       boolean closed, boolean capped) {
 
       if (wx <= 0) {
          throw new IllegalArgumentException ("wx must be positive");
       }
-      // collect points, removing consecutive duplicates
+      if (nrms.size() != pnts.size()) {
+         throw new IllegalArgumentException (
+            "number of normals "+nrms.size()+
+            " differs from number of points "+pnts.size());
+      }
+      // collect points and unit normals, removing consecutive duplicates
       double maxc = 0;
-      for (int i=0; i<xy.length; i++) {
-         maxc = Math.max (maxc, Math.abs(xy[i]));
+      for (Vector3d p : pnts) {
+         maxc = Math.max (maxc, p.infinityNorm());
       }
       double tol = 1e-12*maxc;
-      ArrayList<Point2d> pnts = new ArrayList<>();
-      for (int i=0; i<xy.length/2; i++) {
-         Point2d p = new Point2d (xy[2*i], xy[2*i+1]);
-         if (pnts.size() == 0 || p.distance (pnts.get(pnts.size()-1)) > tol) {
-            pnts.add (p);
+      ArrayList<Point3d> plist = new ArrayList<>();
+      ArrayList<Vector3d> nlist = new ArrayList<>();
+      for (int i=0; i<pnts.size(); i++) {
+         Vector3d p = pnts.get(i);
+         if (plist.size() == 0 ||
+             p.distance (plist.get(plist.size()-1)) > tol) {
+            Vector3d nrm = new Vector3d (nrms.get(i));
+            double nmag = nrm.norm();
+            if (nmag == 0) {
+               throw new IllegalArgumentException (
+                  "normal "+i+" has zero length");
+            }
+            nrm.scale (1/nmag);
+            plist.add (new Point3d (p));
+            nlist.add (nrm);
          }
       }
-      if (closed && pnts.size() > 1 &&
-          pnts.get(0).distance (pnts.get(pnts.size()-1)) <= tol) {
-         pnts.remove (pnts.size()-1);
+      if (closed && plist.size() > 1 &&
+          plist.get(0).distance (plist.get(plist.size()-1)) <= tol) {
+         plist.remove (plist.size()-1);
+         nlist.remove (nlist.size()-1);
       }
-      int npnts = pnts.size();
+      int npnts = plist.size();
       if (npnts < (closed ? 3 : 2)) {
          throw new IllegalArgumentException (
             "curve must have at least "+(closed ? 3 : 2)+" distinct points");
@@ -3672,14 +3715,15 @@ public class MeshFactory {
       int nsegs = closed ? npnts : npnts-1;
       double[] slen = new double[nsegs+1];
       for (int i=0; i<nsegs; i++) {
-         slen[i+1] = slen[i] + pnts.get(i).distance (pnts.get((i+1)%npnts));
+         slen[i+1] = slen[i] + plist.get(i).distance (plist.get((i+1)%npnts));
       }
       double len = slen[nsegs];
 
-      // resample the curve at equal arc length intervals
+      // resample the curve and normals at equal arc length intervals
       int n = Math.max (closed ? 3 : 1, (int)Math.round (len/wx));
       int nsamps = closed ? n : n+1;
-      Point2d[] samps = new Point2d[nsamps];
+      Point3d[] samps = new Point3d[nsamps];
+      Vector3d[] snrms = new Vector3d[nsamps];
       int seg = 0;
       for (int k=0; k<nsamps; k++) {
          double s = k*len/n;
@@ -3688,15 +3732,27 @@ public class MeshFactory {
          }
          double t = (s-slen[seg])/(slen[seg+1]-slen[seg]);
          t = Math.max (0, Math.min (1, t));
-         samps[k] = new Point2d();
+         samps[k] = new Point3d();
          samps[k].combine (
-            1-t, pnts.get(seg), t, pnts.get((seg+1)%npnts));
+            1-t, plist.get(seg), t, plist.get((seg+1)%npnts));
+         Vector3d n0 = nlist.get(seg);
+         Vector3d n1 = nlist.get((seg+1)%npnts);
+         snrms[k] = new Vector3d();
+         snrms[k].combine (1-t, n0, t, n1);
+         double nmag = snrms[k].norm();
+         if (nmag < 1e-8) {
+            // adjacent normals are opposed; take the closer one
+            snrms[k].set (t < 0.5 ? n0 : n1);
+         }
+         else {
+            snrms[k].scale (1/nmag);
+         }
       }
 
       // chord directions between samples
-      Vector2d[] udirs = new Vector2d[n];
+      Vector3d[] udirs = new Vector3d[n];
       for (int k=0; k<n; k++) {
-         udirs[k] = new Vector2d();
+         udirs[k] = new Vector3d();
          udirs[k].sub (samps[(k+1)%nsamps], samps[k]);
          udirs[k].normalize();
       }
@@ -3704,25 +3760,35 @@ public class MeshFactory {
       // create vertices for the rectangular cross section at each sample
       double ylo = yoffset-wy/2;
       double yhi = yoffset+wy/2;
+      double zlo = zoffset-wz/2;
+      double zhi = zoffset+wz/2;
       double[] ycs = new double[] { ylo, yhi, yhi, ylo };
-      double[] zcs = new double[] { -wz/2, -wz/2, wz/2, wz/2 };
+      double[] zcs = new double[] { zlo, zlo, zhi, zhi };
       Point3d[] vlist = new Point3d[4*nsamps];
-      Vector2d xdir = new Vector2d();
+      Vector3d xdir = new Vector3d();
+      Vector3d ydir = new Vector3d();
+      Vector3d zdir = new Vector3d();
+      Vector3d vdir = new Vector3d(); // in-plane bend direction for miter
+      Vector3d off = new Vector3d();
       for (int k=0; k<nsamps; k++) {
          double scale = 1;
+         boolean mitered = false;
+         Vector3d nrm;
          if (!closed && k == 0) {
             // align end with the curve's local frame at its first point
-            xdir.sub (pnts.get(1), pnts.get(0));
+            xdir.sub (plist.get(1), plist.get(0));
             xdir.normalize();
+            nrm = nlist.get(0);
          }
          else if (!closed && k == n) {
             // align end with the curve's local frame at its last point
-            xdir.sub (pnts.get(npnts-1), pnts.get(npnts-2));
+            xdir.sub (plist.get(npnts-1), plist.get(npnts-2));
             xdir.normalize();
+            nrm = nlist.get(npnts-1);
          }
          else {
-            Vector2d uin = udirs[(k+n-1)%n];
-            Vector2d uout = udirs[k];
+            Vector3d uin = udirs[(k+n-1)%n];
+            Vector3d uout = udirs[k];
             xdir.add (uin, uout);
             double mag = xdir.norm();
             if (mag < 1e-8) {
@@ -3731,17 +3797,36 @@ public class MeshFactory {
             }
             else {
                xdir.scale (1/mag);
-               // scale y to maintain width wy across the miter
-               scale = 1/xdir.dot (uout);
+               // The miter plane is normal to xdir. Offsets within it along
+               // the bend direction vdir are scaled to maintain the prism
+               // widths; offsets perpendicular to the bend are unchanged.
+               double c = xdir.dot (uout);
+               vdir.scaledAdd (-c, xdir, uout);
+               double vmag = vdir.norm();
+               if (vmag > 1e-8) {
+                  vdir.scale (1/vmag);
+                  scale = 1/c;
+                  mitered = true;
+               }
             }
+            nrm = snrms[k];
          }
-         // ydir = z X xdir
-         double yx = -scale*xdir.y;
-         double yy = scale*xdir.x;
-         Point2d p = samps[k];
+         // zdir = nrm made orthogonal to xdir, ydir = zdir X xdir
+         zdir.scaledAdd (-nrm.dot(xdir), xdir, nrm);
+         double zmag = zdir.norm();
+         if (zmag < 1e-8) {
+            throw new IllegalArgumentException (
+               "normal is parallel to the curve near sample point "+k);
+         }
+         zdir.scale (1/zmag);
+         ydir.cross (zdir, xdir);
          for (int j=0; j<4; j++) {
-            vlist[4*k+j] = new Point3d (
-               p.x + ycs[j]*yx, p.y + ycs[j]*yy, zcs[j]);
+            off.combine (ycs[j], ydir, zcs[j], zdir);
+            if (mitered) {
+               off.scaledAdd ((scale-1)*off.dot(vdir), vdir);
+            }
+            vlist[4*k+j] = new Point3d();
+            vlist[4*k+j].add (samps[k], off);
          }
       }
 
@@ -3768,8 +3853,89 @@ public class MeshFactory {
 
    /**
     * Creates a triangular mesh formed by connecting a series of open
+    * rectangular prisms along a curve. This is identical to {@link
+    * #createQuadBand(List,List,double,double,double,double,double,boolean,boolean)}
+    * except that the resulting mesh is triangulated.
+    *
+    * @param pnts points describing the curve
+    * @param nrms normal directions giving the z direction at each point
+    * @param wx nominal prism width along the curve
+    * @param wy prism width along local y
+    * @param wz prism width along z
+    * @param yoffset offset of each prism along local y
+    * @param zoffset offset of each prism along local z
+    * @param closed if {@code true}, the curve (and mesh) is closed
+    * @param capped if {@code true} and {@code closed} is {@code false},
+    * the ends of the mesh are closed
+    * @return created mesh
+    */
+   public static PolygonalMesh createBand (
+      List<? extends Vector3d> pnts, List<Vector3d> nrms,
+      double wx, double wy, double wz, double yoffset, double zoffset,
+      boolean closed, boolean capped) {
+      PolygonalMesh mesh = createQuadBand (
+         pnts, nrms, wx, wy, wz, yoffset, zoffset, closed, capped);
+      mesh.triangulate();
+      return mesh;
+   }
+
+   /**
+    * Creates a quad mesh formed by connecting a series of open rectangular
+    * prisms along a curve in the x-y plane. The curve is a polyline described
+    * by the x-y point pairs in {@code xy}. Following the curve, a local
+    * coordinate frame is assumed, with x pointing along the curve, z aligned
+    * with the world z axis, and y = z X x. Each prism has widths {@code wx},
+    * {@code wy}, {@code wz} along the local x, y and z axes, and is centered
+    * on the curve with an offset {@code yoffset} along local y.
+    *
+    * <p>The curve is resampled by arc length into {@code n} equal intervals,
+    * where {@code n} is {@code wx} rounded to fit the curve length, and each
+    * prism spans the chord between adjacent samples. Prism ends are mitered
+    * at the joints so that the width along y remains {@code wy}. When the
+    * original curve has corners, the resampled chords may cut those corners.
+    * For open curves, the end faces are aligned with the local frame of the
+    * curve at its end points.
+    *
+    * <p>Several conditions can produce poor results:
+    * <ul>
+    * <li>The miter scaling grows as 1/cos(theta/2), where theta is the turning
+    * angle at a joint, so the mesh will develop spikes where the curve
+    * nearly reverses direction.
+    * <li>If the cross section is large relative to the curve's radius of
+    * curvature, the inner side of the band will fold over on itself. No check
+    * is made for this.
+    * </ul>
+    *
+    * @param xy x-y coordinate pairs describing the curve
+    * @param wx nominal prism width along the curve
+    * @param wy prism width along local y
+    * @param wz prism width along z
+    * @param yoffset offset of each prism along local y
+    * @param closed if {@code true}, the curve (and mesh) is closed
+    * @param capped if {@code true} and {@code closed} is {@code false},
+    * the ends of the mesh are closed with quads
+    * @return created mesh
+    */
+   public static PolygonalMesh createQuadBand (
+      double[] xy, double wx, double wy, double wz, double yoffset,
+      boolean closed, boolean capped) {
+
+      ArrayList<Point3d> pnts = new ArrayList<>();
+      ArrayList<Vector3d> nrms = new ArrayList<>();
+      Vector3d zdir = new Vector3d (0, 0, 1);
+      for (int i=0; i<xy.length/2; i++) {
+         pnts.add (new Point3d (xy[2*i], xy[2*i+1], 0));
+         nrms.add (zdir);
+      }
+      return createQuadBand (
+         pnts, nrms, wx, wy, wz, yoffset, 0, closed, capped);
+   }
+
+   /**
+    * Creates a triangular mesh formed by connecting a series of open
     * rectangular prisms along a curve in the x-y plane. This is identical to
-    * {@link #createQuadBand} except that the resulting mesh is triangulated.
+    * {@link #createQuadBand(double[],double,double,double,double,boolean,boolean)}
+    * except that the resulting mesh is triangulated.
     *
     * @param xy x-y coordinate pairs describing the curve
     * @param wx nominal prism width along the curve

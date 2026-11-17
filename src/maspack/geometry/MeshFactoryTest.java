@@ -100,6 +100,169 @@ public class MeshFactoryTest {
       checkMesh ("createBand(circle)", mesh);
    }
 
+   ArrayList<Point3d> toPoints3d (double[] xy) {
+      ArrayList<Point3d> pnts = new ArrayList<>();
+      for (int i=0; i<xy.length/2; i++) {
+         pnts.add (new Point3d (xy[2*i], xy[2*i+1], 0));
+      }
+      return pnts;
+   }
+
+   ArrayList<Vector3d> constantNormals (int num, Vector3d nrm) {
+      ArrayList<Vector3d> nrms = new ArrayList<>();
+      for (int i=0; i<num; i++) {
+         nrms.add (new Vector3d (nrm));
+      }
+      return nrms;
+   }
+
+   /**
+    * Checks that the 3D band, created from a planar curve transformed by X,
+    * equals the 2D band transformed by X.
+    */
+   void checkBandVs2d (
+      String name, double[] xy, RigidTransform3d X,
+      double wx, double wy, double wz, double yoffset,
+      boolean closed, boolean capped) {
+
+      PolygonalMesh mesh2d = MeshFactory.createQuadBand (
+         xy, wx, wy, wz, yoffset, closed, capped);
+      mesh2d.transform (X);
+      ArrayList<Point3d> pnts = toPoints3d (xy);
+      for (Point3d p : pnts) {
+         p.transform (X);
+      }
+      Vector3d nrm = new Vector3d (0, 0, 1);
+      nrm.transform (X);
+      PolygonalMesh mesh3d = MeshFactory.createQuadBand (
+         pnts, constantNormals (pnts.size(), nrm),
+         wx, wy, wz, yoffset, 0, closed, capped);
+      if (mesh3d.numVertices() != mesh2d.numVertices() ||
+          mesh3d.numFaces() != mesh2d.numFaces()) {
+         throw new TestException (
+            name + ": vertex/face counts differ from 2D version");
+      }
+      for (int i=0; i<mesh3d.numVertices(); i++) {
+         Point3d p3 = mesh3d.getVertex(i).pnt;
+         Point3d p2 = mesh2d.getVertex(i).pnt;
+         if (p3.distance (p2) > 1e-10) {
+            throw new TestException (
+               name + ": vertex "+i+" is "+p3+", expected "+p2);
+         }
+      }
+      for (int i=0; i<mesh3d.numFaces(); i++) {
+         int[] idxs3 = mesh3d.getFace(i).getVertexIndices();
+         int[] idxs2 = mesh2d.getFace(i).getVertexIndices();
+         if (!Arrays.equals (idxs3, idxs2)) {
+            throw new TestException (
+               name + ": face "+i+" differs from 2D version");
+         }
+      }
+   }
+
+   public void testBand3d() {
+      PolygonalMesh mesh;
+      double[] line = new double[] { 0, 0, 10, 0 };
+      double[] square = new double[] { 0, 0, 10, 0, 10, 10, 0, 10 };
+      int np = 100;
+      double[] circle = new double[2*np];
+      for (int i=0; i<np; i++) {
+         double ang = 2*Math.PI*i/np;
+         circle[2*i] = 5*Math.cos(ang);
+         circle[2*i+1] = 5*Math.sin(ang);
+      }
+      double[] arc = Arrays.copyOf (circle, np);
+
+      // planar curves in an arbitrary orientation should reproduce the
+      // transformed 2D version
+      RigidTransform3d X = new RigidTransform3d();
+      X.setRandom();
+      checkBandVs2d ("line", line, X, 0.7, 1, 2, 0.3, false, true);
+      checkBandVs2d ("square", square, X, 10, 1, 2, 0.5, true, false);
+      checkBandVs2d ("circle", circle, X, 0.5, 1, 2, 0, true, false);
+      checkBandVs2d ("arc", arc, X, 0.5, 1, 2, 0.2, false, true);
+
+      // z offset on a straight line
+      ArrayList<Point3d> lpnts = toPoints3d (line);
+      ArrayList<Vector3d> lnrms = constantNormals (2, new Vector3d(0,0,1));
+      mesh = MeshFactory.createQuadBand (
+         lpnts, lnrms, 0.7, 1, 2, 0.3, 0.4, false, true);
+      checkVolume ("createQuadBand3d(line,zoffset)", mesh, 20, 1e-10);
+      Point3d pmin = new Point3d();
+      Point3d pmax = new Point3d();
+      mesh.getLocalBounds (pmin, pmax);
+      if (Math.abs(pmin.z+0.6) > 1e-10 || Math.abs(pmax.z-1.4) > 1e-10) {
+         throw new TestException (
+            "createQuadBand3d(line,zoffset): z bounds are "+
+            pmin.z+", "+pmax.z+"; expected -0.6, 1.4");
+      }
+      checkMesh ("createQuadBand3d(line,zoffset)", mesh);
+
+      // non-planar closed loop (saddle), normals radially outward
+      ArrayList<Point3d> spnts = new ArrayList<>();
+      ArrayList<Vector3d> snrms = new ArrayList<>();
+      int ns = 200;
+      double slen = 0;
+      for (int i=0; i<ns; i++) {
+         double ang = 2*Math.PI*i/ns;
+         spnts.add (new Point3d (
+            5*Math.cos(ang), 5*Math.sin(ang), 1.5*Math.cos(2*ang)));
+         snrms.add (new Vector3d (Math.cos(ang), Math.sin(ang), 0));
+         if (i > 0) {
+            slen += spnts.get(i).distance (spnts.get(i-1));
+         }
+      }
+      slen += spnts.get(ns-1).distance (spnts.get(0));
+      mesh = MeshFactory.createQuadBand (
+         spnts, snrms, 0.5, 1, 0.5, 0, 0, true, false);
+      // twisting of the frame makes the side quads non-planar, so the
+      // computed volume depends on the triangulation and is only approximate
+      checkVolume ("createQuadBand3d(saddle)", mesh, slen*0.5, 0.2);
+      checkMesh ("createQuadBand3d(saddle)", mesh);
+
+      // open helix, capped, normals along z (not orthogonal to the curve)
+      ArrayList<Point3d> hpnts = new ArrayList<>();
+      ArrayList<Vector3d> hnrms = new ArrayList<>();
+      int nh = 300;
+      double hlen = 0;
+      for (int i=0; i<nh; i++) {
+         double ang = 4*Math.PI*i/(nh-1);
+         hpnts.add (new Point3d (
+            5*Math.cos(ang), 5*Math.sin(ang), ang/2));
+         hnrms.add (new Vector3d (0, 0, 1));
+         if (i > 0) {
+            hlen += hpnts.get(i).distance (hpnts.get(i-1));
+         }
+      }
+      mesh = MeshFactory.createQuadBand (
+         hpnts, hnrms, 0.5, 1, 2, 0, 0.1, false, true);
+      // torsion makes the side quads non-planar, so the computed volume
+      // depends on the triangulation and is only approximate
+      checkVolume ("createQuadBand3d(helix)", mesh, hlen*2, 1.0);
+      checkMesh ("createQuadBand3d(helix)", mesh);
+
+      // triangulated version
+      mesh = MeshFactory.createBand (
+         spnts, snrms, 0.5, 1, 0.5, 0, 0, true, false);
+      if (!mesh.isTriangular()) {
+         throw new TestException ("createBand3d returns non-triangular mesh");
+      }
+      checkVolume ("createBand3d(saddle)", mesh, slen*0.5, 0.2);
+      checkMesh ("createBand3d(saddle)", mesh);
+
+      // mismatched number of normals
+      try {
+         MeshFactory.createQuadBand (
+            lpnts, constantNormals (3, new Vector3d(0,0,1)),
+            0.7, 1, 2, 0, 0, false, true);
+         throw new TestException (
+            "createQuadBand3d: no exception for mismatched normals");
+      }
+      catch (IllegalArgumentException e) {
+         // expected
+      }
+   }
+
    public void testMaxMin() {
       PolygonalMesh mesh = new PolygonalMesh();
       //mesh = MeshFactory.createSphere (10, 10);
@@ -138,6 +301,7 @@ public class MeshFactoryTest {
          tester.test();
          tester.testMaxMin();
          tester.testBand();
+         tester.testBand3d();
       }
       catch (Exception e) {
          e.printStackTrace();

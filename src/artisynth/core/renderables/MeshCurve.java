@@ -383,9 +383,16 @@ public class MeshCurve extends RenderableCompositeBase
    /**
     * Returns the number of points (and normals) associated with this
     * MeshCurve. This number {@code n} is determined by the curve's {@code
-    * resolution} property, and is computed so that in the case of linear
-    * interpolation between the knot points, the distance between each point
-    * will be {@code <=} resolution.
+    * resolution} property. Each interval between adjacent markers is divided
+    * into segments whose length, measured along the interpolating curve
+    * (computed in 3D space), is {@code <=} resolution. For spline
+    * interpolation, interval lengths are estimated numerically and the
+    * segments are spaced approximately uniformly in arc length. If the {@code
+    * projectToMesh} property is {@code true}, the points are subsequently
+    * projected onto the mesh surface, which may increase their spacing
+    * somewhat beyond the resolution, particularly on convex surfaces.
+    * Intervals of zero length (such as between coincident markers) contribute
+    * no points.
     *
     * @return number of curve points and normals
     */
@@ -450,7 +457,99 @@ public class MeshCurve extends RenderableCompositeBase
       transformToWorld (pnt);
       return pnt;
    }
+   
+   /**
+    * Returns the point position on this curve at a specified arc-length 
+    * {@code len}, in world coordinates. If the curve is open, {@code len}
+    * is clipped to the range [0, {@link #getLength()}]. If the curve is
+    * closed, {@code len} is wrapped, using the modulo function, to the range
+    * [0, {@link #getLength()}), so that negative values or values exceeding
+    * the length continue around the curve.
+    * 
+    * @param len arc-length along the curve
+    * @return interpolated point at the specified arc-length, or {@code null}
+    * if the curve has no points
+    */
+   public Point3d getPointAt (double len) {
+      updateCurveIfNecessary();
+      len = clipOrWrapArcLength (len);
+      Point3d pnt = new Point3d();
+      int npts = myLocalPoints.size();
+      if (npts == 0) {
+         return null;
+      }
+      double[] sval = new double[1];
+      int k = findArcLengthInterval (len, sval);
+      double s = sval[0];
+      pnt.combine (
+         1-s, myLocalPoints.get(k), s, myLocalPoints.get((k+1)%npts));
+      transformToWorld (pnt);
+      return pnt;
+   }
 
+   /**
+    * Clips an arc-length to [0, myLength] for open curves, or wraps it to
+    * [0, myLength) for closed curves.
+    */
+   private double clipOrWrapArcLength (double len) {
+      if (isClosed() && myLength > 0) {
+         len -= Math.floor (len/myLength)*myLength;
+         if (len >= myLength) {
+            // guard against roundoff for small negative len
+            len = 0;
+         }
+      }
+      else if (len < 0) {
+         len = 0;
+      }
+      else if (len > myLength) {
+         len = myLength;
+      }
+      return len;
+   }
+
+   /**
+    * Finds the interval {@code k} of the curve containing the arc-length
+    * {@code len}, along with the parameter {@code s} in {@code [0,1]} giving
+    * the location within that interval. The interval lies between points
+    * {@code k} and {@code (k+1)%numPoints()}. Assumes that the curve is
+    * valid, contains at least one point, and that {@code len} lies within
+    * {@code [0, myLength]}.
+    *
+    * @param len arc-length along the curve
+    * @param sval returns the interval parameter {@code s} in element 0
+    * @return interval index {@code k}
+    */
+   private int findArcLengthInterval (double len, double[] sval) {
+      double[] alens = myArcLengths.getArray();
+      int nint = myArcLengths.size()-1; // number of intervals
+      if (nint <= 0) {
+         sval[0] = 0;
+         return 0;
+      }
+      // binary search for k such that alens[k] <= len <= alens[k+1]
+      int lo = 0;
+      int hi = nint;
+      while (hi - lo > 1) {
+         int mid = (lo+hi)/2;
+         if (alens[mid] <= len) {
+            lo = mid;
+         }
+         else {
+            hi = mid;
+         }
+      }
+      double ilen = alens[lo+1]-alens[lo];
+      if (ilen > 0) {
+         sval[0] = Math.max (0, Math.min (1, (len-alens[lo])/ilen));
+      }
+      else {
+         // zero-length interval (coincident points)
+         sval[0] = 0;
+      }
+      return lo;
+   }
+   
    /**
     * Returns the arc-length at the {@code idx}-th point on this curve, where
     * {@code idx} should be in the range {@code [0, maxIdx]}, where {@code
@@ -510,7 +609,47 @@ public class MeshCurve extends RenderableCompositeBase
     * @return {@code idx}-th normal
     */
    public Vector3d getNormal (int idx) {
+      updateCurveIfNecessary();
       Vector3d nrm = new Vector3d(myLocalNormals.get(idx));
+      transformToWorld (nrm);
+      return nrm;
+   }
+   
+   /**
+    * Returns the normal on this curve at a specified arc-length 
+    * {@code len}, in world coordinates. If the curve is open, {@code len}
+    * is clipped to the range [0, {@link #getLength()}]. If the curve is
+    * closed, {@code len} is wrapped, using the modulo function, to the range
+    * [0, {@link #getLength()}), so that negative values or values exceeding
+    * the length continue around the curve.
+    * 
+    * @param len arc-length along the curve
+    * @return interpolated normal at the specified arc-length, or {@code null}
+    * if the curve has no points
+    */
+   public Vector3d getNormalAt (double len) {
+      updateCurveIfNecessary();
+      len = clipOrWrapArcLength (len);
+      Vector3d nrm = new Vector3d();
+      int npts = myLocalNormals.size();
+      if (npts == 0) {
+         return null;
+      }
+      double[] sval = new double[1];
+      int k = findArcLengthInterval (len, sval);
+      double s = sval[0];
+      Vector3d n0 = myLocalNormals.get(k);
+      Vector3d n1 = myLocalNormals.get((k+1)%npts);
+      nrm.combine (1-s, n0, s, n1);
+      double mag = nrm.norm();
+      if (mag < 1e-8*(n0.norm()+n1.norm())) {
+         // adjacent normals are opposed; use the nearer one
+         nrm.set (s < 0.5 ? n0 : n1);
+         nrm.normalize();
+      }
+      else {
+         nrm.scale (1/mag);
+      }
       transformToWorld (nrm);
       return nrm;
    }
@@ -746,6 +885,91 @@ public class MeshCurve extends RenderableCompositeBase
       transformToWorld (pr);
    }
 
+   // number of sub-intervals used to tabulate arc length along a spline
+   // interval, for estimating its length and for arc-length sampling
+   private static final int NUM_LENGTH_SAMPLES = 32;
+
+   // if true, spline intervals are sampled uniformly in arc length;
+   // otherwise, they are sampled uniformly in the curve parameter
+   private boolean myArcLengthSampling = true;
+
+   /**
+    * Returns the number of segments into which a curve interval of estimated
+    * length {@code ilen} should be divided, based on the curve resolution.
+    * Returns 0 if the interval is degenerate (zero length to within
+    * roundoff), which can occur when adjacent markers coincide. No points
+    * are generated for degenerate intervals, so that the curve will not
+    * contain coincident adjacent points.
+    *
+    * @param ilen estimated length of the interval
+    * @return number of segments for the interval
+    */
+   private int numIntervalSegments (double ilen) {
+      double res = getResolution();
+      if (ilen <= 1e-10*res) {
+         return 0;
+      }
+      return Math.max (1, (int)Math.ceil (ilen/res));
+   }
+
+   /**
+    * Computes the parameter values at which to sample interval {@code i} of
+    * a parametric curve whose intervals are delimited by integer parameter
+    * values. The number of samples is determined from the interval's length,
+    * estimated by tabulating arc length at {@code NUM_LENGTH_SAMPLES}
+    * uniformly spaced parameter values. If {@code myArcLengthSampling} is
+    * {@code true}, the samples are spaced uniformly in arc length, by
+    * inverting this table with linear interpolation; otherwise, they are
+    * spaced uniformly in the curve parameter.
+    *
+    * <p>The returned values lie in [0,1) and give offsets from {@code i}. If
+    * {@code addEnd} is {@code true}, a final value of 1 is appended. If the
+    * interval is degenerate (see {@link #numIntervalSegments}), no values
+    * are returned except for the optional end value.
+    *
+    * @param curve evaluates the curve at a given parameter value
+    * @param i index of the interval
+    * @param addEnd if {@code true}, append a sample at the end of the interval
+    * @return parameter offsets at which to sample the interval
+    */
+   private double[] computeIntervalSamples (
+      java.util.function.DoubleFunction<Point3d> curve, int i,
+      boolean addEnd) {
+
+      // tabulate cumulative arc length at uniformly spaced parameters
+      int m = NUM_LENGTH_SAMPLES;
+      double[] cumlen = new double[m+1];
+      Point3d prev = curve.apply (i);
+      for (int j=1; j<=m; j++) {
+         Point3d pnt = curve.apply (i + j/(double)m);
+         cumlen[j] = cumlen[j-1] + pnt.distance (prev);
+         prev = pnt;
+      }
+      double len = cumlen[m];
+      int nsegs = numIntervalSegments (len);
+      double[] svals = new double[addEnd ? nsegs+1 : nsegs];
+      int j = 0;
+      for (int k=0; k<nsegs; k++) {
+         if (myArcLengthSampling) {
+            // find s such that the arc length at s is k*len/nsegs
+            double target = k*len/nsegs;
+            while (j < m-1 && cumlen[j+1] <= target) {
+               j++;
+            }
+            double dl = cumlen[j+1]-cumlen[j];
+            double t = (dl > 0 ? (target-cumlen[j])/dl : 0);
+            svals[k] = (j + Math.max (0, Math.min (1, t)))/m;
+         }
+         else {
+            svals[k] = k/(double)nsegs;
+         }
+      }
+      if (addEnd) {
+         svals[nsegs] = 1.0;
+      }
+      return svals;
+   }
+
    private void computeLinearCurve() {
       BVFeatureQuery bvq = new BVFeatureQuery();
       int numIntervals = isClosed() ? numMarkers() : numMarkers()-1;
@@ -757,13 +981,17 @@ public class MeshCurve extends RenderableCompositeBase
          Point3d pos1 = mkr1.getPosition();
          Vector3d nrm0 = mkr0.getNormal();
          Vector3d nrm1 = mkr1.getNormal();
-         int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
+         int nsegs = numIntervalSegments (pos0.distance(pos1));
          Point3d pos = new Point3d();
          Vector3d nrm = new Vector3d();
+         // if the interval is degenerate, no points are added and mkr0
+         // shares the first point of the next interval
          mkr0.myPntIdx = myLocalPoints.size();
          myIntervalPointIndices[i] = myLocalPoints.size();
-         myLocalPoints.add (new Point3d(pos0));
-         myLocalNormals.add (nrm0);
+         if (nsegs > 0) {
+            myLocalPoints.add (new Point3d(pos0));
+            myLocalNormals.add (nrm0);
+         }
          for (int k=1; k<nsegs; k++) {
             double s = k/(double)nsegs;
             pos.combine (1-s, pos0, s, pos1);
@@ -800,22 +1028,24 @@ public class MeshCurve extends RenderableCompositeBase
       int numIntervals = isClosed() ? numMarkers() : numMarkers()-1;
       BVFeatureQuery bvq = new BVFeatureQuery();
       PolygonalMesh mesh = getMesh();
+      java.util.function.DoubleFunction<Point3d> peval = (r) -> {
+         Point3d p = new Point3d();
+         pcurve.eval (p, r);
+         return p;
+      };
       for (int i=0; i<numIntervals; i++) {
          MeshMarker mkr0 = myMarkers.get(i);
          MeshMarker mkr1 = myMarkers.get((i+1) % numMarkers());
-         Point3d pos0 = mkr0.getPosition();
-         Point3d pos1 = mkr1.getPosition();
-         int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
+         // B-spline intervals need not have zero length when adjacent
+         // markers coincide, so sampling is based on the curve itself
+         boolean addEnd = (!isClosed() && i == numIntervals-1);
+         double[] svals = computeIntervalSamples (peval, i, addEnd);
          Point3d pos = new Point3d();
          Point3d tmp = new Point3d();
          Vector3d nrm = new Vector3d();
-         int npnts = nsegs;
-         if (!isClosed() && i == myMarkers.size()-2) {
-            npnts++;
-         }
          mkr0.myPntIdx = myLocalPoints.size();
-         for (int k=0; k<npnts; k++) {
-            double s = k/(double)nsegs;
+         myIntervalPointIndices[i] = myLocalPoints.size();
+         for (double s : svals) {
             pcurve.eval (pos, i + s);
             ncurve.eval (tmp, i + s);
             nrm.set (tmp);
@@ -826,13 +1056,10 @@ public class MeshCurve extends RenderableCompositeBase
                nrm.set (
                   mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
             }
-            if (k == 0) {
-               myIntervalPointIndices[i] = myLocalPoints.size();
-            }
             myLocalPoints.add (new Point3d(pos));
             myLocalNormals.add (new Vector3d(nrm));
          }
-         if (!isClosed() && i == numIntervals-1) {
+         if (addEnd) {
             mkr1.myPntIdx = myLocalPoints.size()-1;
          }
       }
@@ -863,16 +1090,15 @@ public class MeshCurve extends RenderableCompositeBase
       for (int i=0; i<numIntervals; i++) {
          MeshMarker mkr0 = myMarkers.get(i);
          MeshMarker mkr1 = myMarkers.get((i+1) % numMarkers());
-         Point3d pos0 = mkr0.getPosition();
-         Point3d pos1 = mkr1.getPosition();
-         int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
-         int npnts = nsegs;
-         if (!isClosed() && i == myMarkers.size()-2) {
-            npnts++;
-         }
+         final int ii = i;
+         // the spline may loop between coincident adjacent markers, so
+         // sampling is based on the curve itself
+         boolean addEnd = (!isClosed() && i == numIntervals-1);
+         double[] ivals = computeIntervalSamples (
+            (r) -> new Point3d (pcurve.eval (r, new IntHolder(ii))), i, addEnd);
          mkr0.myPntIdx = myLocalPoints.size();
-         for (int k=0; k<npnts; k++) {
-            double s = k/(double)nsegs;
+         myIntervalPointIndices[i] = myLocalPoints.size();
+         for (double s : ivals) {
             Point3d pos = new Point3d(pcurve.eval (i + s, new IntHolder(i)));
             Vector3d nrm = ncurve.eval (i + s, new IntHolder(i));
             nrm.normalize();
@@ -882,13 +1108,10 @@ public class MeshCurve extends RenderableCompositeBase
                nrm.set (
                   mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
             }
-            if (k == 0) {
-               myIntervalPointIndices[i] = myLocalPoints.size();
-            }
             myLocalPoints.add (new Point3d(pos));
             myLocalNormals.add (new Vector3d(nrm));
          }
-         if (!isClosed() && i == numIntervals-1) {
+         if (addEnd) {
             mkr1.myPntIdx = myLocalPoints.size()-1;
          }
       }
@@ -919,6 +1142,26 @@ public class MeshCurve extends RenderableCompositeBase
                default: {
                   throw new UnsupportedOperationException (
                      "Unimplement interpolation mode "+myInterpolation);
+               }
+            }
+            int npts = myLocalPoints.size();
+            if (npts == 0) {
+               // all intervals are degenerate because all markers coincide
+               MeshMarker mkr = myMarkers.get(0);
+               myLocalPoints.add (new Point3d(mkr.getPosition()));
+               myLocalNormals.add (mkr.getNormal());
+               for (MeshMarker m : myMarkers) {
+                  m.myPntIdx = 0;
+               }
+               Arrays.fill (myIntervalPointIndices, 0);
+            }
+            else if (isClosed()) {
+               // markers whose trailing intervals were degenerate at the end
+               // of a closed curve share the first point
+               for (MeshMarker m : myMarkers) {
+                  if (m.myPntIdx == npts) {
+                     m.myPntIdx = 0;
+                  }
                }
             }
             RigidTransform3d TMW = getTMW();

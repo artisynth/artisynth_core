@@ -230,10 +230,20 @@ public class MeshMarker extends Marker implements HasCoordinateFrame {
    public void getPose (RigidTransform3d TMW) {
       CompositeComponent gparent = getGrandParent();
       Vector3d zdir = getNormal();
+      Vector3d xdir = null;
       if (gparent instanceof MeshCurve && myPntIdx != -1) {
          MeshCurve curve = (MeshCurve)gparent;
          curve.updateCurveIfNecessary();
-         Vector3d xdir = curve.getTangent (myPntIdx);
+         xdir = curve.getTangent (myPntIdx);
+         // tangent may be zero if the curve has only one point (e.g., if all
+         // markers coincide)
+         Vector3d xprod = new Vector3d();
+         xprod.cross (zdir, xdir);
+         if (xprod.norm() <= 1e-8*zdir.norm()) {
+            xdir = null;
+         }
+      }
+      if (xdir != null) {
          TMW.R.setZXDirections (zdir, xdir);
       }
       else {

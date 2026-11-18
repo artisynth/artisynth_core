@@ -447,7 +447,8 @@ public class VectorNodalField<T extends VectorObject<T>>
          Point3d pos = new Point3d();
          Vector3d vec = new Vector3d();
          for (int num=0; num<myValues.size(); num++) {
-            if (myValues.get(num).getThreeVectorValue(vec)) {
+            T value = myValues.get(num);
+            if (value != null && value.getThreeVectorValue(vec)) {
                FemNode3d n = myFem.getNodes().getByNumber(num);
                addLineSegment (robj, n.getPosition(), vec);
             }

@@ -387,14 +387,16 @@ public class VectorElementField<T extends VectorObject<T>>
          Point3d pos = new Point3d();
          Vector3d vec = new Vector3d();
          for (int num=0; num<myValues.size(); num++) {
-            if (myValues.get(num).getThreeVectorValue (vec)) {
+            T value = myValues.get(num);
+            if (value != null && value.getThreeVectorValue (vec)) {
                FemElement3d e = myFem.getElements().getByNumber(num);
                e.computeCentroid (pos);
                addLineSegment (robj, pos, vec);
             }
          }
          for (int num=0; num<myShellValues.size(); num++) {
-            if (myShellValues.get(num).getThreeVectorValue (vec)) {
+            T value = myShellValues.get(num);
+            if (value != null && value.getThreeVectorValue (vec)) {
                ShellElement3d e = myFem.getShellElements().getByNumber(num);
                e.computeCentroid (pos);
                addLineSegment (robj, pos, vec);

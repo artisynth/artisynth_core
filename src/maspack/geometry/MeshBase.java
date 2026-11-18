@@ -1690,6 +1690,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       
       mesh.myVertices = new ArrayList<Vertex3d>();
+      // at this point the clone still shares the color list of this mesh.
+      // Disable vertex coloring while its vertices are added, so that
+      // addVertex() does not append default colors to that shared list;
+      // colors and coloring flags are copied below.
+      mesh.myVertexColoringP = false;
       for (int i=0; i<myVertices.size(); i++) {
          mesh.addVertex (myVertices.get(i).pnt);
       }

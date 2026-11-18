@@ -271,7 +271,8 @@ public class VectorVertexField<T extends VectorObject<T>>
          Point3d pos = new Point3d();
          Vector3d vec = new Vector3d();
          for (int idx=0; idx<myValues.size(); idx++) {
-            if (myValues.get(idx).getThreeVectorValue (vec)) {
+            T value = myValues.get(idx);
+            if (value != null && value.getThreeVectorValue (vec)) {
                Vertex3d vtx = myMeshComp.getMesh().getVertex (idx);
                addLineSegment (robj, vtx.getPosition(), vec);
             }

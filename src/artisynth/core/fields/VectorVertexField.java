@@ -274,7 +274,8 @@ public class VectorVertexField<T extends VectorObject<T>>
             T value = myValues.get(idx);
             if (value != null && value.getThreeVectorValue (vec)) {
                Vertex3d vtx = myMeshComp.getMesh().getVertex (idx);
-               addLineSegment (robj, vtx.getPosition(), vec);
+               vtx.getWorldPoint (pos);
+               addLineSegment (robj, pos, vec);
             }
          }
          return robj;

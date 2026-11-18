@@ -320,7 +320,7 @@ public class VectorFaceField<T extends VectorObject<T>>
             T value = myValues.get(idx);
             if (value != null && value.getThreeVectorValue(vec)) {
                Face face = ((PolygonalMesh)myMeshComp.getMesh()).getFace(idx);
-               face.computeCentroid (pos);
+               face.computeWorldCentroid (pos);
                addLineSegment (robj, pos, vec);
             }
          }

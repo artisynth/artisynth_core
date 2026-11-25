@@ -67,6 +67,8 @@ testSaveLoad ("artisynth.demos.mech.ConditionalMarkerDemo")
 testSaveLoad ("artisynth.demos.mech.ConditionalMarkerDemo", "-wrapping")
 testSaveLoad ("artisynth.demos.mech.CoordinateCouplingDemo")
 testSaveLoad ("artisynth.demos.mech.JointLimitDemo")
+testSaveLoad ("artisynth.demos.mech.HuxleyInvertedPendulum")
+testSaveLoad ("artisynth.demos.mech.HuxleyInvertedPendulum", "-type", "sls")
 
 testSaveLoad ("artisynth.demos.fem.ArticulatedFem")
 testSaveLoad ("artisynth.demos.fem.AttachDemo")

@@ -13,9 +13,10 @@ import maspack.util.DataBuffer;
 
 /**
  * Point-to-point muscle material based on Huxley's (1957) cross-bridge model,
- * as reduced to a system of ordinary differential equations using Zahalak's
- * (1981) distribution-moment (DM) approximation. Unlike Hill-type materials,
- * which prescribe force-velocity behavior directly, the force produced by this
+ * as reduced to a system of ordinary differential equations using Donovan's
+ * (2020) generalized distribution-moment (DM) approximation, which builds on
+ * Zahalak's (1981) original DM method. Unlike Hill-type materials, which
+ * prescribe force-velocity behavior directly, the force produced by this
  * material emerges from the attachment and detachment kinetics of a
  * population of cross-bridges. This results in history-dependent behavior
  * such as short-range stiffness, force transients following length changes,
@@ -48,7 +49,7 @@ import maspack.util.DataBuffer;
  * conditions the steady-state distribution is uniform on {@code [0, 1]} with
  * height {@code a f1/(f1+g1)}.
  *
- * <h2>Distribution-moment approximation</h2>
+ * <h2>Generalized distribution-moment approximation</h2>
  *
  * Rather than solving for {@code n(xi,t)} directly, the material tracks its
  * first three moments
@@ -61,8 +62,9 @@ import maspack.util.DataBuffer;
  * </pre>
  * where {@code beta_k}, {@code phi_k} and {@code psi_k} are the moments of
  * {@code f}, {@code f n} and {@code g n}. To evaluate {@code phi_k} and {@code
- * psi_k}, {@code n} is assumed to be a uniform distribution of height {@code
- * N} on the interval {@code [xi0-Delta, xi0+Delta]}, with
+ * psi_k}, {@code n} is assumed to be a uniform distribution (rather than
+ * Zahalak's Gaussian) of height {@code N} on the interval
+ * {@code [xi0-Delta, xi0+Delta]}, with
  * <pre>
  *   xi0 = Q1/Q0,  Delta = sqrt(3 (Q0 Q2 - Q1^2))/Q0,  N = Q0/(2 Delta).
  * </pre>
@@ -127,6 +129,9 @@ import maspack.util.DataBuffer;
  * <li>Zahalak GI (1981). A distribution-moment approximation for kinetic
  * theories of muscular contraction. <i>Mathematical Biosciences</i>,
  * 55:89-114.
+ * <li>Donovan GM (2020). Generalized distribution-moment approximation for
+ * kinetic theories of muscular contraction. <i>Mathematical Biosciences</i>,
+ * 329:108455.
  * </ul>
  */
 public class HuxleyAxialMuscle extends AxialMuscleMaterialBase

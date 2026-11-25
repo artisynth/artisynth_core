@@ -10,7 +10,8 @@ JAVA_TEST_PROGRAMS = \
 	AxialMaterialTest \
 	TensorUtilsTest \
 	Thelen2003AxialMuscleTest \
-	EquilibriumAxialMuscleTest
+	EquilibriumAxialMuscleTest \
+	HuxleyAxialMuscleTest
 
 default: build
 

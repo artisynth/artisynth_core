@@ -2184,8 +2184,10 @@ g_1 + g_2 (\xi - 1) & \xi > 1
 \end{equation*}
 %
 Rather than solving (\ref{huxley:eqn}) directly, the material uses
-Zahalak's distribution-moment approximation \cite{zahalak1981distribution},
-in which only the first three moments
+Donovan's generalized distribution-moment approximation
+\cite{donovan2020generalized}, which builds on Zahalak's original
+distribution-moment method \cite{zahalak1981distribution}. Only the
+first three moments
 %
 \begin{equation*}
 Q_\lambda(t) = \int_{-\infty}^{\infty} \xi^\lambda n(\xi, t) d\xi,
@@ -2193,8 +2195,8 @@ Q_\lambda(t) = \int_{-\infty}^{\infty} \xi^\lambda n(\xi, t) d\xi,
 \end{equation*}
 %
 are tracked, and $n(\xi, t)$ is assumed to be a uniform distribution
-whose height, center and width are determined by $Q_0$, $Q_1$ and
-$Q_2$. This assumption is exact under isometric steady-state
+(rather than Zahalak's Gaussian) whose height, center and width are
+determined by $Q_0$, $Q_1$ and $Q_2$. This assumption is exact under isometric steady-state
 conditions, for which $n$ is uniform on $[0, 1]$ with height $a f_1
 /(f_1 + g_1)$. $Q_0$ gives the fraction of attached cross-bridges,
 and the muscle tension $f$ and short-range stiffness $K$ are

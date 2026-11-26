@@ -2216,36 +2216,42 @@ where $d$ is an optional damping coefficient and
 The parameters are specified by the following properties:
 
 \begin{center}
-\begin{tabular}{|l|l|l|c|}
+\begin{tabular}{|l|l|l|c|c|}
 \hline
-& Property & Description & Default\\
+& Property & Description & Default & Units\\
 \hline
 $X$ & {\sf optFibreLength} &
-fibre length at which sarcomeres have length $s$ & 0.2 \\
+fibre length at which sarcomeres have length $s$ & 0.2 & m \\
 $A$ & {\sf crossSectionalArea} &
-physiological cross-sectional area & $1.5 \times 10^{-3}$ \\
-$d$ & {\sf damping} & linear damping coefficient & 0 \\
-$f_1$ & {\sf attachmentRate} & attachment rate constant & 15 \\
-$g_1$ & {\sf detachmentRate} & detachment rate constant & 8 \\
+physiological cross-sectional area & $1.5 \times 10^{-3}$ & m$^2$ \\
+$d$ & {\sf damping} & linear damping coefficient & 0 & N$\cdot$s/m \\
+$f_1$ & {\sf attachmentRate} & attachment rate constant & 15 & s$^{-1}$ \\
+$g_1$ & {\sf detachmentRate} & detachment rate constant & 8 & s$^{-1}$ \\
 $g_0$ & {\sf compressedDetachmentRate} &
-detachment rate for $\xi < 0$ & 170 \\
+detachment rate for $\xi < 0$ & 170 & s$^{-1}$ \\
 $g_2$ & {\sf extendedDetachmentRate} &
-detachment rate slope for $\xi > 1$ & 25 \\
-$s$ & {\sf sarcomereLength} & sarcomere length & $2.2 \times 10^{-6}$ \\
+detachment rate slope for $\xi > 1$ & 25 & s$^{-1}$ \\
+$s$ & {\sf sarcomereLength} & sarcomere length & $2.2 \times 10^{-6}$ & m \\
 $h$ & {\sf attachmentRange} &
-maximum cross-bridge attachment distance & $5 \times 10^{-9}$ \\
+maximum cross-bridge attachment distance & $5 \times 10^{-9}$ & m \\
 $\ell$ & {\sf actinSiteSpacing} &
-distance between actin binding sites & $3.6 \times 10^{-8}$ \\
+distance between actin binding sites & $3.6 \times 10^{-8}$ & m \\
 $k$ & {\sf crossBridgeStiffness} &
-stiffness of a single cross-bridge & $5 \times 10^{-3}$ \\
+stiffness of a single cross-bridge & $5 \times 10^{-3}$ & N/m \\
 $m$ & {\sf crossBridgeDensity} &
-number of cross-bridges per unit volume & $2.77 \times 10^{23}$ \\
+number of cross-bridges per unit volume & $2.77 \times 10^{23}$ & m$^{-3}$ \\
 \hline
 \end{tabular}
 \end{center}
 
-The default values assume SI units, and give a maximum isometric
-stress of approximately 34.5 N/cm$^2$. The read-only properties {\sf
+The default values assume SI units and follow the parameter set compiled
+in \cite{barrett2024muscle}: the rate constants ($f_1$, $g_0$, $g_1$,
+$g_2$) and sarcomere geometry ($s$, $h$, $\ell$) are from
+\cite{zahalak1990modeling}, the cross-bridge stiffness $k$ (5.0~pN/nm)
+is from \cite{ford1981relation,campbell2018force}, and the cross-bridge
+number density $m$ (corresponding to a myosin concentration of
+$460~\mu\text{M}$) is chosen to give a maximum isometric stress of
+approximately 34.5 N/cm$^2$. The read-only properties {\sf
 maxIsoForce} and {\sf maxIsoStiffness} give the force and short-range
 stiffness at the isometric steady state for an activation of 1, while
 {\sf stiffness} and {\sf moments} give the current short-range
@@ -2292,7 +2298,7 @@ The application model
 %
 uses {\tt HuxleyAxialMuscle} to stabilize an inverted pendulum with a
 pair of antagonistic muscles, which is then perturbed by a brief
-torque pulse. Since the short-range stiffness of the muscles is
+torque pulse, following \cite{barrett2024muscle}. Since the short-range stiffness of the muscles is
 proportional to their activation, the pendulum is stable only if the
 activation is large enough for each muscle's stiffness to exceed $m g
 L / (2 a^2)$, where $m$ is the pendulum mass, $L$ is the height of the

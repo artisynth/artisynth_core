@@ -1,4 +1,4 @@
-personal_ws-1.1 en 2599 
+personal_ws-1.1 en 2620 
 ABPointColor
 AJL
 ANSYS
@@ -132,6 +132,8 @@ DicomTest
 DicomTestImageMagick
 DicomViewer
 DistanceGridComp
+Donovan
+Donovan's
 DoubleFieldSlider
 DoubleInterval
 DynamicAgent
@@ -252,6 +254,10 @@ HexElement
 HingeJoint
 Holzbaur
 HueColorMap
+Huxley
+Huxley's
+HuxleyAxialMuscle
+HuxleyInvertedPendulum
 IDE
 IDEs
 IK
@@ -693,10 +699,13 @@ YeohMaterial
 Young
 YoungsModulus
 ZYX
+Zahalak
+Zahalak's
 Zaharia
 accessor
 accessors
 acosh
+actinSiteSpacing
 actionPerformed
 adaptively
 addAttachedFrame
@@ -798,6 +807,8 @@ attachPointsToMesh
 attachedFrames
 attachmentA
 attachmentB
+attachmentRange
+attachmentRate
 awt
 awtcomp
 axialSprings
@@ -906,6 +917,7 @@ colormap
 colormaps
 commentstyle
 complementarity
+compressedDetachmentRate
 computeAllVertexConnections
 computeAttachment
 computeContactArea
@@ -1004,6 +1016,9 @@ createSurfaceMesh
 createTorus
 createVertexIndices
 createVolumetricSurface
+crossBridgeDensity
+crossBridgeStiffness
+crossSectionalArea
 csetter
 cubically
 curPos
@@ -1037,6 +1052,7 @@ deleteComponentsAndDependencies
 destName
 detachFrame
 detachPoint
+detachmentRate
 deviatoric
 df
 di
@@ -1123,6 +1139,7 @@ exportCsvData
 exportTextData
 exprobe
 extendData
+extendedDetachmentRate
 extraMat
 faceColor
 faceNodes
@@ -1712,6 +1729,7 @@ maxExcitationJump
 maxF
 maxForce
 maxIsoForce
+maxIsoStiffness
 maxLam
 maxLambda
 maxLength
@@ -2070,6 +2088,8 @@ runtime
 rx
 ry
 rz
+sarcomere
+sarcomereLength
 saveModelState
 scaleDistance
 scaleMarkerPositions
@@ -2187,6 +2207,7 @@ setInterpolationOrder
 setInterval
 setInverseSquareWeighting
 setIsCollidable
+setIsometricSteadyState
 setJointRadius
 setL
 setLineColor

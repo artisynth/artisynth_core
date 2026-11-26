@@ -21,7 +21,8 @@ public abstract class AxialMaterial extends MaterialBase {
       Millard2012AxialTendon.class,
       Millard2012AxialLigament.class,
       Thelen2003AxialMuscle.class,
-      Thelen2003AxialTendon.class
+      Thelen2003AxialTendon.class,
+      HuxleyAxialMuscle.class
    };
 
    public static Class<?>[] getSubClasses() {

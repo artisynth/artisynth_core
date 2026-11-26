@@ -2139,6 +2139,174 @@ where {\tt fmax}, {\tt lopt}, {\tt tslack}, and {\tt optPenAng}
 specify $F_{o}$, $l_o$, $T$, and $\phi_o$, and other properties are
 set to their defaults.
 
+\subsection{Cross-bridge muscle materials}
+\label{HuxleyAxialMuscle:sec}
+
+The muscle materials described above are phenomenological, in that
+they prescribe the relationships between force, length, velocity and
+activation directly. ArtiSynth also provides
+\javaclass[artisynth.core.materials]{HuxleyAxialMuscle}, a
+point-to-point muscle material in which force instead emerges from
+the attachment and detachment kinetics of a population of
+cross-bridges, as described by Huxley's cross-bridge model
+\cite{huxley1957muscle}. This gives rise to history-dependent
+behaviors that are not captured by Hill-type models, including
+short-range stiffness, force transients following length changes, and
+force-velocity behavior that results from the kinetics.
+
+Let $n(\xi, t)$ denote the fraction of cross-bridges attached with a
+normalized strain $\xi = x/h$, where $x$ is the displacement of a
+cross-bridge from its unstrained position and $h$ is the {\it
+attachment range}. The distribution evolves according to
+%
+\begin{equation}
+\frac{\partial n}{\partial t} - u \frac{\partial n}{\partial \xi}
+= a f(\xi) - (f(\xi) + g(\xi)) n,
+\label{huxley:eqn}
+\end{equation}
+%
+where $a$ is the activation (given by the muscle excitation), $u$ is
+the normalized shortening velocity of the half-sarcomere, and
+$f(\xi)$ and $g(\xi)$ are the attachment and detachment rate
+functions:
+%
+\begin{equation*}
+f(\xi) = \begin{cases}
+f_1 \xi & 0 \le \xi \le 1 \\
+0 & \text{otherwise}
+\end{cases},
+\qquad
+g(\xi) = \begin{cases}
+g_0 & \xi < 0 \\
+g_1 \xi & 0 \le \xi \le 1 \\
+g_1 + g_2 (\xi - 1) & \xi > 1
+\end{cases}.
+\end{equation*}
+%
+Rather than solving (\ref{huxley:eqn}) directly, the material uses
+Donovan's generalized distribution-moment approximation
+\cite{donovan2020generalized}, which builds on Zahalak's original
+distribution-moment method \cite{zahalak1981distribution}. Only the
+first three moments
+%
+\begin{equation*}
+Q_\lambda(t) = \int_{-\infty}^{\infty} \xi^\lambda n(\xi, t) d\xi,
+\quad \lambda = 0, 1, 2
+\end{equation*}
+%
+are tracked, and $n(\xi, t)$ is assumed to be a uniform distribution
+(rather than Zahalak's Gaussian) whose height, center and width are
+determined by $Q_0$, $Q_1$ and $Q_2$. This assumption is exact under isometric steady-state
+conditions, for which $n$ is uniform on $[0, 1]$ with height $a f_1
+/(f_1 + g_1)$. $Q_0$ gives the fraction of attached cross-bridges,
+and the muscle tension $f$ and short-range stiffness $K$ are
+proportional to $Q_1$ and $Q_0$:
+%
+\begin{equation*}
+f = \Gamma_1 Q_1 + d \dot l, \qquad K = \Gamma_0 Q_0,
+\end{equation*}
+%
+where $d$ is an optional damping coefficient and
+%
+\begin{equation*}
+\Gamma_1 = \frac{A m s k h^2}{2 \ell}, \qquad
+\Gamma_0 = \frac{s}{2 h X} \Gamma_1.
+\end{equation*}
+%
+The parameters are specified by the following properties:
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|}
+\hline
+& Property & Description & Default & Units\\
+\hline
+$X$ & {\sf optFibreLength} &
+fibre length at which sarcomeres have length $s$ & 0.2 & m \\
+$A$ & {\sf crossSectionalArea} &
+physiological cross-sectional area & $1.5 \times 10^{-3}$ & m$^2$ \\
+$d$ & {\sf damping} & linear damping coefficient & 0 & N$\cdot$s/m \\
+$f_1$ & {\sf attachmentRate} & attachment rate constant & 15 & s$^{-1}$ \\
+$g_1$ & {\sf detachmentRate} & detachment rate constant & 8 & s$^{-1}$ \\
+$g_0$ & {\sf compressedDetachmentRate} &
+detachment rate for $\xi < 0$ & 170 & s$^{-1}$ \\
+$g_2$ & {\sf extendedDetachmentRate} &
+detachment rate slope for $\xi > 1$ & 25 & s$^{-1}$ \\
+$s$ & {\sf sarcomereLength} & sarcomere length & $2.2 \times 10^{-6}$ & m \\
+$h$ & {\sf attachmentRange} &
+maximum cross-bridge attachment distance & $5 \times 10^{-9}$ & m \\
+$\ell$ & {\sf actinSiteSpacing} &
+distance between actin binding sites & $3.6 \times 10^{-8}$ & m \\
+$k$ & {\sf crossBridgeStiffness} &
+stiffness of a single cross-bridge & $5 \times 10^{-3}$ & N/m \\
+$m$ & {\sf crossBridgeDensity} &
+number of cross-bridges per unit volume & $2.77 \times 10^{23}$ & m$^{-3}$ \\
+\hline
+\end{tabular}
+\end{center}
+
+The default values assume SI units and follow the parameter set compiled
+in \cite{barrett2024muscle}: the rate constants ($f_1$, $g_0$, $g_1$,
+$g_2$) and sarcomere geometry ($s$, $h$, $\ell$) are from
+\cite{zahalak1990modeling}, the cross-bridge stiffness $k$ (5.0~pN/nm)
+is from \cite{ford1981relation,campbell2018force}, and the cross-bridge
+number density $m$ (corresponding to a myosin concentration of
+$460~\mu\text{M}$) is chosen to give a maximum isometric stress of
+approximately 34.5 N/cm$^2$. The read-only properties {\sf
+maxIsoForce} and {\sf maxIsoStiffness} give the force and short-range
+stiffness at the isometric steady state for an activation of 1, while
+{\sf stiffness} and {\sf moments} give the current short-range
+stiffness and the current values of $Q_0$, $Q_1$ and $Q_2$. The muscle
+is tendonless; a tendon can be added by connecting the muscle in series
+with a tendon material (Section \ref{TendonsAndLigaments:sec}) via a
+connecting particle, as illustrated by {\tt EquilibriumMuscleDemo}
+(Figure \ref{EquilibriumMuscleDemo:fig}). Force-length effects are not
+currently modeled.
+
+{\tt HuxleyAxialMuscle}s can be created using the constructors
+% method table
+\begin{lstlisting}[]
+HuxleyAxialMuscle()
+HuxleyAxialMuscle(optFibreLength, area)
+HuxleyAxialMuscle(optFibreLength, area, damping)
+\end{lstlisting}
+%
+with other properties set to their defaults.
+
+Unlike most muscle materials, {\tt HuxleyAxialMuscle} has internal
+state (the moments $Q_\lambda$), which is advanced at each time step.
+Unless it is set explicitly using the method
+%
+\begin{lstlisting}[]
+  void setIsometricSteadyState (double a)
+\end{lstlisting}
+%
+the state is initialized to the isometric steady state corresponding
+to the excitation supplied when the force is first computed. A muscle
+whose excitation is set when the model is built will therefore start
+in equilibrium. The moments are advanced using an explicit integration
+of the kinetics combined with an exact treatment of the length change,
+which makes the force linear in the muscle length within each time
+step. Because the kinetics are explicit, the step size should be small
+compared with the inverse of the largest detachment rate; with the
+default rate constants, step sizes of 1 msec or less work well.
+
+The application model
+%
+\begin{verbatim}
+  artisynth.demos.mech.HuxleyInvertedPendulum
+\end{verbatim}
+%
+uses {\tt HuxleyAxialMuscle} to stabilize an inverted pendulum with a
+pair of antagonistic muscles, which is then perturbed by a brief
+torque pulse, following \cite{barrett2024muscle}. Since the short-range stiffness of the muscles is
+proportional to their activation, the pendulum is stable only if the
+activation is large enough for each muscle's stiffness to exceed $m g
+L / (2 a^2)$, where $m$ is the pendulum mass, $L$ is the height of the
+mass above the hinge, and $a$ is the horizontal offset of each muscle
+from the hinge. The model's {\tt -type} argument also allows the
+muscles to be replaced by linear springs, damped linear springs, or
+standard linear solids for comparison.
+
 % LATER \section{Mesh components}
 %OPTIONAL 
 % LATER \subsection{Fixed meshes}

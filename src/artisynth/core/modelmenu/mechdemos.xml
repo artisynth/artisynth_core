@@ -4,6 +4,7 @@
 <ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
 	<model text="Frame-Spring" class="artisynth.demos.mech.FrameSpringDemo" />	
+	<model text="Huxley Inverted Pendulum" class="artisynth.demos.mech.HuxleyInvertedPendulum" />
 	<model text="Layman" class="artsiynth.demos.mech.LaymanDemo" />
 	<model text="MechModel" class="artisynth.demos.mech.MechModelDemo" />
 	<model text="MechModel Collision" class="artisynth.demos.mech.MechModelCollide" />
